@@ -2,8 +2,13 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY ocr_worker.py .
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tesseract-ocr \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN pip install boto3 pillow opencv-python-headless
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY ocr_worker.py .
 
 CMD ["python", "ocr_worker.py"]
