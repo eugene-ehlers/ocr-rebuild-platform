@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "canonical_document_schema",
-  "description": "Controlled placeholder schema for the canonical OCR document model. Verified field definitions remain UNKNOWN.",
+  "description": "Controlled baseline schema for the canonical OCR document model. Hardened from the Phase 3 schema audit and aligned to the current page-level contract. Detailed pipeline-specific enrichments may expand without breaking this baseline contract.",
   "type": "object",
   "properties": {
     "document_id": {
@@ -23,27 +23,15 @@
     },
     "pages": {
       "type": "array",
-      "description": "Page-level document content.",
+      "description": "Page-level document content aligned to the controlled page schema.",
       "items": {
-        "type": "object",
-        "properties": {
-          "page_number": {
-            "type": "integer"
-          },
-          "extracted_text": {
-            "type": "string",
-            "default": "UNKNOWN"
-          }
-        },
-        "required": [
-          "page_number"
-        ],
-        "additionalProperties": true
-      }
+        "$ref": "page_schema.json"
+      },
+      "default": []
     },
     "metadata": {
       "type": "object",
-      "description": "Additional canonical metadata.",
+      "description": "Document-level canonical metadata, including pipeline summaries, enrichment summaries, lineage, and extensible control metadata.",
       "default": {}
     }
   },

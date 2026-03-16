@@ -1,16 +1,28 @@
 {
-  "Comment": "OCR Rebuild Master Pipeline",
+  "Comment": "OCR Rebuild Master Pipeline - controlled skeleton aligned to current service packaging",
   "StartAt": "GenerateManifest",
   "States": {
     "GenerateManifest": {
       "Type": "Task",
       "Resource": "arn:aws:lambda:REGION:ACCOUNT:function:manifest-generator-lambda-prod",
-      "Next": "Preprocessing"
+      "Next": "Preprocessing",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "PipelineFailure"
+        }
+      ]
     },
     "Preprocessing": {
       "Type": "Task",
       "Resource": "arn:aws:lambda:REGION:ACCOUNT:function:preprocessing-lambda-prod",
-      "Next": "OCR"
+      "Next": "OCR",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "PipelineFailure"
+        }
+      ]
     },
     "OCR": {
       "Type": "Task",
@@ -18,29 +30,83 @@
       "Parameters": {
         "LaunchType": "FARGATE",
         "Cluster": "ocr-rebuild-cluster",
-        "TaskDefinition": "ocr-engine-ecs-task-prod"
+        "TaskDefinition": "ocr-worker-task-prod"
       },
-      "Next": "TableExtraction"
+      "Next": "TableExtraction",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "PipelineFailure"
+        }
+      ]
     },
     "TableExtraction": {
       "Type": "Task",
-      "Resource": "arn:aws:lambda:REGION:ACCOUNT:function:table-extraction-lambda-prod",
-      "Next": "LogoTemplateRecognition"
+      "Resource": "arn:aws:states:::ecs:runTask.sync",
+      "Parameters": {
+        "LaunchType": "FARGATE",
+        "Cluster": "ocr-rebuild-cluster",
+        "TaskDefinition": "table-extraction-worker-task-prod"
+      },
+      "Next": "LogoTemplateRecognition",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "PipelineFailure"
+        }
+      ]
     },
     "LogoTemplateRecognition": {
       "Type": "Task",
-      "Resource": "arn:aws:lambda:REGION:ACCOUNT:function:logo-template-lambda-prod",
-      "Next": "FraudDetection"
+      "Resource": "arn:aws:states:::ecs:runTask.sync",
+      "Parameters": {
+        "LaunchType": "FARGATE",
+        "Cluster": "ocr-rebuild-cluster",
+        "TaskDefinition": "logo-recognition-worker-task-prod"
+      },
+      "Next": "FraudDetection",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "PipelineFailure"
+        }
+      ]
     },
     "FraudDetection": {
       "Type": "Task",
-      "Resource": "arn:aws:lambda:REGION:ACCOUNT:function:fraud-detection-lambda-prod",
-      "Next": "Aggregation"
+      "Resource": "arn:aws:states:::ecs:runTask.sync",
+      "Parameters": {
+        "LaunchType": "FARGATE",
+        "Cluster": "ocr-rebuild-cluster",
+        "TaskDefinition": "fraud-detection-worker-task-prod"
+      },
+      "Next": "Aggregation",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "PipelineFailure"
+        }
+      ]
     },
     "Aggregation": {
       "Type": "Task",
-      "Resource": "arn:aws:lambda:REGION:ACCOUNT:function:aggregation-lambda-prod",
-      "Next": "Complete"
+      "Resource": "arn:aws:states:::ecs:runTask.sync",
+      "Parameters": {
+        "LaunchType": "FARGATE",
+        "Cluster": "ocr-rebuild-cluster",
+        "TaskDefinition": "aggregation-worker-task-prod"
+      },
+      "Next": "Complete",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "PipelineFailure"
+        }
+      ]
+    },
+    "PipelineFailure": {
+      "Type": "Fail",
+      "Cause": "OCR rebuild pipeline failed"
     },
     "Complete": {
       "Type": "Succeed"

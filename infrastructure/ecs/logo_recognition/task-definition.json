@@ -1,0 +1,24 @@
+{
+  "family": "logo-recognition-worker-task-prod",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "1024",
+  "memory": "2048",
+  "executionRoleArn": "arn:aws:iam::ACCOUNT:role/ocr-rebuild-ecs-execution-role",
+  "taskRoleArn": "arn:aws:iam::ACCOUNT:role/ocr-rebuild-ecs-task-role",
+  "containerDefinitions": [
+    {
+      "name": "logo-recognition-worker",
+      "image": "ACCOUNT.dkr.ecr.REGION.amazonaws.com/logo-recognition-worker:latest",
+      "essential": true,
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/logo-recognition-worker",
+          "awslogs-region": "REGION",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

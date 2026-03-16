@@ -1,3 +1,137 @@
-# Page Schema
-Status: UNKNOWN
-Details: To be defined
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "page_schema",
+  "description": "Controlled baseline schema for page-level OCR pipeline outputs. Hardened from the Phase 3 schema audit. Detailed engine-specific payloads may expand without breaking this baseline contract.",
+  "type": "object",
+  "properties": {
+    "page_number": {
+      "type": "integer",
+      "description": "Sequential page number within the document.",
+      "minimum": 1
+    },
+    "extracted_text": {
+      "type": "string",
+      "description": "Extracted page text.",
+      "default": "UNKNOWN"
+    },
+    "rotation_angle": {
+      "type": "number",
+      "description": "Detected page rotation angle from preprocessing."
+    },
+    "orientation": {
+      "type": "string",
+      "description": "Detected page orientation."
+    },
+    "language_code": {
+      "type": "string",
+      "description": "Detected primary language code for the page."
+    },
+    "preprocessing_params": {
+      "type": "object",
+      "description": "Preprocessing parameters applied to the page.",
+      "default": {}
+    },
+    "line_block_word_confidence": {
+      "type": "object",
+      "description": "Granular OCR confidence structures for lines, blocks, and words.",
+      "default": {}
+    },
+    "tables": {
+      "type": "array",
+      "description": "Tables detected on the page.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "table_id": {
+            "type": "string"
+          },
+          "table_name": {
+            "type": "string"
+          },
+          "page_number": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "row_index": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "cells": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "column_name": {
+                        "type": "string"
+                      },
+                      "cell_text": {
+                        "type": "string"
+                      },
+                      "confidence_score": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "column_name",
+                      "cell_text"
+                    ],
+                    "additionalProperties": true
+                  },
+                  "default": []
+                }
+              },
+              "required": [
+                "row_index",
+                "cells"
+              ],
+              "additionalProperties": true
+            },
+            "default": []
+          }
+        },
+        "required": [
+          "table_id",
+          "page_number",
+          "rows"
+        ],
+        "additionalProperties": true
+      },
+      "default": []
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Page-level metadata including engine metadata, fraud flags, logos, confidence summaries, and pipeline history extensions.",
+      "default": {}
+    },
+    "previous_version_id": {
+      "type": "string",
+      "description": "Reference to prior page version for reprocessing lineage."
+    },
+    "multi_layer_text": {
+      "type": "array",
+      "description": "Optional layered text outputs from multiple languages or engines.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "default": []
+    },
+    "engine_name": {
+      "type": "string",
+      "description": "Engine used for this page output."
+    },
+    "engine_version": {
+      "type": "string",
+      "description": "Version of the engine used for this page output."
+    }
+  },
+  "required": [
+    "page_number"
+  ],
+  "additionalProperties": true
+}

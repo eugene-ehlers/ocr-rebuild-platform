@@ -1,3 +1,87 @@
-# Logo Detection Schema
-Status: UNKNOWN
-Details: To be defined
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "logo_detection_schema",
+  "description": "Controlled baseline schema for logo and template recognition outputs. Hardened from the Phase 3 schema audit. This schema defines the minimum page-level enrichment payload expected from the logo/template recognition stage.",
+  "type": "object",
+  "properties": {
+    "document_id": {
+      "type": "string",
+      "description": "Unique document identifier."
+    },
+    "page_number": {
+      "type": "integer",
+      "description": "Page number associated with the detection result.",
+      "minimum": 1
+    },
+    "logos": {
+      "type": "array",
+      "description": "Detected logos or template markers for the page.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "logo_id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "confidence_score": {
+            "type": "number"
+          },
+          "bounding_box": {
+            "type": "object",
+            "description": "Optional bounding box for detected logo/template region.",
+            "properties": {
+              "x": { "type": "number" },
+              "y": { "type": "number" },
+              "width": { "type": "number" },
+              "height": { "type": "number" }
+            },
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "additionalProperties": true
+      },
+      "default": []
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Stage-level metadata including engine traceability and execution notes.",
+      "properties": {
+        "stage": {
+          "type": "string",
+          "default": "logo_recognition"
+        },
+        "engine_name": {
+          "type": "string"
+        },
+        "engine_version": {
+          "type": "string"
+        },
+        "partial_execution": {
+          "type": "boolean",
+          "default": false
+        },
+        "notes": {
+          "type": "string",
+          "default": ""
+        }
+      },
+      "additionalProperties": true,
+      "default": {
+        "stage": "logo_recognition",
+        "partial_execution": false,
+        "notes": ""
+      }
+    }
+  },
+  "required": [
+    "document_id",
+    "page_number",
+    "logos"
+  ],
+  "additionalProperties": true
+}

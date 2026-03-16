@@ -1,0 +1,16 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - echo "Installing ECS build dependencies"
+  build:
+    commands:
+      - echo "Building and tagging ECS container images (placeholder)"
+  post_build:
+    commands:
+      - echo "ECS build complete (placeholder)"
+
+artifacts:
+  files:
+    - '**/*'

@@ -1,3 +1,68 @@
-# OCR Output Schema
-Status: UNKNOWN
-Details: To be defined
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ocr_output_schema",
+  "description": "Controlled baseline schema for OCR pipeline output. Hardened from the Phase 3 schema audit. This schema defines the minimum OCR stage payload expected before downstream aggregation.",
+  "type": "object",
+  "properties": {
+    "document_id": {
+      "type": "string",
+      "description": "Unique document identifier."
+    },
+    "source_uri": {
+      "type": "string",
+      "description": "Source document location."
+    },
+    "document_type": {
+      "type": "string",
+      "description": "Document type classification.",
+      "default": "UNKNOWN"
+    },
+    "ingestion_timestamp": {
+      "type": "string",
+      "description": "Document ingestion timestamp in ISO 8601 format."
+    },
+    "pages": {
+      "type": "array",
+      "description": "OCR-enriched page outputs aligned to the controlled page schema.",
+      "items": {
+        "$ref": "page_schema.json"
+      },
+      "default": []
+    },
+    "metadata": {
+      "type": "object",
+      "description": "OCR-stage metadata such as engine summary, execution notes, and stage-level traceability.",
+      "properties": {
+        "stage": {
+          "type": "string",
+          "default": "ocr"
+        },
+        "engine_name": {
+          "type": "string"
+        },
+        "engine_version": {
+          "type": "string"
+        },
+        "partial_execution": {
+          "type": "boolean",
+          "default": false
+        },
+        "notes": {
+          "type": "string",
+          "default": ""
+        }
+      },
+      "additionalProperties": true,
+      "default": {
+        "stage": "ocr",
+        "partial_execution": false,
+        "notes": ""
+      }
+    }
+  },
+  "required": [
+    "document_id",
+    "pages"
+  ],
+  "additionalProperties": true
+}

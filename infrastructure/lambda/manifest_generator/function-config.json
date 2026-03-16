@@ -1,0 +1,9 @@
+{
+  "function_name": "manifest-generator-lambda-prod",
+  "runtime": "python3.11",
+  "handler": "lambda_function.lambda_handler",
+  "timeout": 60,
+  "memory_size": 512,
+  "role": "arn:aws:iam::ACCOUNT:role/ocr-rebuild-lambda-role",
+  "description": "Controlled skeleton config for manifest generation Lambda."
+}

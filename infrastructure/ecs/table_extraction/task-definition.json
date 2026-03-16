@@ -1,0 +1,24 @@
+{
+  "family": "table-extraction-worker-task-prod",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "1024",
+  "memory": "2048",
+  "executionRoleArn": "arn:aws:iam::ACCOUNT:role/ocr-rebuild-ecs-execution-role",
+  "taskRoleArn": "arn:aws:iam::ACCOUNT:role/ocr-rebuild-ecs-task-role",
+  "containerDefinitions": [
+    {
+      "name": "table-extraction-worker",
+      "image": "ACCOUNT.dkr.ecr.REGION.amazonaws.com/table-extraction-worker:latest",
+      "essential": true,
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/table-extraction-worker",
+          "awslogs-region": "REGION",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: OCR Rebuild infrastructure placeholder stack
+
+Resources: {}
+
+Outputs: {}

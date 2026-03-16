@@ -1,3 +1,100 @@
-# Entity Extraction Schema
-Status: UNKNOWN
-Details: To be defined
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "entity_extraction_schema",
+  "description": "Controlled baseline schema for structured entity extraction outputs. This is a minimum extensible contract for downstream extraction stages and aggregation. Detailed entity-type-specific payloads may expand without breaking this baseline contract.",
+  "type": "object",
+  "properties": {
+    "document_id": {
+      "type": "string",
+      "description": "Unique document identifier."
+    },
+    "page_number": {
+      "type": "integer",
+      "description": "Page number associated with the extracted entities.",
+      "minimum": 1
+    },
+    "entities": {
+      "type": "array",
+      "description": "Structured entities extracted from the page or document context.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "entity_id": {
+            "type": "string"
+          },
+          "entity_type": {
+            "type": "string",
+            "description": "Type/category of the extracted entity."
+          },
+          "entity_text": {
+            "type": "string",
+            "description": "Raw text representing the entity."
+          },
+          "normalized_value": {
+            "description": "Normalized representation of the entity value where available."
+          },
+          "confidence_score": {
+            "type": "number"
+          },
+          "bounding_box": {
+            "type": "object",
+            "description": "Optional spatial coordinates for the extracted entity.",
+            "properties": {
+              "x": { "type": "number" },
+              "y": { "type": "number" },
+              "width": { "type": "number" },
+              "height": { "type": "number" }
+            },
+            "additionalProperties": true
+          },
+          "metadata": {
+            "type": "object",
+            "default": {}
+          }
+        },
+        "required": [
+          "entity_type",
+          "entity_text"
+        ],
+        "additionalProperties": true
+      },
+      "default": []
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Stage-level metadata including execution notes, extraction method, and partial processing indicators.",
+      "properties": {
+        "stage": {
+          "type": "string",
+          "default": "entity_extraction"
+        },
+        "extractor_name": {
+          "type": "string"
+        },
+        "extractor_version": {
+          "type": "string"
+        },
+        "partial_execution": {
+          "type": "boolean",
+          "default": false
+        },
+        "notes": {
+          "type": "string",
+          "default": ""
+        }
+      },
+      "additionalProperties": true,
+      "default": {
+        "stage": "entity_extraction",
+        "partial_execution": false,
+        "notes": ""
+      }
+    }
+  },
+  "required": [
+    "document_id",
+    "page_number",
+    "entities"
+  ],
+  "additionalProperties": true
+}
