@@ -92,9 +92,16 @@ Required repositories:
 - `fraud-detection-worker`
 - `aggregation-worker`
 
+Operational baseline for all OCR rebuild ECR repositories:
+
+- image tag mutability: `IMMUTABLE`
+- image scanning on push: enabled
+- encryption: KMS
+- KMS key: `alias/ocr-rebuild-platform`
+
 Example command:
 
-    aws ecr create-repository --repository-name ocr-worker
+    aws ecr create-repository --repository-name ocr-worker --image-tag-mutability IMMUTABLE --image-scanning-configuration scanOnPush=true --encryption-configuration encryptionType=KMS,kmsKey=alias/ocr-rebuild-platform
 
 ## 5. Container Image Build
 
