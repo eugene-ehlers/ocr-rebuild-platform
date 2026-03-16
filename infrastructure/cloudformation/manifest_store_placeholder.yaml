@@ -1,0 +1,19 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: OCR Rebuild manifest store placeholder
+
+Resources:
+  ManifestTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ocr-rebuild-manifest-store
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: manifest_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: manifest_id
+          KeyType: HASH
+
+Outputs:
+  ManifestTableName:
+    Value: !Ref ManifestTable

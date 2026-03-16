@@ -1,6 +1,7 @@
 import importlib.util
 import json
 from pathlib import Path
+from unittest.mock import patch
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -57,14 +58,18 @@ def test_entity_extraction_schema_is_valid_json():
 
 def test_manifest_generator_contract():
     mod = load_module("manifest_generator", "services/manifest_generator/lambda_function.py")
-    result = mod.lambda_handler({"document_id": "doc-1", "source_uri": "s3://bucket/file.pdf"}, None)
+
+    with patch.object(mod, "save_manifest", return_value={"status": "saved", "manifest_id": "UNKNOWN"}):
+        result = mod.lambda_handler({"document_id": "doc-1", "source_uri": "s3://bucket/file.pdf"}, None)
 
     assert result["statusCode"] == 200
     assert "manifest" in result
+    assert "persistence" in result
     manifest = result["manifest"]
     assert manifest["manifest_id"] == "UNKNOWN"
     assert manifest["documents"][0]["document_id"] == "doc-1"
     assert "pipeline_history" in manifest
+    assert result["persistence"]["status"] == "saved"
 
 
 def test_preprocessing_contract():

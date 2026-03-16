@@ -1,7 +1,14 @@
-import json
 import logging
+import os
+import sys
 from datetime import datetime, timezone
 from typing import Any, Dict, List
+
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+if CURRENT_DIR not in sys.path:
+    sys.path.append(CURRENT_DIR)
+
+from manifest_store import save_manifest
 
 
 logging.basicConfig(level=logging.INFO)
@@ -68,8 +75,8 @@ def build_manifest(event: Dict[str, Any]) -> Dict[str, Any]:
                 "status": "completed_placeholder",
                 "timestamp": utc_now_iso(),
                 "engine_name": "manifest_generator",
-                "engine_version": "skeleton_v1",
-                "notes": "Initial controlled manifest scaffold generated."
+                "engine_version": "skeleton_v2",
+                "notes": "Initial controlled manifest scaffold generated and prepared for persistence."
             }
         ]
     }
@@ -78,8 +85,10 @@ def build_manifest(event: Dict[str, Any]) -> Dict[str, Any]:
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     logger.info("Manifest generation invoked.")
     manifest = build_manifest(event or {})
+    save_result = save_manifest(manifest)
 
     return {
         "statusCode": 200,
-        "manifest": manifest
+        "manifest": manifest,
+        "persistence": save_result
     }
