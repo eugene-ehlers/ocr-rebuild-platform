@@ -38,10 +38,6 @@ def load_input(payload_path: str) -> Dict[str, Any]:
 def build_pages(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
     """
     Preserve enriched page structures coming from upstream pipeline stages.
-
-    This controlled skeleton does not perform deep merge logic across multiple
-    independent stage payloads yet. It assumes the upstream payload already
-    carries the latest page-level view.
     """
     pages = payload.get("pages", [])
     if not isinstance(pages, list):
@@ -66,12 +62,46 @@ def build_pages(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
     return output_pages
 
 
+def summarize_pages(pages: List[Dict[str, Any]]) -> Dict[str, Any]:
+    table_count = 0
+    logo_count = 0
+    fraud_flag_count = 0
+    non_empty_pages = 0
+    total_extracted_characters = 0
+
+    for page in pages:
+        if not isinstance(page, dict):
+            continue
+
+        extracted_text = page.get("extracted_text", "") or ""
+        if extracted_text.strip():
+            non_empty_pages += 1
+            total_extracted_characters += len(extracted_text)
+
+        table_count += len(page.get("tables", []) or [])
+
+        metadata = page.get("metadata", {})
+        if isinstance(metadata, dict):
+            logo_count += len(metadata.get("logos", []) or [])
+            fraud_flag_count += len(metadata.get("fraud_flags", []) or [])
+
+    return {
+        "page_count": len(pages),
+        "non_empty_pages": non_empty_pages,
+        "total_extracted_characters": total_extracted_characters,
+        "tables_detected": table_count,
+        "logos_detected": logo_count,
+        "fraud_flags_detected": fraud_flag_count
+    }
+
+
 def build_canonical_document(payload: Dict[str, Any]) -> Dict[str, Any]:
     """
     Build canonical document aligned to docs/03_data_model/canonical_document_schema.json
     and the hardened page-level contract.
     """
     canonical_pages = build_pages(payload)
+    summary = summarize_pages(canonical_pages)
 
     return {
         "document_id": payload.get("document_id", "UNKNOWN"),
@@ -80,9 +110,9 @@ def build_canonical_document(payload: Dict[str, Any]) -> Dict[str, Any]:
         "ingestion_timestamp": payload.get("ingestion_timestamp", utc_now_iso()),
         "pages": canonical_pages,
         "metadata": {
-            "aggregation_status": "completed_placeholder",
-            "aggregation_note": "Canonical document assembled from current unified page payload.",
-            "page_count": len(canonical_pages)
+            "aggregation_status": "completed_real_increment",
+            "aggregation_note": "Canonical document assembled from unified page payload with document-level summary metadata.",
+            **summary
         }
     }
 
@@ -101,7 +131,7 @@ def build_manifest_update(payload: Dict[str, Any], canonical_document: Dict[str,
             }
         ],
         "processing_parameters": {
-            "aggregation_status": "completed_placeholder"
+            "aggregation_status": "completed_real_increment"
         },
         "pipeline_status": "completed",
         "retry_count": payload.get("retry_count", 0),
@@ -115,11 +145,11 @@ def build_manifest_update(payload: Dict[str, Any], canonical_document: Dict[str,
         "pipeline_history": [
             {
                 "stage": "aggregation",
-                "status": "completed_placeholder",
+                "status": "completed_real_increment",
                 "timestamp": utc_now_iso(),
                 "engine_name": "aggregation_worker",
-                "engine_version": "skeleton_v2",
-                "notes": "Canonical document and manifest update assembled from unified page payload."
+                "engine_version": "v0.3",
+                "notes": "Canonical document and manifest update assembled with document-level summary metadata."
             }
         ]
     }
@@ -133,7 +163,7 @@ def build_output(payload: Dict[str, Any]) -> Dict[str, Any]:
         "metadata": {
             "stage": "aggregation",
             "partial_execution": False,
-            "notes": "Placeholder aggregation output mapped to hardened canonical and manifest schemas."
+            "notes": "Aggregation output mapped to hardened canonical and manifest schemas with summary metadata."
         },
         "canonical_document": canonical_document,
         "manifest_update": manifest_update
@@ -150,7 +180,7 @@ def main() -> None:
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2)
 
-    logger.info("Aggregation skeleton completed. Output written to %s", output_path)
+    logger.info("Aggregation worker completed. Output written to %s", output_path)
 
 
 if __name__ == "__main__":

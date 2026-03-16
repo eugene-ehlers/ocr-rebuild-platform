@@ -227,8 +227,43 @@ def test_fraud_detection_contract():
 
 def test_aggregation_contract():
     mod = load_module("aggregation_worker", "services/aggregation/aggregation_worker.py")
-    result = mod.build_output({"document_id": "doc-1", "manifest_id": "man-1", "source_uri": "s3://bucket/file.pdf", "pages": []})
+    result = mod.build_output(
+        {
+            "document_id": "doc-1",
+            "manifest_id": "man-1",
+            "source_uri": "s3://bucket/file.pdf",
+            "pages": [
+                {
+                    "page_number": 1,
+                    "extracted_text": "Tax Invoice\nInvoice Number: 12345",
+                    "tables": [
+                        {
+                            "table_id": "page_1_table_1",
+                            "table_name": "heuristic_text_table",
+                            "page_number": 1,
+                            "rows": []
+                        }
+                    ],
+                    "metadata": {
+                        "logos": [{"label": "invoice"}],
+                        "fraud_flags": [{"flag_type": "blank_page_text"}]
+                    }
+                },
+                {
+                    "page_number": 2,
+                    "extracted_text": ""
+                }
+            ]
+        }
+    )
 
     assert "canonical_document" in result
     assert "manifest_update" in result
     assert result["canonical_document"]["document_id"] == "doc-1"
+    summary = result["canonical_document"]["metadata"]
+    assert summary["page_count"] == 2
+    assert summary["non_empty_pages"] == 1
+    assert summary["tables_detected"] == 1
+    assert summary["logos_detected"] == 1
+    assert summary["fraud_flags_detected"] == 1
+    assert summary["total_extracted_characters"] > 0
