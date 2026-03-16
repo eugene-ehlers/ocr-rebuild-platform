@@ -176,12 +176,27 @@ def test_table_extraction_contract():
 
 def test_logo_recognition_contract():
     mod = load_module("logo_worker", "services/logo_recognition/logo_worker.py")
-    result = mod.build_output({"document_id": "doc-1", "manifest_id": "man-1", "source_uri": "s3://bucket/file.pdf", "pages": []})
+    result = mod.build_output(
+        {
+            "document_id": "doc-1",
+            "manifest_id": "man-1",
+            "source_uri": "s3://bucket/file.pdf",
+            "pages": [
+                {
+                    "page_number": 1,
+                    "extracted_text": "Tax Invoice\nInvoice Number: 12345"
+                }
+            ]
+        }
+    )
 
     assert result["document_id"] == "doc-1"
     assert "pages" in result
     assert "metadata" in result
     assert "manifest_update" in result
+    assert len(result["pages"][0]["metadata"]["logos"]) >= 1
+    assert result["pages"][0]["metadata"]["logos"][0]["label"] == "invoice"
+    assert result["metadata"]["logos_detected"] >= 1
 
 
 def test_fraud_detection_contract():

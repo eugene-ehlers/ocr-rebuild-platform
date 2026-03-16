@@ -8,6 +8,14 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+KNOWN_TEMPLATE_MARKERS = {
+    "invoice": ["invoice", "tax invoice", "invoice number"],
+    "bank_statement": ["bank statement", "account number", "statement period"],
+    "payslip": ["payslip", "employee number", "gross pay"],
+    "id_document": ["identity number", "date of birth", "nationality"]
+}
+
+
 def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -28,12 +36,31 @@ def load_input(payload_path: str) -> Dict[str, Any]:
 
 def detect_logos_for_page(page: Dict[str, Any]) -> List[Dict[str, Any]]:
     """
-    Placeholder page-level logo/template detection logic.
+    First controlled real increment:
+    detect simple template/logo markers from extracted page text only.
     """
     page_number = page.get("page_number", 1)
-    logger.info("Logo recognition placeholder invoked for page_number=%s", page_number)
+    text = (page.get("extracted_text", "") or "").lower()
 
-    return []
+    findings: List[Dict[str, Any]] = []
+
+    for label, markers in KNOWN_TEMPLATE_MARKERS.items():
+        matched = [marker for marker in markers if marker in text]
+        if matched:
+            findings.append({
+                "logo_id": f"{label}_{page_number}",
+                "label": label,
+                "confidence_score": 0.6,
+                "matched_markers": matched
+            })
+
+    logger.info(
+        "Logo recognition increment processed page_number=%s findings=%s",
+        page_number,
+        len(findings)
+    )
+
+    return findings
 
 
 def build_pages(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -52,7 +79,7 @@ def build_pages(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
         metadata = dict(page.get("metadata", {})) if isinstance(page.get("metadata", {}), dict) else {}
         metadata.update({
             "logos": page_logos,
-            "logo_recognition_stage": "completed_placeholder"
+            "logo_recognition_stage": "completed_real_increment"
         })
         enriched_page["metadata"] = metadata
 
@@ -78,7 +105,7 @@ def build_output(payload: Dict[str, Any]) -> Dict[str, Any]:
         "metadata": {
             "stage": "logo_recognition",
             "partial_execution": False,
-            "notes": "Placeholder logo recognition output mapped to controlled schema.",
+            "notes": "Initial real logo recognition increment using text/template heuristics.",
             "logos_detected": total_logos
         },
         "manifest_update": {
@@ -88,11 +115,11 @@ def build_output(payload: Dict[str, Any]) -> Dict[str, Any]:
             "pipeline_history": [
                 {
                     "stage": "logo_recognition",
-                    "status": "completed_placeholder",
+                    "status": "completed_real_increment",
                     "timestamp": utc_now_iso(),
                     "engine_name": "logo_recognition_worker",
-                    "engine_version": "skeleton_v1",
-                    "notes": "Logo recognition placeholder results generated."
+                    "engine_version": "v0.2",
+                    "notes": "Template marker detection from OCR text executed."
                 }
             ]
         }
@@ -109,7 +136,7 @@ def main():
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2)
 
-    logger.info("Logo recognition skeleton completed")
+    logger.info("Logo recognition worker completed")
 
 
 if __name__ == "__main__":
