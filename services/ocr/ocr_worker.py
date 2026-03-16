@@ -12,10 +12,24 @@ from PIL import Image
 s3 = boto3.client("s3")
 RESULT_BUCKET = os.environ.get("RESULT_BUCKET", "UNKNOWN")
 PROCESSED_BUCKET = os.environ.get("PROCESSED_BUCKET", "UNKNOWN")
+OCR_INPUT = os.environ.get("OCR_INPUT", "/tmp/ocr_input.json")
+OCR_OUTPUT = os.environ.get("OCR_OUTPUT", "/tmp/ocr_output.json")
 
 
 def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def load_input(payload_path: str) -> Dict[str, Any]:
+    if not payload_path or not os.path.exists(payload_path):
+        return {
+            "document_id": "UNKNOWN",
+            "source_uri": "UNKNOWN",
+            "pages": []
+        }
+
+    with open(payload_path, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 
 def run_tesseract_on_image(image_bytes: bytes) -> Dict[str, Any]:
@@ -98,5 +112,15 @@ def run(event: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def main() -> None:
+    payload = load_input(OCR_INPUT)
+    result = run(payload)
+
+    with open(OCR_OUTPUT, "w", encoding="utf-8") as f:
+        json.dump(result, f, indent=2)
+
+    print(json.dumps({"status": "OCR worker completed", "output_path": OCR_OUTPUT}))
+
+
 if __name__ == "__main__":
-    print(json.dumps({"status": "OCR worker started"}))
+    main()

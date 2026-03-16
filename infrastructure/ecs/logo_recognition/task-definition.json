@@ -11,6 +11,10 @@
       "name": "logo-recognition-worker",
       "image": "ACCOUNT.dkr.ecr.REGION.amazonaws.com/logo-recognition-worker:latest",
       "essential": true,
+      "environment": [
+        { "name": "LOGO_INPUT", "value": "/tmp/logo_input.json" },
+        { "name": "LOGO_OUTPUT", "value": "/tmp/logo_output.json" }
+      ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {

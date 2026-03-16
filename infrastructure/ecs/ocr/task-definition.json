@@ -11,6 +11,12 @@
       "name": "ocr-worker",
       "image": "ACCOUNT.dkr.ecr.REGION.amazonaws.com/ocr-worker:latest",
       "essential": true,
+      "environment": [
+        { "name": "PROCESSED_BUCKET", "value": "ocr-rebuild-processed-bucket" },
+        { "name": "RESULT_BUCKET", "value": "ocr-rebuild-results-bucket" },
+        { "name": "OCR_INPUT", "value": "/tmp/ocr_input.json" },
+        { "name": "OCR_OUTPUT", "value": "/tmp/ocr_output.json" }
+      ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {

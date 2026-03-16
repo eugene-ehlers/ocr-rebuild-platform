@@ -11,6 +11,10 @@
       "name": "fraud-detection-worker",
       "image": "ACCOUNT.dkr.ecr.REGION.amazonaws.com/fraud-detection-worker:latest",
       "essential": true,
+      "environment": [
+        { "name": "FRAUD_INPUT", "value": "/tmp/fraud_input.json" },
+        { "name": "FRAUD_OUTPUT", "value": "/tmp/fraud_output.json" }
+      ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {

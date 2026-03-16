@@ -5,5 +5,10 @@
   "timeout": 60,
   "memory_size": 512,
   "role": "arn:aws:iam::ACCOUNT:role/ocr-rebuild-lambda-role",
-  "description": "Controlled skeleton config for manifest generation Lambda."
+  "description": "Controlled config for manifest generation Lambda.",
+  "environment": {
+    "variables": {
+      "MANIFEST_TABLE": "ocr-rebuild-manifest-store"
+    }
+  }
 }

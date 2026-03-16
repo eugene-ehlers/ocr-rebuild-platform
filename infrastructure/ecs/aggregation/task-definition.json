@@ -11,6 +11,11 @@
       "name": "aggregation-worker",
       "image": "ACCOUNT.dkr.ecr.REGION.amazonaws.com/aggregation-worker:latest",
       "essential": true,
+      "environment": [
+        { "name": "AGGREGATION_INPUT", "value": "/tmp/aggregation_input.json" },
+        { "name": "AGGREGATION_OUTPUT", "value": "/tmp/aggregation_output.json" },
+        { "name": "MANIFEST_TABLE", "value": "ocr-rebuild-manifest-store" }
+      ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {

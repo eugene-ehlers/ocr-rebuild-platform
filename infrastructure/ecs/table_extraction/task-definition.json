@@ -11,6 +11,10 @@
       "name": "table-extraction-worker",
       "image": "ACCOUNT.dkr.ecr.REGION.amazonaws.com/table-extraction-worker:latest",
       "essential": true,
+      "environment": [
+        { "name": "TABLE_EXTRACTION_INPUT", "value": "/tmp/table_extraction_input.json" },
+        { "name": "TABLE_EXTRACTION_OUTPUT", "value": "/tmp/table_extraction_output.json" }
+      ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
