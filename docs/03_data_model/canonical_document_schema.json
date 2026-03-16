@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "canonical_document_schema",
+  "description": "Controlled placeholder schema for the canonical OCR document model. Verified field definitions remain UNKNOWN.",
+  "type": "object",
+  "properties": {
+    "document_id": {
+      "type": "string",
+      "description": "Unique document identifier."
+    },
+    "source_uri": {
+      "type": "string",
+      "description": "Source document location."
+    },
+    "document_type": {
+      "type": "string",
+      "description": "Document type classification.",
+      "default": "UNKNOWN"
+    },
+    "ingestion_timestamp": {
+      "type": "string",
+      "description": "Document ingestion timestamp in ISO 8601 format."
+    },
+    "pages": {
+      "type": "array",
+      "description": "Page-level document content.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "page_number": {
+            "type": "integer"
+          },
+          "extracted_text": {
+            "type": "string",
+            "default": "UNKNOWN"
+          }
+        },
+        "required": [
+          "page_number"
+        ],
+        "additionalProperties": true
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional canonical metadata.",
+      "default": {}
+    }
+  },
+  "required": [
+    "document_id"
+  ],
+  "additionalProperties": true
+}

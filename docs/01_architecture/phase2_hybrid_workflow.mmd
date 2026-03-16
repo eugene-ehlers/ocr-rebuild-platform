@@ -1,0 +1,31 @@
+%% OCR Rebuild Phase 2 - Hybrid Processing Workflow
+
+flowchart TD
+    A[Document Upload] --> B[Determine Document Size & Type]
+
+    B -->|Small| C[Page-level parallel pipelines]
+    B -->|Medium/Large| D[Batch-level parallel pipelines]
+    B -->|Very Large| E[Streaming/sequential batch pipelines]
+
+    C --> F[Pipeline Execution & Canonical Output]
+    D --> F
+    E --> F
+
+    F --> G[Canonical JSON Output]
+
+    %% Solution Boundaries
+    subgraph In-Scope [OCR Solution Boundary]
+        B
+        C
+        D
+        E
+        F
+    end
+
+    subgraph Out-of-Scope [External Systems / Out of Scope]
+        H[Front-end UI / Dashboards]
+        I[Downstream Analytics / Business Logic]
+    end
+
+    F --> H
+    F --> I

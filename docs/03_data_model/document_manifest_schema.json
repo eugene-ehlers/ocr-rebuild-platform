@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "document_manifest_schema",
+  "description": "Controlled placeholder schema describing processing manifests for OCR document batches. Verified field definitions remain UNKNOWN.",
+  "type": "object",
+  "properties": {
+    "manifest_id": {
+      "type": "string",
+      "description": "Unique identifier for the processing manifest."
+    },
+    "creation_timestamp": {
+      "type": "string",
+      "description": "Manifest creation timestamp in ISO 8601 format."
+    },
+    "source_batch_uri": {
+      "type": "string",
+      "description": "Location of the source document batch."
+    },
+    "documents": {
+      "type": "array",
+      "description": "Documents included in the processing batch.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string"
+          },
+          "source_uri": {
+            "type": "string"
+          },
+          "expected_document_type": {
+            "type": "string",
+            "default": "UNKNOWN"
+          }
+        },
+        "required": [
+          "document_id"
+        ],
+        "additionalProperties": true
+      }
+    },
+    "processing_parameters": {
+      "type": "object",
+      "description": "Processing configuration applied to this batch.",
+      "default": {}
+    }
+  },
+  "required": [
+    "manifest_id"
+  ],
+  "additionalProperties": true
+}
