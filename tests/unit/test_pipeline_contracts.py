@@ -201,12 +201,28 @@ def test_logo_recognition_contract():
 
 def test_fraud_detection_contract():
     mod = load_module("fraud_worker", "services/fraud_detection/fraud_worker.py")
-    result = mod.build_output({"document_id": "doc-1", "manifest_id": "man-1", "source_uri": "s3://bucket/file.pdf", "pages": []})
+    result = mod.build_output(
+        {
+            "document_id": "doc-1",
+            "manifest_id": "man-1",
+            "source_uri": "s3://bucket/file.pdf",
+            "pages": [
+                {"page_number": 1, "extracted_text": ""},
+                {"page_number": 2, "extracted_text": "same text on page"},
+                {"page_number": 3, "extracted_text": "same text on page"}
+            ]
+        }
+    )
 
     assert result["document_id"] == "doc-1"
     assert "pages" in result
     assert "metadata" in result
     assert "manifest_update" in result
+    assert len(result["pages"][0]["metadata"]["fraud_flags"]) >= 1
+    assert result["pages"][0]["metadata"]["fraud_flags"][0]["flag_type"] == "blank_page_text"
+    duplicate_flags = result["pages"][2]["metadata"]["fraud_flags"]
+    assert any(flag["flag_type"] == "duplicate_page_text" for flag in duplicate_flags)
+    assert result["metadata"]["fraud_flags_detected"] >= 2
 
 
 def test_aggregation_contract():
