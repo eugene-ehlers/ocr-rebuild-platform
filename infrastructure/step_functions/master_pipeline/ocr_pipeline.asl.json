@@ -1,14 +1,24 @@
 {
-  "Comment": "OCR Rebuild Master Pipeline - controlled skeleton aligned to current service packaging",
+  "Comment": "OCR Rebuild Master Pipeline - controlled hardened skeleton with retries and result paths",
   "StartAt": "GenerateManifest",
   "States": {
     "GenerateManifest": {
       "Type": "Task",
       "Resource": "arn:aws:lambda:REGION:ACCOUNT:function:manifest-generator-lambda-prod",
+      "ResultPath": "$",
       "Next": "Preprocessing",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0
+        }
+      ],
       "Catch": [
         {
           "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
           "Next": "PipelineFailure"
         }
       ]
@@ -16,10 +26,20 @@
     "Preprocessing": {
       "Type": "Task",
       "Resource": "arn:aws:lambda:REGION:ACCOUNT:function:preprocessing-lambda-prod",
+      "ResultPath": "$",
       "Next": "OCR",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0
+        }
+      ],
       "Catch": [
         {
           "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
           "Next": "PipelineFailure"
         }
       ]
@@ -32,10 +52,20 @@
         "Cluster": "ocr-rebuild-cluster",
         "TaskDefinition": "ocr-worker-task-prod"
       },
+      "ResultPath": "$",
       "Next": "TableExtraction",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0
+        }
+      ],
       "Catch": [
         {
           "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
           "Next": "PipelineFailure"
         }
       ]
@@ -48,10 +78,20 @@
         "Cluster": "ocr-rebuild-cluster",
         "TaskDefinition": "table-extraction-worker-task-prod"
       },
+      "ResultPath": "$",
       "Next": "LogoTemplateRecognition",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0
+        }
+      ],
       "Catch": [
         {
           "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
           "Next": "PipelineFailure"
         }
       ]
@@ -64,10 +104,20 @@
         "Cluster": "ocr-rebuild-cluster",
         "TaskDefinition": "logo-recognition-worker-task-prod"
       },
+      "ResultPath": "$",
       "Next": "FraudDetection",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0
+        }
+      ],
       "Catch": [
         {
           "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
           "Next": "PipelineFailure"
         }
       ]
@@ -80,10 +130,20 @@
         "Cluster": "ocr-rebuild-cluster",
         "TaskDefinition": "fraud-detection-worker-task-prod"
       },
+      "ResultPath": "$",
       "Next": "Aggregation",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0
+        }
+      ],
       "Catch": [
         {
           "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
           "Next": "PipelineFailure"
         }
       ]
@@ -96,10 +156,20 @@
         "Cluster": "ocr-rebuild-cluster",
         "TaskDefinition": "aggregation-worker-task-prod"
       },
+      "ResultPath": "$",
       "Next": "Complete",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0
+        }
+      ],
       "Catch": [
         {
           "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
           "Next": "PipelineFailure"
         }
       ]
