@@ -1,40 +1,61 @@
 import json
 import os
 from datetime import datetime, timezone
+from io import BytesIO
 from typing import Any, Dict, List
 
+import boto3
+import pytesseract
+from PIL import Image
 
+
+s3 = boto3.client("s3")
 RESULT_BUCKET = os.environ.get("RESULT_BUCKET", "UNKNOWN")
+PROCESSED_BUCKET = os.environ.get("PROCESSED_BUCKET", "UNKNOWN")
 
 
 def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def process_page(page: Dict[str, Any]) -> Dict[str, Any]:
+def run_tesseract_on_image(image_bytes: bytes) -> Dict[str, Any]:
     """
-    Placeholder OCR logic.
+    First controlled real OCR increment using local Tesseract.
+    """
+    with Image.open(BytesIO(image_bytes)) as img:
+        text = pytesseract.image_to_string(img).strip()
 
-    Real implementation will later call approved OCR engines such as:
-    - Textract
-    - Azure Document Intelligence
-    - Google Document AI
-    """
-    text = "example extracted text"
-    confidence = 0.99
+    confidence = 0.0 if not text else 0.75
+
+    return {
+        "text": text,
+        "confidence": confidence
+    }
+
+
+def process_page(page: Dict[str, Any]) -> Dict[str, Any]:
+    processed_key = page.get("processed_key", "UNKNOWN")
+
+    source_obj = s3.get_object(
+        Bucket=PROCESSED_BUCKET,
+        Key=processed_key
+    )
+    image_bytes = source_obj["Body"].read()
+
+    ocr_result = run_tesseract_on_image(image_bytes)
 
     return {
         "page_number": page.get("page_number", 1),
-        "extracted_text": text,
+        "extracted_text": ocr_result["text"],
         "line_block_word_confidence": {
-            "page_confidence": confidence
+            "page_confidence": ocr_result["confidence"]
         },
-        "engine_name": "placeholder_ocr_engine",
-        "engine_version": "skeleton_v1",
+        "engine_name": "tesseract",
+        "engine_version": "initial_increment",
         "metadata": {
             "stage": "ocr",
             "result_bucket": RESULT_BUCKET,
-            "source_processed_key": page.get("processed_key", "UNKNOWN")
+            "source_processed_key": processed_key
         }
     }
 
@@ -54,10 +75,10 @@ def run(event: Dict[str, Any]) -> Dict[str, Any]:
         "pages": ocr_pages,
         "metadata": {
             "stage": "ocr",
-            "engine_name": "placeholder_ocr_engine",
-            "engine_version": "skeleton_v1",
+            "engine_name": "tesseract",
+            "engine_version": "initial_increment",
             "partial_execution": False,
-            "notes": "Placeholder OCR output mapped to controlled schema."
+            "notes": "Initial real OCR increment using local Tesseract."
         },
         "manifest_update": {
             "pipeline_status": "processing",
@@ -66,11 +87,11 @@ def run(event: Dict[str, Any]) -> Dict[str, Any]:
             "pipeline_history": [
                 {
                     "stage": "ocr",
-                    "status": "completed_placeholder",
+                    "status": "completed_real_increment",
                     "timestamp": utc_now_iso(),
-                    "engine_name": "placeholder_ocr_engine",
-                    "engine_version": "skeleton_v1",
-                    "notes": "OCR placeholder results generated."
+                    "engine_name": "tesseract",
+                    "engine_version": "initial_increment",
+                    "notes": "Real OCR text extraction executed with Tesseract."
                 }
             ]
         }

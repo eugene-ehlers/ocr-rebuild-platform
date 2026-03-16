@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 from datetime import datetime, timezone
 from typing import Any, Dict, List
 
@@ -31,14 +32,69 @@ def load_input(payload_path: str) -> Dict[str, Any]:
         return json.load(f)
 
 
+def split_table_line(line: str) -> List[str]:
+    """
+    First controlled real increment:
+    split likely table rows on pipes, tabs, or repeated spaces.
+    """
+    if "|" in line:
+        parts = [p.strip() for p in line.split("|")]
+    elif "\t" in line:
+        parts = [p.strip() for p in line.split("\t")]
+    else:
+        parts = [p.strip() for p in re.split(r"\s{2,}", line)]
+
+    return [p for p in parts if p]
+
+
 def extract_tables_for_page(page: Dict[str, Any]) -> List[Dict[str, Any]]:
     """
-    Placeholder page-level table extraction logic.
+    First controlled real table extraction increment using text heuristics only.
+    Detects simple table-like consecutive lines with multiple columns.
     """
     page_number = page.get("page_number", 1)
-    logger.info("Table extraction placeholder invoked for page_number=%s", page_number)
+    text = page.get("extracted_text", "") or ""
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
 
-    return []
+    candidate_rows: List[List[str]] = []
+    for line in lines:
+        columns = split_table_line(line)
+        if len(columns) >= 2:
+            candidate_rows.append(columns)
+
+    if len(candidate_rows) < 2:
+        logger.info("No table-like text detected for page_number=%s", page_number)
+        return []
+
+    max_cols = max(len(row) for row in candidate_rows)
+    table_rows = []
+
+    for row_index, row in enumerate(candidate_rows):
+        cells = []
+        for col_index in range(max_cols):
+            column_name = f"column_{col_index + 1}"
+            cell_text = row[col_index] if col_index < len(row) else ""
+            cells.append({
+                "column_name": column_name,
+                "cell_text": cell_text,
+                "confidence_score": None
+            })
+
+        table_rows.append({
+            "row_index": row_index,
+            "cells": cells
+        })
+
+    logger.info("Detected heuristic table for page_number=%s with %s rows", page_number, len(table_rows))
+
+    return [
+        {
+            "table_id": f"page_{page_number}_table_1",
+            "table_name": "heuristic_text_table",
+            "page_number": page_number,
+            "rows": table_rows
+        }
+    ]
 
 
 def build_pages(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -57,7 +113,7 @@ def build_pages(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
 
         metadata = dict(page.get("metadata", {})) if isinstance(page.get("metadata", {}), dict) else {}
         metadata.update({
-            "table_extraction_stage": "completed_placeholder"
+            "table_extraction_stage": "completed_real_increment"
         })
         enriched_page["metadata"] = metadata
 
@@ -79,7 +135,7 @@ def build_output(payload: Dict[str, Any]) -> Dict[str, Any]:
         "metadata": {
             "stage": "table_extraction",
             "partial_execution": False,
-            "notes": "Placeholder table extraction output mapped to controlled schema.",
+            "notes": "Initial real table extraction increment using text heuristics.",
             "tables_detected": total_tables
         },
         "manifest_update": {
@@ -89,11 +145,11 @@ def build_output(payload: Dict[str, Any]) -> Dict[str, Any]:
             "pipeline_history": [
                 {
                     "stage": "table_extraction",
-                    "status": "completed_placeholder",
+                    "status": "completed_real_increment",
                     "timestamp": utc_now_iso(),
                     "engine_name": "table_extraction_worker",
-                    "engine_version": "skeleton_v1",
-                    "notes": "Table extraction placeholder results generated."
+                    "engine_version": "v0.2",
+                    "notes": "Heuristic table extraction from OCR text executed."
                 }
             ]
         }
@@ -110,7 +166,7 @@ def main() -> None:
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2)
 
-    logger.info("Table extraction skeleton completed. Output written to %s", output_path)
+    logger.info("Table extraction worker completed. Output written to %s", output_path)
 
 
 if __name__ == "__main__":

@@ -120,22 +120,58 @@ def test_preprocessing_contract():
 
 def test_ocr_contract():
     mod = load_module("ocr_worker", "services/ocr/ocr_worker.py")
-    result = mod.run({"document_id": "doc-1", "source_uri": "s3://bucket/file.pdf", "pages": []})
+
+    test_bytes = make_test_image_bytes()
+
+    class MockBody:
+        def read(self):
+            return test_bytes
+
+    class MockS3:
+        def get_object(self, Bucket, Key):
+            return {"Body": MockBody()}
+
+    with patch.object(mod, "s3", MockS3()):
+        with patch.object(mod.pytesseract, "image_to_string", return_value="hello world"):
+            result = mod.run(
+                {
+                    "document_id": "doc-1",
+                    "source_uri": "s3://bucket/file.pdf",
+                    "pages": [{"page_number": 1, "processed_key": "processed/page1.png"}]
+                }
+            )
 
     assert result["document_id"] == "doc-1"
     assert "pages" in result
     assert "metadata" in result
     assert "manifest_update" in result
+    assert result["pages"][0]["extracted_text"] == "hello world"
+    assert result["pages"][0]["engine_name"] == "tesseract"
 
 
 def test_table_extraction_contract():
     mod = load_module("table_worker", "services/table_extraction/table_worker.py")
-    result = mod.build_output({"document_id": "doc-1", "manifest_id": "man-1", "source_uri": "s3://bucket/file.pdf", "pages": []})
+    result = mod.build_output(
+        {
+            "document_id": "doc-1",
+            "manifest_id": "man-1",
+            "source_uri": "s3://bucket/file.pdf",
+            "pages": [
+                {
+                    "page_number": 1,
+                    "extracted_text": "name | age\njohn | 30\nmary | 25"
+                }
+            ]
+        }
+    )
 
     assert result["document_id"] == "doc-1"
     assert "pages" in result
     assert "metadata" in result
     assert "manifest_update" in result
+    assert len(result["pages"][0]["tables"]) == 1
+    assert result["pages"][0]["tables"][0]["table_name"] == "heuristic_text_table"
+    assert result["metadata"]["tables_detected"] == 1
 
 
 def test_logo_recognition_contract():
