@@ -1,0 +1,49 @@
+{
+  "Comment": "OCR Rebuild Master Pipeline",
+  "StartAt": "GenerateManifest",
+  "States": {
+    "GenerateManifest": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:REGION:ACCOUNT:function:manifest-generator-lambda-prod",
+      "Next": "Preprocessing"
+    },
+    "Preprocessing": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:REGION:ACCOUNT:function:preprocessing-lambda-prod",
+      "Next": "OCR"
+    },
+    "OCR": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::ecs:runTask.sync",
+      "Parameters": {
+        "LaunchType": "FARGATE",
+        "Cluster": "ocr-rebuild-cluster",
+        "TaskDefinition": "ocr-engine-ecs-task-prod"
+      },
+      "Next": "TableExtraction"
+    },
+    "TableExtraction": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:REGION:ACCOUNT:function:table-extraction-lambda-prod",
+      "Next": "LogoTemplateRecognition"
+    },
+    "LogoTemplateRecognition": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:REGION:ACCOUNT:function:logo-template-lambda-prod",
+      "Next": "FraudDetection"
+    },
+    "FraudDetection": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:REGION:ACCOUNT:function:fraud-detection-lambda-prod",
+      "Next": "Aggregation"
+    },
+    "Aggregation": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:REGION:ACCOUNT:function:aggregation-lambda-prod",
+      "Next": "Complete"
+    },
+    "Complete": {
+      "Type": "Succeed"
+    }
+  }
+}
