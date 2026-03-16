@@ -1,7 +1,10 @@
 import importlib.util
 import json
+import io
 from pathlib import Path
 from unittest.mock import patch
+
+from PIL import Image
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -19,6 +22,13 @@ def load_module(module_name: str, relative_path: str):
 def load_json(relative_path: str):
     with open(REPO_ROOT / relative_path, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def make_test_image_bytes():
+    img = Image.new("RGB", (20, 20), color="white")
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return buf.getvalue()
 
 
 def test_document_manifest_schema_is_valid_json():
@@ -74,11 +84,38 @@ def test_manifest_generator_contract():
 
 def test_preprocessing_contract():
     mod = load_module("preprocessing", "services/preprocessing/lambda_function.py")
-    result = mod.lambda_handler({"document_id": "doc-1", "source_uri": "s3://bucket/file.pdf", "pages": []}, None)
+
+    test_bytes = make_test_image_bytes()
+
+    class MockBody:
+        def read(self):
+            return test_bytes
+
+    class MockS3:
+        def get_object(self, Bucket, Key):
+            return {"Body": MockBody()}
+
+        def put_object(self, Bucket, Key, Body, ContentType):
+            assert Bucket is not None
+            assert Key.endswith(".png") or "processed/" in Key
+            assert ContentType == "image/png"
+            assert isinstance(Body, (bytes, bytearray))
+
+    with patch.object(mod, "s3", MockS3()):
+        result = mod.lambda_handler(
+            {
+                "document_id": "doc-1",
+                "source_uri": "s3://bucket/file.pdf",
+                "source_bucket": "source-bucket",
+                "pages": [{"page_number": 1, "s3_key": "uploads/page1.png"}]
+            },
+            None
+        )
 
     assert result["document_id"] == "doc-1"
     assert "pages" in result
     assert "manifest_update" in result
+    assert result["pages"][0]["preprocessing_params"]["status"] == "completed_real_increment"
 
 
 def test_ocr_contract():

@@ -1,6 +1,10 @@
 import boto3
+import io
 import os
 from datetime import datetime, timezone
+
+from PIL import Image, ImageFilter, ImageOps
+
 
 s3 = boto3.client("s3")
 
@@ -11,6 +15,40 @@ def utc_now_iso():
     return datetime.now(timezone.utc).isoformat()
 
 
+def preprocess_image_bytes(image_bytes):
+    """
+    First controlled real preprocessing increment:
+    - load image
+    - convert to grayscale
+    - autocontrast
+    - light median filtering
+    - return processed bytes and metadata
+    """
+    with Image.open(io.BytesIO(image_bytes)) as img:
+        original_mode = img.mode
+        original_size = img.size
+
+        processed = ImageOps.grayscale(img)
+        processed = ImageOps.autocontrast(processed)
+        processed = processed.filter(ImageFilter.MedianFilter(size=3))
+
+        output = io.BytesIO()
+        processed.save(output, format="PNG")
+        output.seek(0)
+
+        metadata = {
+            "original_mode": original_mode,
+            "original_width": original_size[0],
+            "original_height": original_size[1],
+            "output_format": "PNG",
+            "grayscale": True,
+            "autocontrast": True,
+            "median_filter": 3
+        }
+
+        return output.read(), metadata
+
+
 def lambda_handler(event, context):
     pages = event.get("pages", [])
     processed_pages = []
@@ -19,13 +57,19 @@ def lambda_handler(event, context):
         key = page["s3_key"]
         processed_key = key.replace("uploads/", "processed/")
 
-        s3.copy_object(
+        source_obj = s3.get_object(
+            Bucket=event["source_bucket"],
+            Key=key
+        )
+        source_bytes = source_obj["Body"].read()
+
+        processed_bytes, recipe_metadata = preprocess_image_bytes(source_bytes)
+
+        s3.put_object(
             Bucket=PROCESSED_BUCKET,
-            CopySource={
-                "Bucket": event["source_bucket"],
-                "Key": key
-            },
-            Key=processed_key
+            Key=processed_key,
+            Body=processed_bytes,
+            ContentType="image/png"
         )
 
         processed_pages.append({
@@ -34,7 +78,9 @@ def lambda_handler(event, context):
             "rotation_angle": 0,
             "orientation": "UNKNOWN",
             "preprocessing_params": {
-                "status": "placeholder_complete"
+                "status": "completed_real_increment",
+                "recipe": "grayscale_autocontrast_median3",
+                **recipe_metadata
             },
             "metadata": {
                 "stage": "preprocessing",
@@ -54,11 +100,11 @@ def lambda_handler(event, context):
             "pipeline_history": [
                 {
                     "stage": "preprocessing",
-                    "status": "completed_placeholder",
+                    "status": "completed_real_increment",
                     "timestamp": utc_now_iso(),
                     "engine_name": "preprocessing_lambda",
-                    "engine_version": "skeleton_v1",
-                    "notes": "S3 copy and preprocessing placeholder metadata generated."
+                    "engine_version": "v0.2",
+                    "notes": "Applied grayscale, autocontrast, and median filter preprocessing."
                 }
             ]
         }
