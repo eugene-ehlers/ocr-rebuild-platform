@@ -306,3 +306,134 @@ Before starting Phase 5 the new AI manager must inspect:
 - `find infrastructure`
 
 This confirms repository integrity.
+
+---
+
+## IAM Runtime Roles (Phase 5 Deployment Baseline)
+
+The OCR rebuild platform uses dedicated runtime IAM roles to enforce least-privilege access across Lambda, ECS workers, and Step Functions orchestration.
+
+All roles were deployed during Phase 5 infrastructure initialization.
+
+### Lambda Runtime Role
+
+Role name:
+
+ocr-rebuild-lambda-role
+
+Purpose:
+
+Execution role for Lambda functions responsible for:
+
+- manifest generation
+- preprocessing orchestration
+
+Permissions include:
+
+- CloudWatch logging
+- DynamoDB access to `ocr-rebuild-manifest-store`
+- S3 read/write access to:
+  - `ocr-rebuild-original`
+  - `ocr-rebuild-processed`
+- KMS encryption/decryption using key:
+
+alias/ocr-rebuild-platform
+
+
+### ECS Worker Runtime Role
+
+Role name:
+
+ocr-rebuild-ecs-task-role
+
+Purpose:
+
+Runtime role used by all ECS Fargate workers:
+
+- OCR worker
+- Table extraction worker
+- Logo recognition worker
+- Fraud detection worker
+- Aggregation worker
+
+Permissions include:
+
+- CloudWatch logging
+- S3 access to:
+  - `ocr-rebuild-original`
+  - `ocr-rebuild-processed`
+  - `ocr-rebuild-results`
+- DynamoDB access to manifest store
+- KMS encryption/decryption using the OCR rebuild key
+
+
+### ECS Execution Role
+
+Role name:
+
+ocr-rebuild-ecs-execution-role
+
+Purpose:
+
+Infrastructure execution role used by ECS Fargate to:
+
+- pull container images from ECR
+- write container logs to CloudWatch
+
+Permissions include:
+
+- ECR image pull actions
+- CloudWatch log stream creation and log event writes
+
+
+### Step Functions Orchestration Role
+
+Role name:
+
+ocr-rebuild-stepfunctions-role
+
+Purpose:
+
+Runtime role used by the master OCR pipeline Step Functions state machine.
+
+Permissions include:
+
+- invoking Lambda functions
+- running ECS tasks
+- passing ECS task roles
+- describing ECS cluster state
+
+
+### Security Boundary
+
+All runtime components operate inside the encryption boundary defined by:
+
+KMS key alias:
+
+alias/ocr-rebuild-platform
+
+This key encrypts:
+
+- S3 runtime buckets
+- DynamoDB manifest store
+- pipeline artifacts containing derived document data
+
+
+### IAM Source of Truth
+
+IAM policies and trust relationships are stored in the repository:
+
+infrastructure/iam/
+
+Files include:
+
+- lambda-trust-policy.json
+- lambda-runtime-policy.json
+- ecs-task-trust-policy.json
+- ecs-task-runtime-policy.json
+- ecs-execution-policy.json
+- stepfunctions-trust-policy.json
+- stepfunctions-runtime-policy.json
+
+These files represent the canonical infrastructure-as-code baseline for IAM in the OCR rebuild platform.
+
