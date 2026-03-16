@@ -1,0 +1,59 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CloudWatchLogsWrite",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ManifestTableAccess",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:PutItem",
+        "dynamodb:GetItem",
+        "dynamodb:UpdateItem"
+      ],
+      "Resource": "arn:aws:dynamodb:us-east-1:026465780614:table/ocr-rebuild-manifest-store"
+    },
+    {
+      "Sid": "PreprocessingS3Access",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::ocr-rebuild-original/*",
+        "arn:aws:s3:::ocr-rebuild-processed/*"
+      ]
+    },
+    {
+      "Sid": "PreprocessingS3ListAccess",
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::ocr-rebuild-original",
+        "arn:aws:s3:::ocr-rebuild-processed"
+      ]
+    },
+    {
+      "Sid": "KMSUsageForOCRBucketsAndManifestStore",
+      "Effect": "Allow",
+      "Action": [
+        "kms:Decrypt",
+        "kms:Encrypt",
+        "kms:GenerateDataKey",
+        "kms:DescribeKey"
+      ],
+      "Resource": "arn:aws:kms:us-east-1:026465780614:key/7ab34738-aeec-499a-bc62-796d8aeae28a"
+    }
+  ]
+}

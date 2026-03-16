@@ -1,0 +1,60 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CloudWatchLogsWrite",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "S3DocumentAccess",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::ocr-rebuild-original/*",
+        "arn:aws:s3:::ocr-rebuild-processed/*",
+        "arn:aws:s3:::ocr-rebuild-results/*"
+      ]
+    },
+    {
+      "Sid": "S3ListAccess",
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::ocr-rebuild-original",
+        "arn:aws:s3:::ocr-rebuild-processed",
+        "arn:aws:s3:::ocr-rebuild-results"
+      ]
+    },
+    {
+      "Sid": "ManifestStoreAccess",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:UpdateItem"
+      ],
+      "Resource": "arn:aws:dynamodb:us-east-1:026465780614:table/ocr-rebuild-manifest-store"
+    },
+    {
+      "Sid": "KMSUsageForEncryptedResources",
+      "Effect": "Allow",
+      "Action": [
+        "kms:Decrypt",
+        "kms:Encrypt",
+        "kms:GenerateDataKey",
+        "kms:DescribeKey"
+      ],
+      "Resource": "arn:aws:kms:us-east-1:026465780614:key/7ab34738-aeec-499a-bc62-796d8aeae28a"
+    }
+  ]
+}

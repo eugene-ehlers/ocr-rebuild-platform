@@ -1,0 +1,51 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "InvokeLambdas",
+      "Effect": "Allow",
+      "Action": [
+        "lambda:InvokeFunction"
+      ],
+      "Resource": [
+        "arn:aws:lambda:us-east-1:026465780614:function:manifest-generator-lambda-prod",
+        "arn:aws:lambda:us-east-1:026465780614:function:preprocessing-lambda-prod"
+      ]
+    },
+    {
+      "Sid": "RunECSTasks",
+      "Effect": "Allow",
+      "Action": [
+        "ecs:RunTask",
+        "ecs:StopTask",
+        "ecs:DescribeTasks"
+      ],
+      "Resource": [
+        "arn:aws:ecs:us-east-1:026465780614:task-definition/ocr-worker-task-prod:*",
+        "arn:aws:ecs:us-east-1:026465780614:task-definition/table-extraction-worker-task-prod:*",
+        "arn:aws:ecs:us-east-1:026465780614:task-definition/logo-recognition-worker-task-prod:*",
+        "arn:aws:ecs:us-east-1:026465780614:task-definition/fraud-detection-worker-task-prod:*",
+        "arn:aws:ecs:us-east-1:026465780614:task-definition/aggregation-worker-task-prod:*"
+      ]
+    },
+    {
+      "Sid": "PassECSTaskRoles",
+      "Effect": "Allow",
+      "Action": [
+        "iam:PassRole"
+      ],
+      "Resource": [
+        "arn:aws:iam::026465780614:role/ocr-rebuild-ecs-execution-role",
+        "arn:aws:iam::026465780614:role/ocr-rebuild-ecs-task-role"
+      ]
+    },
+    {
+      "Sid": "DescribeCluster",
+      "Effect": "Allow",
+      "Action": [
+        "ecs:DescribeClusters"
+      ],
+      "Resource": "arn:aws:ecs:us-east-1:026465780614:cluster/ocr-rebuild-cluster"
+    }
+  ]
+}
