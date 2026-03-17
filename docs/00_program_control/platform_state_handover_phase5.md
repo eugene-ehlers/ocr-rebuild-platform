@@ -267,6 +267,44 @@ Until this is completed:
 
 - local pipeline = reliable
 - AWS pipeline = **not yet fully safe for production execution**
+### Migration Status (Execution Handoff)
+
+The platform is currently in a controlled migration from:
+
+- implicit state passing / local worker file handoff assumptions
+
+to:
+
+- explicit S3-based execution payload handoff between orchestrated stages
+
+Authoritative design references:
+
+- `docs/03_data_model/pipeline_execution_contract.md`
+- `docs/03_data_model/pipeline_s3_payload_contract.md`
+- `docs/02_aws_environment/phase5_orchestration_handoff_design.md`
+
+#### Current migration state
+
+| Stage boundary | Handoff model | Status |
+| --- | --- | --- |
+| Manifest Generation -> Preprocessing | Direct Step Functions / Lambda payload | Stable |
+| Preprocessing -> OCR | S3 payload handoff | Implemented in repo |
+| OCR -> Table Extraction | S3 payload handoff | Not yet implemented |
+| Table Extraction -> Logo Recognition | S3 payload handoff | Not yet implemented |
+| Logo Recognition -> Fraud Detection | S3 payload handoff | Not yet implemented |
+| Fraud Detection -> Aggregation | S3 payload handoff | Not yet implemented |
+
+#### Important operational meaning
+
+- worker contracts are normalized end to end
+- local pipeline is contract-aligned and stable
+- AWS orchestration is only partially migrated to S3 payload handoff
+- only the Preprocessing -> OCR bridge is currently implemented in orchestration code
+
+#### Production readiness interpretation
+
+The platform must not be treated as fully production-ready until all ECS stage boundaries are migrated to the S3 payload handoff model and validated in AWS.
+
 ## 6. Containerization
 
 Each ECS worker contains:
