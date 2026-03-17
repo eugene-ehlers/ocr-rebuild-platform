@@ -2,6 +2,7 @@ import boto3
 import io
 import os
 from datetime import datetime, timezone
+from typing import Any, Dict, List
 
 from PIL import Image, ImageFilter, ImageOps
 
@@ -11,11 +12,11 @@ s3 = boto3.client("s3")
 PROCESSED_BUCKET = os.environ.get("PROCESSED_BUCKET", "UNKNOWN")
 
 
-def utc_now_iso():
+def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def preprocess_image_bytes(image_bytes):
+def preprocess_image_bytes(image_bytes: bytes) -> tuple[bytes, Dict[str, Any]]:
     """
     First controlled real preprocessing increment:
     - load image
@@ -49,9 +50,9 @@ def preprocess_image_bytes(image_bytes):
         return output.read(), metadata
 
 
-def lambda_handler(event, context):
+def build_processed_pages(event: Dict[str, Any]) -> List[Dict[str, Any]]:
     pages = event.get("pages", [])
-    processed_pages = []
+    processed_pages: List[Dict[str, Any]] = []
 
     for index, page in enumerate(pages, start=1):
         key = page["s3_key"]
@@ -89,23 +90,70 @@ def lambda_handler(event, context):
             }
         })
 
+    return processed_pages
+
+
+def build_manifest_update(event: Dict[str, Any]) -> Dict[str, Any]:
+    now = utc_now_iso()
+    manifest_update = dict(event.get("manifest_update", {}))
+    pipeline_history = list(manifest_update.get("pipeline_history", []))
+
+    pipeline_history.append({
+        "stage": "preprocessing",
+        "status": "completed_real_increment",
+        "timestamp": now,
+        "engine_name": "preprocessing_lambda",
+        "engine_version": "v0.2",
+        "notes": "Applied grayscale, autocontrast, and median filter preprocessing."
+    })
+
+    manifest_update.update({
+        "manifest_id": event.get("manifest_id", manifest_update.get("manifest_id", "UNKNOWN")),
+        "pipeline_status": "processing",
+        "last_updated": now,
+        "partial_execution_flags": manifest_update.get("partial_execution_flags", {}),
+        "service_status": event.get("service_status", manifest_update.get("service_status", {})),
+        "pipeline_history": pipeline_history
+    })
+
+    return manifest_update
+
+
+def build_execution_state(event: Dict[str, Any]) -> Dict[str, Any]:
+    execution_state = dict(event.get("execution_state", {}))
+    completed_stages = list(execution_state.get("completed_stages", []))
+
+    if "preprocessing" not in completed_stages:
+        completed_stages.append("preprocessing")
+
     return {
+        "current_stage": "preprocessing",
+        "completed_stages": completed_stages,
+        "failed_stages": list(execution_state.get("failed_stages", [])),
+        "skipped_stages": list(execution_state.get("skipped_stages", []))
+    }
+
+
+def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+    processed_pages = build_processed_pages(event)
+    manifest_update = build_manifest_update(event)
+    execution_state = build_execution_state(event)
+
+    return {
+        "manifest_id": event.get("manifest_id", "UNKNOWN"),
         "document_id": event.get("document_id", "UNKNOWN"),
         "source_uri": event.get("source_uri", "UNKNOWN"),
+        "source_bucket": event.get("source_bucket", "UNKNOWN"),
+        "source_batch_uri": event.get("source_batch_uri", event.get("source_uri", "UNKNOWN")),
+        "document_type": event.get("document_type", "UNKNOWN"),
+        "expected_document_type": event.get("expected_document_type", "UNKNOWN"),
+        "ingestion_timestamp": event.get("ingestion_timestamp", utc_now_iso()),
+        "creation_timestamp": event.get("creation_timestamp", utc_now_iso()),
+        "processing_parameters": event.get("processing_parameters", {}),
+        "requested_services": event.get("requested_services", {}),
+        "service_status": event.get("service_status", {}),
+        "execution_state": execution_state,
+        "documents": event.get("documents", []),
         "pages": processed_pages,
-        "manifest_update": {
-            "pipeline_status": "processing",
-            "last_updated": utc_now_iso(),
-            "partial_execution_flags": {},
-            "pipeline_history": [
-                {
-                    "stage": "preprocessing",
-                    "status": "completed_real_increment",
-                    "timestamp": utc_now_iso(),
-                    "engine_name": "preprocessing_lambda",
-                    "engine_version": "v0.2",
-                    "notes": "Applied grayscale, autocontrast, and median filter preprocessing."
-                }
-            ]
-        }
+        "manifest_update": manifest_update
     }

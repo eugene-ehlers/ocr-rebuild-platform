@@ -141,50 +141,15 @@ Output:
 
 ## 4. Runtime Contracts
 
+Workers communicate using JSON file input/output.
 
-### Authoritative Contract
-
-All pipeline stages now operate on a **normalized execution payload** defined in:
-
-`docs/03_data_model/pipeline_execution_contract.md`
-
-This contract governs:
-
-- full payload propagation across all stages
-- enrichment-only transformations (no payload reduction)
-- standardized control structures:
-  - `manifest_update`
-  - `execution_state`
-  - `service_status`
-  - `pipeline_history`
-
-### Key Principle
-
-Each stage must:
-
-- receive the full execution payload
-- enrich the payload (never replace it)
-- return the full payload to the next stage
-
-### Current Implementation Detail (Temporary)
-
-ECS workers currently use **file-based IO**:
+Example:
 
 - `/tmp/<stage>_input.json`
 - `/tmp/<stage>_output.json`
 
-This is:
+Environment variables define paths.
 
-- a **container execution mechanism only**
-- **NOT the inter-stage contract**
-
-Future orchestration updates will move toward direct payload passing via Step Functions.
-
-### Current Alignment Status
-
-- All workers have been **normalized to the execution contract**
-- Orchestration (Step Functions) is **not yet fully aligned**
-- Payload loss risk exists until orchestration alignment is completed
 ## 5. Infrastructure Configuration
 
 Infrastructure definitions exist under:
@@ -216,14 +181,11 @@ Functions:
 
 ### Step Functions
 
-
 Pipeline definition:
 
 `infrastructure/step_functions/master_pipeline/ocr_pipeline.asl.json`
 
-### Current State
-
-The Step Functions orchestration defines the pipeline flow:
+The orchestration includes:
 
 - `GenerateManifest`
 - `Preprocessing`
@@ -233,40 +195,8 @@ The Step Functions orchestration defines the pipeline flow:
 - `FraudDetection`
 - `Aggregation`
 
-### Important Alignment Note (Critical)
+Retry and catch logic are already implemented.
 
-The orchestration structure (states, sequencing, retries, catch blocks) is implemented.
-
-However:
-
-- Step Functions is **NOT yet fully aligned with the execution contract**
-- It may:
-  - pass partial payloads
-  - overwrite instead of enrich
-  - not preserve `execution_state`, `service_status`, or `pipeline_history`
-
-### Risk
-
-This creates a **real risk of payload loss or state inconsistency** during execution.
-
-### Required Next Step (Phase 5)
-
-Step Functions must be updated to:
-
-- pass full payload between all states
-- ensure all stages:
-  - enrich payload
-  - return full payload
-- preserve:
-  - `manifest_update`
-  - `execution_state`
-  - `service_status`
-  - `pipeline_history`
-
-Until this is completed:
-
-- local pipeline = reliable
-- AWS pipeline = **not yet fully safe for production execution**
 ## 6. Containerization
 
 Each ECS worker contains:
@@ -603,63 +533,9 @@ Reason:
 - dependency caused unnecessary package bloat and CloudShell disk pressure during build
 - final package now matches actual runtime requirements
 
-
 ### Remaining Phase 5 Work
-
 The following Phase 5 tasks remain open:
+- Step Functions deployment
+- first pipeline execution validation
+- post-run verification of manifest updates and canonical output
 
-#### 1. Step Functions Contract Alignment (Critical)
-
-Although Step Functions is defined and partially deployed, it is **not yet aligned with the execution contract**.
-
-Required actions:
-
-- ensure full payload propagation between all states
-- prevent payload overwrite between stages
-- enforce enrichment-only stage behavior
-- validate preservation of:
-  - `manifest_update`
-  - `execution_state`
-  - `service_status`
-  - `pipeline_history`
-
-#### 2. First End-to-End AWS Pipeline Execution
-
-- execute full pipeline via Step Functions
-- validate:
-  - no payload loss
-  - correct stage sequencing
-  - correct service_status updates
-  - correct execution_state progression
-
-#### 3. Manifest and Canonical Output Verification
-
-- verify DynamoDB manifest entries:
-  - pipeline_history completeness
-  - retry_count correctness
-  - partial_execution_flags behavior
-
-- verify canonical output:
-  - page-level enrichment preserved
-  - aggregation summary correctness
-  - fraud/table/logo outputs correctly reflected
-
-#### 4. Failure and Retry Scenario Validation
-
-- simulate controlled failures in:
-  - OCR
-  - table extraction
-  - fraud detection
-
-- confirm:
-  - Step Functions retry behavior
-  - manifest reflects partial execution
-  - pipeline continues where expected
-
----
-
-### Current Risk Status
-
-- Local pipeline: **stable and contract-aligned**
-- AWS deployment: **infrastructure complete but orchestration not yet safe**
-- Production readiness: **BLOCKED until Step Functions alignment is completed**

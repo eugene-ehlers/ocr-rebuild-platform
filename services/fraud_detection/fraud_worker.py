@@ -22,10 +22,14 @@ def load_input(payload_path: str) -> Dict[str, Any]:
     if not payload_path or not os.path.exists(payload_path):
         logger.info("No payload provided. Using placeholder input.")
         return {
-            "document_id": "UNKNOWN",
             "manifest_id": "UNKNOWN",
+            "document_id": "UNKNOWN",
             "source_uri": "UNKNOWN",
-            "pages": []
+            "pages": [],
+            "manifest_update": {},
+            "execution_state": {},
+            "requested_services": {},
+            "service_status": {}
         }
 
     with open(payload_path, "r", encoding="utf-8") as f:
@@ -114,6 +118,50 @@ def build_pages(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
     return output_pages
 
 
+def build_manifest_update(payload: Dict[str, Any]) -> Dict[str, Any]:
+    now = utc_now_iso()
+    manifest_update = dict(payload.get("manifest_update", {}))
+    pipeline_history = list(manifest_update.get("pipeline_history", []))
+    service_status = dict(payload.get("service_status", manifest_update.get("service_status", {})))
+
+    service_status["fraud_detection"] = "completed"
+
+    pipeline_history.append({
+        "stage": "fraud_detection",
+        "status": "completed_real_increment",
+        "timestamp": now,
+        "engine_name": "fraud_detection_worker",
+        "engine_version": "v0.2",
+        "notes": "Text-based fraud heuristics executed."
+    })
+
+    manifest_update.update({
+        "manifest_id": payload.get("manifest_id", manifest_update.get("manifest_id", "UNKNOWN")),
+        "pipeline_status": "processing",
+        "last_updated": now,
+        "partial_execution_flags": manifest_update.get("partial_execution_flags", {}),
+        "service_status": service_status,
+        "pipeline_history": pipeline_history
+    })
+
+    return manifest_update
+
+
+def build_execution_state(payload: Dict[str, Any]) -> Dict[str, Any]:
+    execution_state = dict(payload.get("execution_state", {}))
+    completed_stages = list(execution_state.get("completed_stages", []))
+
+    if "fraud_detection" not in completed_stages:
+        completed_stages.append("fraud_detection")
+
+    return {
+        "current_stage": "fraud_detection",
+        "completed_stages": completed_stages,
+        "failed_stages": list(execution_state.get("failed_stages", [])),
+        "skipped_stages": list(execution_state.get("skipped_stages", []))
+    }
+
+
 def build_output(payload: Dict[str, Any]) -> Dict[str, Any]:
     output_pages = build_pages(payload)
 
@@ -123,10 +171,24 @@ def build_output(payload: Dict[str, Any]) -> Dict[str, Any]:
         if isinstance(page, dict) and isinstance(page.get("metadata", {}), dict)
     )
 
+    manifest_update = build_manifest_update(payload)
+    execution_state = build_execution_state(payload)
+
     return {
-        "document_id": payload.get("document_id", "UNKNOWN"),
         "manifest_id": payload.get("manifest_id", "UNKNOWN"),
+        "document_id": payload.get("document_id", "UNKNOWN"),
         "source_uri": payload.get("source_uri", "UNKNOWN"),
+        "source_bucket": payload.get("source_bucket", "UNKNOWN"),
+        "source_batch_uri": payload.get("source_batch_uri", payload.get("source_uri", "UNKNOWN")),
+        "document_type": payload.get("document_type", "UNKNOWN"),
+        "expected_document_type": payload.get("expected_document_type", "UNKNOWN"),
+        "ingestion_timestamp": payload.get("ingestion_timestamp", utc_now_iso()),
+        "creation_timestamp": payload.get("creation_timestamp", utc_now_iso()),
+        "processing_parameters": payload.get("processing_parameters", {}),
+        "requested_services": payload.get("requested_services", {}),
+        "service_status": manifest_update.get("service_status", payload.get("service_status", {})),
+        "execution_state": execution_state,
+        "documents": payload.get("documents", []),
         "pages": output_pages,
         "metadata": {
             "stage": "fraud_detection",
@@ -134,21 +196,7 @@ def build_output(payload: Dict[str, Any]) -> Dict[str, Any]:
             "notes": "Initial real fraud detection increment using text heuristics.",
             "fraud_flags_detected": total_flags
         },
-        "manifest_update": {
-            "pipeline_status": "processing",
-            "last_updated": utc_now_iso(),
-            "partial_execution_flags": {},
-            "pipeline_history": [
-                {
-                    "stage": "fraud_detection",
-                    "status": "completed_real_increment",
-                    "timestamp": utc_now_iso(),
-                    "engine_name": "fraud_detection_worker",
-                    "engine_version": "v0.2",
-                    "notes": "Text-based fraud heuristics executed."
-                }
-            ]
-        }
+        "manifest_update": manifest_update
     }
 
 

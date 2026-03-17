@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "document_manifest_schema",
-  "description": "Controlled baseline schema for OCR processing manifests. Hardened from Phase 4 build-plan Step 3 and Phase 3 schema audit. Detailed pipeline-specific payloads may expand without breaking this baseline contract.",
+  "description": "Controlled baseline schema for OCR processing manifests. Hardened from Phase 4 build-plan Step 3 and Phase 3 schema audit. Expanded to include explicit requested service selection and service lifecycle status tracking for modular pipeline execution.",
   "type": "object",
   "properties": {
     "manifest_id": {
@@ -47,6 +47,35 @@
       "description": "Batch-level processing configuration.",
       "default": {}
     },
+    "requested_services": {
+      "type": "object",
+      "description": "Requested service selection for this manifest execution scope.",
+      "properties": {
+        "ocr": {
+          "type": "boolean",
+          "default": true
+        },
+        "table_extraction": {
+          "type": "boolean",
+          "default": false
+        },
+        "logo_recognition": {
+          "type": "boolean",
+          "default": false
+        },
+        "fraud_detection": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "additionalProperties": true,
+      "default": {
+        "ocr": true,
+        "table_extraction": false,
+        "logo_recognition": false,
+        "fraud_detection": false
+      }
+    },
     "pipeline_status": {
       "type": "string",
       "description": "Overall manifest processing state.",
@@ -74,6 +103,71 @@
       "type": "object",
       "description": "Flags indicating page-level or pipeline-level partial execution states.",
       "default": {}
+    },
+    "service_status": {
+      "type": "object",
+      "description": "Lifecycle status of mandatory and optional pipeline services for this manifest execution scope.",
+      "properties": {
+        "ocr": {
+          "type": "string",
+          "enum": [
+            "requested",
+            "not_requested",
+            "skipped",
+            "processing",
+            "completed",
+            "failed",
+            "partial"
+          ],
+          "default": "requested"
+        },
+        "table_extraction": {
+          "type": "string",
+          "enum": [
+            "requested",
+            "not_requested",
+            "skipped",
+            "processing",
+            "completed",
+            "failed",
+            "partial"
+          ],
+          "default": "not_requested"
+        },
+        "logo_recognition": {
+          "type": "string",
+          "enum": [
+            "requested",
+            "not_requested",
+            "skipped",
+            "processing",
+            "completed",
+            "failed",
+            "partial"
+          ],
+          "default": "not_requested"
+        },
+        "fraud_detection": {
+          "type": "string",
+          "enum": [
+            "requested",
+            "not_requested",
+            "skipped",
+            "processing",
+            "completed",
+            "failed",
+            "partial"
+          ],
+          "default": "not_requested"
+        }
+      },
+      "additionalProperties": true,
+      "default": {
+        "ocr": "requested",
+        "table_extraction": "not_requested",
+        "logo_recognition": "not_requested",
+        "fraud_detection": "not_requested"
+      }
     },
     "client_notification": {
       "type": "object",

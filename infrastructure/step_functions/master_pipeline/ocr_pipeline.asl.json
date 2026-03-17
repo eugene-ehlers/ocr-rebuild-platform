@@ -49,8 +49,21 @@
       "Resource": "arn:aws:states:::ecs:runTask.sync",
       "Parameters": {
         "LaunchType": "FARGATE",
-        "Cluster": "ocr-rebuild-cluster",
-        "TaskDefinition": "ocr-worker-task-prod"
+        "Cluster": "arn:aws:ecs:us-east-1:026465780614:cluster/ocr-rebuild-cluster",
+        "TaskDefinition": "ocr-worker-task-prod",
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "Subnets": [
+              "subnet-08bb8a5fb305fb74a",
+              "subnet-075eb014db65f8d57",
+              "subnet-06d635cd188862b3a"
+            ],
+            "SecurityGroups": [
+              "sg-0ad48d96d00af793f"
+            ],
+            "AssignPublicIp": "ENABLED"
+          }
+        }
       },
       "ResultPath": "$",
       "Next": "TableExtraction",
@@ -75,8 +88,21 @@
       "Resource": "arn:aws:states:::ecs:runTask.sync",
       "Parameters": {
         "LaunchType": "FARGATE",
-        "Cluster": "ocr-rebuild-cluster",
-        "TaskDefinition": "table-extraction-worker-task-prod"
+        "Cluster": "arn:aws:ecs:us-east-1:026465780614:cluster/ocr-rebuild-cluster",
+        "TaskDefinition": "table-extraction-worker-task-prod",
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "Subnets": [
+              "subnet-08bb8a5fb305fb74a",
+              "subnet-075eb014db65f8d57",
+              "subnet-06d635cd188862b3a"
+            ],
+            "SecurityGroups": [
+              "sg-0ad48d96d00af793f"
+            ],
+            "AssignPublicIp": "ENABLED"
+          }
+        }
       },
       "ResultPath": "$",
       "Next": "LogoTemplateRecognition",
@@ -101,8 +127,21 @@
       "Resource": "arn:aws:states:::ecs:runTask.sync",
       "Parameters": {
         "LaunchType": "FARGATE",
-        "Cluster": "ocr-rebuild-cluster",
-        "TaskDefinition": "logo-recognition-worker-task-prod"
+        "Cluster": "arn:aws:ecs:us-east-1:026465780614:cluster/ocr-rebuild-cluster",
+        "TaskDefinition": "logo-recognition-worker-task-prod",
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "Subnets": [
+              "subnet-08bb8a5fb305fb74a",
+              "subnet-075eb014db65f8d57",
+              "subnet-06d635cd188862b3a"
+            ],
+            "SecurityGroups": [
+              "sg-0ad48d96d00af793f"
+            ],
+            "AssignPublicIp": "ENABLED"
+          }
+        }
       },
       "ResultPath": "$",
       "Next": "FraudDetection",
@@ -127,8 +166,21 @@
       "Resource": "arn:aws:states:::ecs:runTask.sync",
       "Parameters": {
         "LaunchType": "FARGATE",
-        "Cluster": "ocr-rebuild-cluster",
-        "TaskDefinition": "fraud-detection-worker-task-prod"
+        "Cluster": "arn:aws:ecs:us-east-1:026465780614:cluster/ocr-rebuild-cluster",
+        "TaskDefinition": "fraud-detection-worker-task-prod",
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "Subnets": [
+              "subnet-08bb8a5fb305fb74a",
+              "subnet-075eb014db65f8d57",
+              "subnet-06d635cd188862b3a"
+            ],
+            "SecurityGroups": [
+              "sg-0ad48d96d00af793f"
+            ],
+            "AssignPublicIp": "ENABLED"
+          }
+        }
       },
       "ResultPath": "$",
       "Next": "Aggregation",
@@ -153,8 +205,21 @@
       "Resource": "arn:aws:states:::ecs:runTask.sync",
       "Parameters": {
         "LaunchType": "FARGATE",
-        "Cluster": "ocr-rebuild-cluster",
-        "TaskDefinition": "aggregation-worker-task-prod"
+        "Cluster": "arn:aws:ecs:us-east-1:026465780614:cluster/ocr-rebuild-cluster",
+        "TaskDefinition": "aggregation-worker-task-prod",
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "Subnets": [
+              "subnet-08bb8a5fb305fb74a",
+              "subnet-075eb014db65f8d57",
+              "subnet-06d635cd188862b3a"
+            ],
+            "SecurityGroups": [
+              "sg-0ad48d96d00af793f"
+            ],
+            "AssignPublicIp": "ENABLED"
+          }
+        }
       },
       "ResultPath": "$",
       "Next": "Complete",

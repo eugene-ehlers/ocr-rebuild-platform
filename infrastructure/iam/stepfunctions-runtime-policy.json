@@ -46,6 +46,16 @@
         "ecs:DescribeClusters"
       ],
       "Resource": "arn:aws:ecs:us-east-1:026465780614:cluster/ocr-rebuild-cluster"
+    },
+    {
+      "Sid": "StepFunctionsEcsSyncEvents",
+      "Effect": "Allow",
+      "Action": [
+        "events:PutRule",
+        "events:PutTargets",
+        "events:DescribeRule"
+      ],
+      "Resource": "arn:aws:events:us-east-1:026465780614:rule/StepFunctionsGetEventsForECSTaskRule"
     }
   ]
 }

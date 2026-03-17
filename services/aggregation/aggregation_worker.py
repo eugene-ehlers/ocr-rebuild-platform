@@ -23,12 +23,16 @@ def load_input(payload_path: str) -> Dict[str, Any]:
     if not payload_path or not os.path.exists(payload_path):
         logger.info("No payload supplied. Using placeholder aggregation input.")
         return {
-            "document_id": "UNKNOWN",
             "manifest_id": "UNKNOWN",
+            "document_id": "UNKNOWN",
             "source_uri": "UNKNOWN",
             "document_type": "UNKNOWN",
             "ingestion_timestamp": utc_now_iso(),
-            "pages": []
+            "pages": [],
+            "manifest_update": {},
+            "execution_state": {},
+            "requested_services": {},
+            "service_status": {}
         }
 
     with open(payload_path, "r", encoding="utf-8") as f:
@@ -112,6 +116,8 @@ def build_canonical_document(payload: Dict[str, Any]) -> Dict[str, Any]:
         "metadata": {
             "aggregation_status": "completed_real_increment",
             "aggregation_note": "Canonical document assembled from unified page payload with document-level summary metadata.",
+            "requested_services": payload.get("requested_services", {}),
+            "service_status": payload.get("service_status", {}),
             **summary
         }
     }
@@ -121,8 +127,22 @@ def build_manifest_update(payload: Dict[str, Any], canonical_document: Dict[str,
     """
     Build manifest update aligned to docs/03_data_model/document_manifest_schema.json.
     """
-    return {
-        "manifest_id": payload.get("manifest_id", "UNKNOWN"),
+    now = utc_now_iso()
+    manifest_update = dict(payload.get("manifest_update", {}))
+    pipeline_history = list(manifest_update.get("pipeline_history", []))
+    service_status = dict(payload.get("service_status", manifest_update.get("service_status", {})))
+
+    pipeline_history.append({
+        "stage": "aggregation",
+        "status": "completed_real_increment",
+        "timestamp": now,
+        "engine_name": "aggregation_worker",
+        "engine_version": "v0.3",
+        "notes": "Canonical document and manifest update assembled with document-level summary metadata."
+    })
+
+    manifest_update.update({
+        "manifest_id": payload.get("manifest_id", manifest_update.get("manifest_id", "UNKNOWN")),
         "documents": [
             {
                 "document_id": canonical_document.get("document_id", "UNKNOWN"),
@@ -131,35 +151,61 @@ def build_manifest_update(payload: Dict[str, Any], canonical_document: Dict[str,
             }
         ],
         "processing_parameters": {
+            **dict(payload.get("processing_parameters", {})),
             "aggregation_status": "completed_real_increment"
         },
         "pipeline_status": "completed",
-        "retry_count": payload.get("retry_count", 0),
-        "last_updated": utc_now_iso(),
-        "partial_execution_flags": payload.get("partial_execution_flags", {}),
-        "client_notification": {
+        "retry_count": payload.get("retry_count", manifest_update.get("retry_count", 0)),
+        "last_updated": now,
+        "partial_execution_flags": manifest_update.get("partial_execution_flags", {}),
+        "service_status": service_status,
+        "client_notification": manifest_update.get("client_notification", {
             "required": False,
             "status": "not_required",
             "message": ""
-        },
-        "pipeline_history": [
-            {
-                "stage": "aggregation",
-                "status": "completed_real_increment",
-                "timestamp": utc_now_iso(),
-                "engine_name": "aggregation_worker",
-                "engine_version": "v0.3",
-                "notes": "Canonical document and manifest update assembled with document-level summary metadata."
-            }
-        ]
+        }),
+        "pipeline_history": pipeline_history
+    })
+
+    return manifest_update
+
+
+def build_execution_state(payload: Dict[str, Any]) -> Dict[str, Any]:
+    execution_state = dict(payload.get("execution_state", {}))
+    completed_stages = list(execution_state.get("completed_stages", []))
+
+    if "aggregation" not in completed_stages:
+        completed_stages.append("aggregation")
+
+    return {
+        "current_stage": "aggregation",
+        "completed_stages": completed_stages,
+        "failed_stages": list(execution_state.get("failed_stages", [])),
+        "skipped_stages": list(execution_state.get("skipped_stages", []))
     }
 
 
 def build_output(payload: Dict[str, Any]) -> Dict[str, Any]:
     canonical_document = build_canonical_document(payload)
     manifest_update = build_manifest_update(payload, canonical_document)
+    execution_state = build_execution_state(payload)
 
     return {
+        "manifest_id": payload.get("manifest_id", "UNKNOWN"),
+        "document_id": payload.get("document_id", "UNKNOWN"),
+        "source_uri": payload.get("source_uri", "UNKNOWN"),
+        "source_bucket": payload.get("source_bucket", "UNKNOWN"),
+        "source_batch_uri": payload.get("source_batch_uri", payload.get("source_uri", "UNKNOWN")),
+        "document_type": payload.get("document_type", "UNKNOWN"),
+        "expected_document_type": payload.get("expected_document_type", "UNKNOWN"),
+        "ingestion_timestamp": payload.get("ingestion_timestamp", utc_now_iso()),
+        "creation_timestamp": payload.get("creation_timestamp", utc_now_iso()),
+        "processing_parameters": payload.get("processing_parameters", {}),
+        "requested_services": payload.get("requested_services", {}),
+        "service_status": manifest_update.get("service_status", payload.get("service_status", {})),
+        "execution_state": execution_state,
+        "documents": payload.get("documents", []),
+        "pages": payload.get("pages", []),
         "metadata": {
             "stage": "aggregation",
             "partial_execution": False,
