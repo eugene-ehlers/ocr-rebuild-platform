@@ -4,7 +4,7 @@
   "States": {
     "GenerateManifest": {
       "Type": "Task",
-      "Resource": "arn:aws:lambda:REGION:ACCOUNT:function:manifest-generator-lambda-prod",
+      "Resource": "arn:aws:lambda:us-east-1:026465780614:function:manifest-generator-lambda-prod",
       "ResultPath": "$",
       "Next": "Preprocessing",
       "Retry": [
@@ -25,7 +25,7 @@
     },
     "Preprocessing": {
       "Type": "Task",
-      "Resource": "arn:aws:lambda:REGION:ACCOUNT:function:preprocessing-lambda-prod",
+      "Resource": "arn:aws:lambda:us-east-1:026465780614:function:preprocessing-lambda-prod",
       "ResultPath": "$",
       "Next": "OCR",
       "Retry": [

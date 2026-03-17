@@ -273,3 +273,69 @@ Successful run should produce:
 Stored in:
 
 - `ocr-rebuild-results`
+
+---
+
+## 16. Phase 5 Execution Status (Live AWS State)
+
+The following components have been successfully deployed and verified in AWS:
+
+### ECR Repositories
+- All repositories created with:
+  - IMMUTABLE tags
+  - scanOnPush enabled
+  - KMS encryption (`alias/ocr-rebuild-platform`)
+
+### Container Images
+- All worker images built and pushed:
+  - ocr-worker:phase5
+  - table-extraction-worker:phase5
+  - logo-recognition-worker:phase5
+  - fraud-detection-worker:phase5
+  - aggregation-worker:phase5
+
+### ECS Cluster
+- Cluster created:
+  - `ocr-rebuild-cluster`
+  - runtime: Fargate
+
+### ECS Task Definitions
+Registered and active:
+- ocr-worker-task-prod (rev 2)
+- table-extraction-worker-task-prod (rev 1)
+- logo-recognition-worker-task-prod (rev 1)
+- fraud-detection-worker-task-prod (rev 1)
+- aggregation-worker-task-prod (rev 1)
+
+All task definitions:
+- reference ECR images with `:phase5` tag
+- use production IAM roles
+- configured for `us-east-1`
+
+### Lambda Functions
+
+#### manifest-generator-lambda-prod
+- runtime: python3.11
+- timeout: 60
+- memory: 512
+- environment:
+  - MANIFEST_TABLE=ocr-rebuild-manifest-store
+
+#### preprocessing-lambda-prod
+- runtime: python3.11
+- timeout: 300
+- memory: 1024
+- environment:
+  - PROCESSED_BUCKET=ocr-rebuild-processed
+
+### Packaging Correction Applied
+- Removed unused dependency:
+  - opencv-python-headless
+- Reason:
+  - not used in code
+  - caused Lambda packaging size + disk pressure issues
+
+### Remaining Deployment Steps
+- Step Functions deployment
+- First pipeline execution validation
+

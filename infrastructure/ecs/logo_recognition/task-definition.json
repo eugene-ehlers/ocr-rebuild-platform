@@ -4,12 +4,12 @@
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "1024",
   "memory": "2048",
-  "executionRoleArn": "arn:aws:iam::ACCOUNT:role/ocr-rebuild-ecs-execution-role",
-  "taskRoleArn": "arn:aws:iam::ACCOUNT:role/ocr-rebuild-ecs-task-role",
+  "executionRoleArn": "arn:aws:iam::026465780614:role/ocr-rebuild-ecs-execution-role",
+  "taskRoleArn": "arn:aws:iam::026465780614:role/ocr-rebuild-ecs-task-role",
   "containerDefinitions": [
     {
       "name": "logo-recognition-worker",
-      "image": "ACCOUNT.dkr.ecr.REGION.amazonaws.com/logo-recognition-worker:latest",
+      "image": "026465780614.dkr.ecr.us-east-1.amazonaws.com/logo-recognition-worker:phase5",
       "essential": true,
       "environment": [
         { "name": "LOGO_INPUT", "value": "/tmp/logo_input.json" },
@@ -19,7 +19,7 @@
         "logDriver": "awslogs",
         "options": {
           "awslogs-group": "/ecs/logo-recognition-worker",
-          "awslogs-region": "REGION",
+          "awslogs-region": "us-east-1",
           "awslogs-stream-prefix": "ecs"
         }
       }

@@ -4,16 +4,16 @@
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "1024",
   "memory": "2048",
-  "executionRoleArn": "arn:aws:iam::ACCOUNT:role/ocr-rebuild-ecs-execution-role",
-  "taskRoleArn": "arn:aws:iam::ACCOUNT:role/ocr-rebuild-ecs-task-role",
+  "executionRoleArn": "arn:aws:iam::026465780614:role/ocr-rebuild-ecs-execution-role",
+  "taskRoleArn": "arn:aws:iam::026465780614:role/ocr-rebuild-ecs-task-role",
   "containerDefinitions": [
     {
       "name": "ocr-worker",
-      "image": "ACCOUNT.dkr.ecr.REGION.amazonaws.com/ocr-worker:latest",
+      "image": "026465780614.dkr.ecr.us-east-1.amazonaws.com/ocr-worker:phase5",
       "essential": true,
       "environment": [
-        { "name": "PROCESSED_BUCKET", "value": "ocr-rebuild-processed-bucket" },
-        { "name": "RESULT_BUCKET", "value": "ocr-rebuild-results-bucket" },
+        { "name": "PROCESSED_BUCKET", "value": "ocr-rebuild-processed" },
+        { "name": "RESULT_BUCKET", "value": "ocr-rebuild-results" },
         { "name": "OCR_INPUT", "value": "/tmp/ocr_input.json" },
         { "name": "OCR_OUTPUT", "value": "/tmp/ocr_output.json" }
       ],
@@ -21,7 +21,7 @@
         "logDriver": "awslogs",
         "options": {
           "awslogs-group": "/ecs/ocr-worker",
-          "awslogs-region": "REGION",
+          "awslogs-region": "us-east-1",
           "awslogs-stream-prefix": "ecs"
         }
       }

@@ -437,3 +437,105 @@ Files include:
 
 These files represent the canonical infrastructure-as-code baseline for IAM in the OCR rebuild platform.
 
+
+---
+
+## Phase 5 Deployment Progress (Live AWS State)
+
+The following deployment components have been completed and verified in AWS.
+
+### Security and Storage Baseline
+- Customer-managed KMS key created:
+  - `alias/ocr-rebuild-platform`
+- DynamoDB manifest store created:
+  - `ocr-rebuild-manifest-store`
+  - KMS encrypted
+  - point-in-time recovery enabled
+- S3 runtime buckets created and hardened:
+  - `ocr-rebuild-original`
+  - `ocr-rebuild-processed`
+  - `ocr-rebuild-results`
+  - `ocr-rebuild-logs`
+- All runtime buckets:
+  - use SSE-KMS
+  - use the OCR platform KMS key
+  - have versioning enabled
+
+### ECR Deployment State
+Repositories created and hardened:
+- `ocr-worker`
+- `table-extraction-worker`
+- `logo-recognition-worker`
+- `fraud-detection-worker`
+- `aggregation-worker`
+
+Repository baseline:
+- immutable tags
+- scan on push enabled
+- KMS encryption enabled
+
+### Container Image State
+Images built and pushed:
+- `ocr-worker:phase5`
+- `table-extraction-worker:phase5`
+- `logo-recognition-worker:phase5`
+- `fraud-detection-worker:phase5`
+- `aggregation-worker:phase5`
+
+### ECS Deployment State
+Cluster created:
+- `ocr-rebuild-cluster`
+
+Task definitions registered:
+- `ocr-worker-task-prod:2`
+- `table-extraction-worker-task-prod:1`
+- `logo-recognition-worker-task-prod:1`
+- `fraud-detection-worker-task-prod:1`
+- `aggregation-worker-task-prod:1`
+
+Task definition alignment completed:
+- `ACCOUNT` placeholders resolved
+- `REGION` placeholders resolved
+- image references changed from `:latest` to `:phase5`
+- OCR bucket names aligned to:
+  - `ocr-rebuild-processed`
+  - `ocr-rebuild-results`
+
+### Lambda Deployment State
+Functions deployed and active:
+- `manifest-generator-lambda-prod`
+- `preprocessing-lambda-prod`
+
+Final verified configuration:
+
+#### manifest-generator-lambda-prod
+- runtime: python3.11
+- timeout: 60
+- memory: 512
+- environment:
+  - `MANIFEST_TABLE=ocr-rebuild-manifest-store`
+
+#### preprocessing-lambda-prod
+- runtime: python3.11
+- timeout: 300
+- memory: 1024
+- environment:
+  - `PROCESSED_BUCKET=ocr-rebuild-processed`
+
+### Packaging Correction
+A packaging correction was applied to preprocessing Lambda deployment inputs.
+
+Change made:
+- removed `opencv-python-headless` from `services/preprocessing/requirements.txt`
+
+Reason:
+- dependency was not imported by the current preprocessing Lambda code
+- dependency caused unnecessary package bloat and CloudShell disk pressure during build
+- final package now matches actual runtime requirements
+
+### Remaining Phase 5 Work
+The following Phase 5 tasks remain open:
+- Step Functions deployment
+- first pipeline execution validation
+- post-run verification of manifest updates and canonical output
+
