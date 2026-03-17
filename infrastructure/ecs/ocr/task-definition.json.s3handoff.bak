@@ -15,11 +15,7 @@
         { "name": "PROCESSED_BUCKET", "value": "ocr-rebuild-processed" },
         { "name": "RESULT_BUCKET", "value": "ocr-rebuild-results" },
         { "name": "OCR_INPUT", "value": "/tmp/ocr_input.json" },
-        { "name": "OCR_OUTPUT", "value": "/tmp/ocr_output.json" },
-        { "name": "INPUT_S3_BUCKET", "value": "" },
-        { "name": "INPUT_S3_KEY", "value": "" },
-        { "name": "OUTPUT_S3_BUCKET", "value": "" },
-        { "name": "OUTPUT_S3_KEY", "value": "" }
+        { "name": "OCR_OUTPUT", "value": "/tmp/ocr_output.json" }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",

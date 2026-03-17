@@ -1,6 +1,5 @@
 import boto3
 import io
-import json
 import os
 from datetime import datetime, timezone
 from typing import Any, Dict, List
@@ -11,8 +10,6 @@ from PIL import Image, ImageFilter, ImageOps
 s3 = boto3.client("s3")
 
 PROCESSED_BUCKET = os.environ.get("PROCESSED_BUCKET", "UNKNOWN")
-OUTPUT_S3_BUCKET = os.environ.get("OUTPUT_S3_BUCKET", "")
-OUTPUT_S3_KEY = os.environ.get("OUTPUT_S3_KEY", "")
 
 
 def utc_now_iso() -> str:
@@ -137,29 +134,12 @@ def build_execution_state(event: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def resolve_output_s3_location(event: Dict[str, Any]) -> tuple[str, str]:
-    output_bucket = event.get("output_s3_bucket", OUTPUT_S3_BUCKET)
-    output_key = event.get("output_s3_key", OUTPUT_S3_KEY)
-    return output_bucket, output_key
-
-
-def write_output_to_s3(result: Dict[str, Any], event: Dict[str, Any]) -> None:
-    output_bucket, output_key = resolve_output_s3_location(event)
-    if output_bucket and output_key:
-        s3.put_object(
-            Bucket=output_bucket,
-            Key=output_key,
-            Body=json.dumps(result, indent=2).encode("utf-8"),
-            ContentType="application/json"
-        )
-
-
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     processed_pages = build_processed_pages(event)
     manifest_update = build_manifest_update(event)
     execution_state = build_execution_state(event)
 
-    result = {
+    return {
         "manifest_id": event.get("manifest_id", "UNKNOWN"),
         "document_id": event.get("document_id", "UNKNOWN"),
         "source_uri": event.get("source_uri", "UNKNOWN"),
@@ -177,6 +157,3 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         "pages": processed_pages,
         "manifest_update": manifest_update
     }
-
-    write_output_to_s3(result, event)
-    return result

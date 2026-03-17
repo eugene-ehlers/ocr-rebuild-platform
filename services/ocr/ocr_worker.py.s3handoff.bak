@@ -14,53 +14,27 @@ RESULT_BUCKET = os.environ.get("RESULT_BUCKET", "UNKNOWN")
 PROCESSED_BUCKET = os.environ.get("PROCESSED_BUCKET", "UNKNOWN")
 OCR_INPUT = os.environ.get("OCR_INPUT", "/tmp/ocr_input.json")
 OCR_OUTPUT = os.environ.get("OCR_OUTPUT", "/tmp/ocr_output.json")
-INPUT_S3_BUCKET = os.environ.get("INPUT_S3_BUCKET", "")
-INPUT_S3_KEY = os.environ.get("INPUT_S3_KEY", "")
-OUTPUT_S3_BUCKET = os.environ.get("OUTPUT_S3_BUCKET", "")
-OUTPUT_S3_KEY = os.environ.get("OUTPUT_S3_KEY", "")
 
 
 def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def empty_payload() -> Dict[str, Any]:
-    return {
-        "manifest_id": "UNKNOWN",
-        "document_id": "UNKNOWN",
-        "source_uri": "UNKNOWN",
-        "pages": [],
-        "manifest_update": {},
-        "execution_state": {},
-        "requested_services": {},
-        "service_status": {}
-    }
-
-
 def load_input(payload_path: str) -> Dict[str, Any]:
-    if INPUT_S3_BUCKET and INPUT_S3_KEY:
-        response = s3.get_object(Bucket=INPUT_S3_BUCKET, Key=INPUT_S3_KEY)
-        return json.loads(response["Body"].read().decode("utf-8"))
-
     if not payload_path or not os.path.exists(payload_path):
-        return empty_payload()
+        return {
+            "manifest_id": "UNKNOWN",
+            "document_id": "UNKNOWN",
+            "source_uri": "UNKNOWN",
+            "pages": [],
+            "manifest_update": {},
+            "execution_state": {},
+            "requested_services": {},
+            "service_status": {}
+        }
 
     with open(payload_path, "r", encoding="utf-8") as f:
         return json.load(f)
-
-
-def write_output(result: Dict[str, Any], output_path: str) -> None:
-    if OUTPUT_S3_BUCKET and OUTPUT_S3_KEY:
-        s3.put_object(
-            Bucket=OUTPUT_S3_BUCKET,
-            Key=OUTPUT_S3_KEY,
-            Body=json.dumps(result, indent=2).encode("utf-8"),
-            ContentType="application/json"
-        )
-        return
-
-    with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(result, f, indent=2)
 
 
 def run_tesseract_on_image(image_bytes: bytes) -> Dict[str, Any]:
@@ -197,16 +171,11 @@ def run(event: Dict[str, Any]) -> Dict[str, Any]:
 def main() -> None:
     payload = load_input(OCR_INPUT)
     result = run(payload)
-    write_output(result, OCR_OUTPUT)
 
-    if OUTPUT_S3_BUCKET and OUTPUT_S3_KEY:
-        print(json.dumps({
-            "status": "OCR worker completed",
-            "output_s3_bucket": OUTPUT_S3_BUCKET,
-            "output_s3_key": OUTPUT_S3_KEY
-        }))
-    else:
-        print(json.dumps({"status": "OCR worker completed", "output_path": OCR_OUTPUT}))
+    with open(OCR_OUTPUT, "w", encoding="utf-8") as f:
+        json.dump(result, f, indent=2)
+
+    print(json.dumps({"status": "OCR worker completed", "output_path": OCR_OUTPUT}))
 
 
 if __name__ == "__main__":

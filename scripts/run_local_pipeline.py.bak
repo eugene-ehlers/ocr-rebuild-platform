@@ -41,21 +41,11 @@ def main():
         tmpdir = Path(tmpdir)
 
         # Manifest
-        with patch.object(manifest_mod, "save_manifest", return_value={"status": "saved", "manifest_id": "man-1"}):
+        with patch.object(manifest_mod, "save_manifest", return_value={"status": "saved", "manifest_id": "UNKNOWN"}):
             manifest_result = manifest_mod.lambda_handler(
                 {
-                    "manifest_id": "man-1",
                     "document_id": "doc-1",
                     "source_uri": "s3://bucket/file.pdf",
-                    "source_bucket": "source-bucket",
-                    "document_type": "invoice",
-                    "expected_document_type": "invoice",
-                    "requested_services": {
-                        "ocr": True,
-                        "table_extraction": True,
-                        "logo_recognition": True,
-                        "fraud_detection": True
-                    },
                     "pages": [{"page_number": 1, "s3_key": "uploads/page1.png"}]
                 },
                 None
@@ -76,7 +66,15 @@ def main():
                 pass
 
         with patch.object(preprocessing_mod, "s3", MockPreprocessS3()):
-            preprocessing_result = preprocessing_mod.lambda_handler(manifest_result, None)
+            preprocessing_result = preprocessing_mod.lambda_handler(
+                {
+                    "document_id": "doc-1",
+                    "source_uri": "s3://bucket/file.pdf",
+                    "source_bucket": "source-bucket",
+                    "pages": [{"page_number": 1, "s3_key": "uploads/page1.png"}]
+                },
+                None
+            )
 
         # OCR via file contract
         ocr_input = tmpdir / "ocr_input.json"
@@ -103,7 +101,12 @@ def main():
         # Table extraction
         table_input = tmpdir / "table_input.json"
         table_output = tmpdir / "table_output.json"
-        table_input.write_text(json.dumps(ocr_result), encoding="utf-8")
+        table_input.write_text(json.dumps({
+            "document_id": ocr_result["document_id"],
+            "manifest_id": "man-1",
+            "source_uri": ocr_result["source_uri"],
+            "pages": ocr_result["pages"]
+        }), encoding="utf-8")
 
         with patch.dict(os.environ, {
             "TABLE_EXTRACTION_INPUT": str(table_input),
@@ -116,7 +119,12 @@ def main():
         # Logo recognition
         logo_input = tmpdir / "logo_input.json"
         logo_output = tmpdir / "logo_output.json"
-        logo_input.write_text(json.dumps(table_result), encoding="utf-8")
+        logo_input.write_text(json.dumps({
+            "document_id": table_result["document_id"],
+            "manifest_id": "man-1",
+            "source_uri": table_result["source_uri"],
+            "pages": table_result["pages"]
+        }), encoding="utf-8")
 
         with patch.dict(os.environ, {"LOGO_INPUT": str(logo_input), "LOGO_OUTPUT": str(logo_output)}):
             logo_mod.main()
@@ -126,7 +134,12 @@ def main():
         # Fraud detection
         fraud_input = tmpdir / "fraud_input.json"
         fraud_output = tmpdir / "fraud_output.json"
-        fraud_input.write_text(json.dumps(logo_result), encoding="utf-8")
+        fraud_input.write_text(json.dumps({
+            "document_id": logo_result["document_id"],
+            "manifest_id": "man-1",
+            "source_uri": logo_result["source_uri"],
+            "pages": logo_result["pages"]
+        }), encoding="utf-8")
 
         with patch.dict(os.environ, {"FRAUD_INPUT": str(fraud_input), "FRAUD_OUTPUT": str(fraud_output)}):
             fraud_mod.main()
@@ -136,7 +149,12 @@ def main():
         # Aggregation
         agg_input = tmpdir / "aggregation_input.json"
         agg_output = tmpdir / "aggregation_output.json"
-        agg_input.write_text(json.dumps(fraud_result), encoding="utf-8")
+        agg_input.write_text(json.dumps({
+            "document_id": fraud_result["document_id"],
+            "manifest_id": "man-1",
+            "source_uri": fraud_result["source_uri"],
+            "pages": fraud_result["pages"]
+        }), encoding="utf-8")
 
         with patch.dict(os.environ, {"AGGREGATION_INPUT": str(agg_input), "AGGREGATION_OUTPUT": str(agg_output)}):
             aggregation_mod.main()
@@ -144,11 +162,7 @@ def main():
         aggregation_result = json.loads(agg_output.read_text(encoding="utf-8"))
 
         print(json.dumps({
-            "manifest_id": aggregation_result["manifest_id"],
-            "document_id": aggregation_result["document_id"],
-            "pipeline_status": aggregation_result["manifest_update"]["pipeline_status"],
-            "service_status": aggregation_result["manifest_update"]["service_status"],
-            "completed_stages": aggregation_result["execution_state"]["completed_stages"],
+            "manifest_status": manifest_result["persistence"]["status"],
             "page_count": aggregation_result["canonical_document"]["metadata"]["page_count"],
             "tables_detected": aggregation_result["canonical_document"]["metadata"]["tables_detected"],
             "logos_detected": aggregation_result["canonical_document"]["metadata"]["logos_detected"],
