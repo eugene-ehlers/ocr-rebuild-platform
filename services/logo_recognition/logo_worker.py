@@ -4,9 +4,16 @@ import os
 from datetime import datetime, timezone
 from typing import Any, Dict, List
 
+import boto3
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+s3 = boto3.client("s3")
+INPUT_S3_BUCKET = os.environ.get("INPUT_S3_BUCKET", "")
+INPUT_S3_KEY = os.environ.get("INPUT_S3_KEY", "")
+OUTPUT_S3_BUCKET = os.environ.get("OUTPUT_S3_BUCKET", "")
+OUTPUT_S3_KEY = os.environ.get("OUTPUT_S3_KEY", "")
 
 KNOWN_TEMPLATE_MARKERS = {
     "invoice": ["invoice", "tax invoice", "invoice number"],
@@ -20,22 +27,54 @@ def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def empty_payload() -> Dict[str, Any]:
+    return {
+        "manifest_id": "UNKNOWN",
+        "document_id": "UNKNOWN",
+        "source_uri": "UNKNOWN",
+        "pages": [],
+        "manifest_update": {},
+        "execution_state": {},
+        "requested_services": {},
+        "service_status": {}
+    }
+
+
 def load_input(payload_path: str) -> Dict[str, Any]:
+    if INPUT_S3_BUCKET and INPUT_S3_KEY:
+        logger.info(
+            "Loading logo recognition input payload from s3://%s/%s",
+            INPUT_S3_BUCKET,
+            INPUT_S3_KEY
+        )
+        response = s3.get_object(Bucket=INPUT_S3_BUCKET, Key=INPUT_S3_KEY)
+        return json.loads(response["Body"].read().decode("utf-8"))
+
     if not payload_path or not os.path.exists(payload_path):
         logger.info("No payload provided. Using placeholder.")
-        return {
-            "manifest_id": "UNKNOWN",
-            "document_id": "UNKNOWN",
-            "source_uri": "UNKNOWN",
-            "pages": [],
-            "manifest_update": {},
-            "execution_state": {},
-            "requested_services": {},
-            "service_status": {}
-        }
+        return empty_payload()
 
     with open(payload_path, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def write_output(result: Dict[str, Any], output_path: str) -> None:
+    if OUTPUT_S3_BUCKET and OUTPUT_S3_KEY:
+        logger.info(
+            "Writing logo recognition output payload to s3://%s/%s",
+            OUTPUT_S3_BUCKET,
+            OUTPUT_S3_KEY
+        )
+        s3.put_object(
+            Bucket=OUTPUT_S3_BUCKET,
+            Key=OUTPUT_S3_KEY,
+            Body=json.dumps(result, indent=2).encode("utf-8"),
+            ContentType="application/json"
+        )
+        return
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(result, f, indent=2)
 
 
 def detect_logos_for_page(page: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -180,11 +219,16 @@ def main():
 
     payload = load_input(payload_path)
     result = build_output(payload)
+    write_output(result, output_path)
 
-    with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(result, f, indent=2)
-
-    logger.info("Logo recognition worker completed")
+    if OUTPUT_S3_BUCKET and OUTPUT_S3_KEY:
+        logger.info(
+            "Logo recognition worker completed. Output written to s3://%s/%s",
+            OUTPUT_S3_BUCKET,
+            OUTPUT_S3_KEY
+        )
+    else:
+        logger.info("Logo recognition worker completed. Output written to %s", output_path)
 
 
 if __name__ == "__main__":

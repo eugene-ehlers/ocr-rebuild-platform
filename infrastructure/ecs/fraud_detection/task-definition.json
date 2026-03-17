@@ -9,7 +9,7 @@
   "containerDefinitions": [
     {
       "name": "fraud-detection-worker",
-      "image": "026465780614.dkr.ecr.us-east-1.amazonaws.com/fraud-detection-worker:phase5",
+      "image": "026465780614.dkr.ecr.us-east-1.amazonaws.com/fraud-detection-worker:phase5-785f478",
       "essential": true,
       "environment": [
         { "name": "FRAUD_INPUT", "value": "/tmp/fraud_input.json" },

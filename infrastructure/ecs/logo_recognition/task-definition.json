@@ -1,7 +1,9 @@
 {
   "family": "logo-recognition-worker-task-prod",
   "networkMode": "awsvpc",
-  "requiresCompatibilities": ["FARGATE"],
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
   "cpu": "1024",
   "memory": "2048",
   "executionRoleArn": "arn:aws:iam::026465780614:role/ocr-rebuild-ecs-execution-role",
@@ -9,11 +11,17 @@
   "containerDefinitions": [
     {
       "name": "logo-recognition-worker",
-      "image": "026465780614.dkr.ecr.us-east-1.amazonaws.com/logo-recognition-worker:phase5",
+      "image": "026465780614.dkr.ecr.us-east-1.amazonaws.com/logo-recognition-worker:phase5-785f478",
       "essential": true,
       "environment": [
-        { "name": "LOGO_INPUT", "value": "/tmp/logo_input.json" },
-        { "name": "LOGO_OUTPUT", "value": "/tmp/logo_output.json" }
+        {
+          "name": "LOGO_INPUT",
+          "value": "/tmp/logo_input.json"
+        },
+        {
+          "name": "LOGO_OUTPUT",
+          "value": "/tmp/logo_output.json"
+        }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",

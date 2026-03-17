@@ -138,16 +138,38 @@ Each phase must follow this structure:
 
 ## 4. Pipeline Stage Contract (Critical)
 
-Every worker stage must follow the file-based ECS execution contract.
+Every ECS worker stage must follow the governed structured payload contract defined in:
 
-Example:
+- `docs/03_data_model/pipeline_execution_contract.md`
+- `docs/03_data_model/pipeline_s3_payload_contract.md`
 
-- `INPUT_ENV_VAR` -> JSON file input
-- `OUTPUT_ENV_VAR` -> JSON file output
+### Authoritative ECS Inter-Stage Contract
 
-Example workers:
+For ECS stage-to-stage execution, the authoritative transport contract is S3 payload handoff.
 
-| Stage | Input | Output |
+Each ECS worker must support:
+
+- `INPUT_S3_BUCKET`
+- `INPUT_S3_KEY`
+- `OUTPUT_S3_BUCKET`
+- `OUTPUT_S3_KEY`
+
+Worker behaviour:
+
+- read the full structured execution payload from S3
+- enrich the payload without deleting required upstream fields
+- write the full enriched payload back to S3
+
+### Local Testing / Internal Fallback
+
+Stage-specific local file environment variables may still be used for:
+
+- local testing
+- temporary worker-internal fallback behaviour
+
+Examples:
+
+| Stage | Local Input | Local Output |
 |---|---|---|
 | OCR | `OCR_INPUT` | `OCR_OUTPUT` |
 | Table extraction | `TABLE_EXTRACTION_INPUT` | `TABLE_EXTRACTION_OUTPUT` |
@@ -155,7 +177,9 @@ Example workers:
 | Fraud detection | `FRAUD_INPUT` | `FRAUD_OUTPUT` |
 | Aggregation | `AGGREGATION_INPUT` | `AGGREGATION_OUTPUT` |
 
-The AI must never break this contract.
+These local file variables are not the authoritative ECS inter-stage contract.
+
+The AI must never break the governed payload contract.
 
 ## 5. Containerization Rules
 

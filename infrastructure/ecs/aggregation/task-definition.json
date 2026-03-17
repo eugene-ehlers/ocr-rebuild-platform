@@ -1,7 +1,9 @@
 {
   "family": "aggregation-worker-task-prod",
   "networkMode": "awsvpc",
-  "requiresCompatibilities": ["FARGATE"],
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
   "cpu": "1024",
   "memory": "2048",
   "executionRoleArn": "arn:aws:iam::026465780614:role/ocr-rebuild-ecs-execution-role",
@@ -9,12 +11,21 @@
   "containerDefinitions": [
     {
       "name": "aggregation-worker",
-      "image": "026465780614.dkr.ecr.us-east-1.amazonaws.com/aggregation-worker:phase5",
+      "image": "026465780614.dkr.ecr.us-east-1.amazonaws.com/aggregation-worker:phase5-785f478",
       "essential": true,
       "environment": [
-        { "name": "AGGREGATION_INPUT", "value": "/tmp/aggregation_input.json" },
-        { "name": "AGGREGATION_OUTPUT", "value": "/tmp/aggregation_output.json" },
-        { "name": "MANIFEST_TABLE", "value": "ocr-rebuild-manifest-store" }
+        {
+          "name": "AGGREGATION_INPUT",
+          "value": "/tmp/aggregation_input.json"
+        },
+        {
+          "name": "AGGREGATION_OUTPUT",
+          "value": "/tmp/aggregation_output.json"
+        },
+        {
+          "name": "MANIFEST_TABLE",
+          "value": "ocr-rebuild-manifest-store"
+        }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",

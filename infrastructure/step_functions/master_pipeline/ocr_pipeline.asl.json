@@ -146,7 +146,7 @@
       "Parameters": {
         "LaunchType": "FARGATE",
         "Cluster": "arn:aws:ecs:us-east-1:026465780614:cluster/ocr-rebuild-cluster",
-        "TaskDefinition": "table-extraction-worker-task-prod",
+        "TaskDefinition": "table-extraction-worker-task-prod:2",
         "NetworkConfiguration": {
           "AwsvpcConfiguration": {
             "Subnets": [
@@ -159,6 +159,31 @@
             ],
             "AssignPublicIp": "ENABLED"
           }
+        },
+        "Overrides": {
+          "ContainerOverrides": [
+            {
+              "Name": "table-extraction-worker",
+              "Environment": [
+                {
+                  "Name": "INPUT_S3_BUCKET",
+                  "Value": "ocr-rebuild-results"
+                },
+                {
+                  "Name": "INPUT_S3_KEY",
+                  "Value.$": "States.Format('payloads/{}/ocr/payload.json', $.manifest_id)"
+                },
+                {
+                  "Name": "OUTPUT_S3_BUCKET",
+                  "Value": "ocr-rebuild-results"
+                },
+                {
+                  "Name": "OUTPUT_S3_KEY",
+                  "Value.$": "States.Format('payloads/{}/table_extraction/payload.json', $.manifest_id)"
+                }
+              ]
+            }
+          ]
         }
       },
       "ResultPath": "$",
@@ -189,7 +214,7 @@
       "Parameters": {
         "LaunchType": "FARGATE",
         "Cluster": "arn:aws:ecs:us-east-1:026465780614:cluster/ocr-rebuild-cluster",
-        "TaskDefinition": "logo-recognition-worker-task-prod",
+        "TaskDefinition": "logo-recognition-worker-task-prod:2",
         "NetworkConfiguration": {
           "AwsvpcConfiguration": {
             "Subnets": [
@@ -202,6 +227,31 @@
             ],
             "AssignPublicIp": "ENABLED"
           }
+        },
+        "Overrides": {
+          "ContainerOverrides": [
+            {
+              "Name": "logo-recognition-worker",
+              "Environment": [
+                {
+                  "Name": "INPUT_S3_BUCKET",
+                  "Value": "ocr-rebuild-results"
+                },
+                {
+                  "Name": "INPUT_S3_KEY",
+                  "Value.$": "States.Format('payloads/{}/table_extraction/payload.json', $.manifest_id)"
+                },
+                {
+                  "Name": "OUTPUT_S3_BUCKET",
+                  "Value": "ocr-rebuild-results"
+                },
+                {
+                  "Name": "OUTPUT_S3_KEY",
+                  "Value.$": "States.Format('payloads/{}/logo_recognition/payload.json', $.manifest_id)"
+                }
+              ]
+            }
+          ]
         }
       },
       "ResultPath": "$",
@@ -232,7 +282,7 @@
       "Parameters": {
         "LaunchType": "FARGATE",
         "Cluster": "arn:aws:ecs:us-east-1:026465780614:cluster/ocr-rebuild-cluster",
-        "TaskDefinition": "fraud-detection-worker-task-prod",
+        "TaskDefinition": "fraud-detection-worker-task-prod:2",
         "NetworkConfiguration": {
           "AwsvpcConfiguration": {
             "Subnets": [
@@ -245,6 +295,31 @@
             ],
             "AssignPublicIp": "ENABLED"
           }
+        },
+        "Overrides": {
+          "ContainerOverrides": [
+            {
+              "Name": "fraud-detection-worker",
+              "Environment": [
+                {
+                  "Name": "INPUT_S3_BUCKET",
+                  "Value": "ocr-rebuild-results"
+                },
+                {
+                  "Name": "INPUT_S3_KEY",
+                  "Value.$": "States.Format('payloads/{}/logo_recognition/payload.json', $.manifest_id)"
+                },
+                {
+                  "Name": "OUTPUT_S3_BUCKET",
+                  "Value": "ocr-rebuild-results"
+                },
+                {
+                  "Name": "OUTPUT_S3_KEY",
+                  "Value.$": "States.Format('payloads/{}/fraud_detection/payload.json', $.manifest_id)"
+                }
+              ]
+            }
+          ]
         }
       },
       "ResultPath": "$",
@@ -275,7 +350,7 @@
       "Parameters": {
         "LaunchType": "FARGATE",
         "Cluster": "arn:aws:ecs:us-east-1:026465780614:cluster/ocr-rebuild-cluster",
-        "TaskDefinition": "aggregation-worker-task-prod",
+        "TaskDefinition": "aggregation-worker-task-prod:2",
         "NetworkConfiguration": {
           "AwsvpcConfiguration": {
             "Subnets": [
@@ -288,6 +363,31 @@
             ],
             "AssignPublicIp": "ENABLED"
           }
+        },
+        "Overrides": {
+          "ContainerOverrides": [
+            {
+              "Name": "aggregation-worker",
+              "Environment": [
+                {
+                  "Name": "INPUT_S3_BUCKET",
+                  "Value": "ocr-rebuild-results"
+                },
+                {
+                  "Name": "INPUT_S3_KEY",
+                  "Value.$": "States.Format('payloads/{}/fraud_detection/payload.json', $.manifest_id)"
+                },
+                {
+                  "Name": "OUTPUT_S3_BUCKET",
+                  "Value": "ocr-rebuild-results"
+                },
+                {
+                  "Name": "OUTPUT_S3_KEY",
+                  "Value.$": "States.Format('payloads/{}/aggregation/payload.json', $.manifest_id)"
+                }
+              ]
+            }
+          ]
         }
       },
       "ResultPath": "$",

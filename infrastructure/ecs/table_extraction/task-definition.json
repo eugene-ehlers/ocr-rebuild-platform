@@ -1,7 +1,9 @@
 {
   "family": "table-extraction-worker-task-prod",
   "networkMode": "awsvpc",
-  "requiresCompatibilities": ["FARGATE"],
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
   "cpu": "1024",
   "memory": "2048",
   "executionRoleArn": "arn:aws:iam::026465780614:role/ocr-rebuild-ecs-execution-role",
@@ -9,11 +11,17 @@
   "containerDefinitions": [
     {
       "name": "table-extraction-worker",
-      "image": "026465780614.dkr.ecr.us-east-1.amazonaws.com/table-extraction-worker:phase5",
+      "image": "026465780614.dkr.ecr.us-east-1.amazonaws.com/table-extraction-worker:phase5-785f478",
       "essential": true,
       "environment": [
-        { "name": "TABLE_EXTRACTION_INPUT", "value": "/tmp/table_extraction_input.json" },
-        { "name": "TABLE_EXTRACTION_OUTPUT", "value": "/tmp/table_extraction_output.json" }
+        {
+          "name": "TABLE_EXTRACTION_INPUT",
+          "value": "/tmp/table_extraction_input.json"
+        },
+        {
+          "name": "TABLE_EXTRACTION_OUTPUT",
+          "value": "/tmp/table_extraction_output.json"
+        }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",
