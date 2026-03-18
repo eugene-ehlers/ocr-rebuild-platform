@@ -96,6 +96,8 @@ def normalize_existing_pages(event: Dict[str, Any]) -> List[Dict[str, Any]]:
             "rotation_angle": page.get("rotation_angle", 0),
             "orientation": page.get("orientation", "UNKNOWN"),
             "preprocessing_params": dict(page.get("preprocessing_params", {})),
+            "routing_decision": dict(page.get("routing_decision", {})),
+            "evaluation": dict(page.get("evaluation", {})),
             "metadata": dict(page.get("metadata", {}))
         })
 
@@ -137,6 +139,8 @@ def normalize_single_image_document(
         "rotation_angle": 0,
         "orientation": "UNKNOWN",
         "preprocessing_params": {},
+        "routing_decision": {},
+        "evaluation": {},
         "metadata": {
             "stage": "normalization",
             "normalization_source_type": "single_image",
@@ -184,6 +188,8 @@ def normalize_pdf_document(
             "rotation_angle": 0,
             "orientation": "UNKNOWN",
             "preprocessing_params": {},
+            "routing_decision": {},
+            "evaluation": {},
             "metadata": {
                 "stage": "normalization",
                 "normalization_source_type": "pdf",
@@ -246,6 +252,12 @@ def build_processed_pages(event: Dict[str, Any]) -> List[Dict[str, Any]]:
             ContentType="image/png"
         )
 
+        page_evaluation = dict(page.get("evaluation", {}))
+        page_evaluation.update({
+            "preprocessing_completed": True,
+            "preprocessing_recipe": "grayscale_autocontrast_median3"
+        })
+
         processed_pages.append({
             "document_id": document_id,
             "page_id": page.get("page_id", f"{document_id}-page-{page_number}"),
@@ -261,6 +273,8 @@ def build_processed_pages(event: Dict[str, Any]) -> List[Dict[str, Any]]:
                 "recipe": "grayscale_autocontrast_median3",
                 **recipe_metadata
             },
+            "routing_decision": dict(page.get("routing_decision", {})),
+            "evaluation": page_evaluation,
             "metadata": {
                 **dict(page.get("metadata", {})),
                 "stage": "preprocessing"
@@ -280,8 +294,8 @@ def build_manifest_update(event: Dict[str, Any], processed_pages: List[Dict[str,
         "status": "completed_real_increment",
         "timestamp": now,
         "engine_name": "preprocessing_lambda",
-        "engine_version": "v0.3",
-        "notes": "Normalized OCR-eligible input into governed pages and applied grayscale, autocontrast, and median filter preprocessing."
+        "engine_version": "v0.4",
+        "notes": "Normalized OCR-eligible input into governed pages, preserved execution-plan context, and applied grayscale, autocontrast, and median filter preprocessing."
     })
 
     documents = []
@@ -319,6 +333,34 @@ def build_execution_state(event: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def build_routing_decision(event: Dict[str, Any], processed_pages: List[Dict[str, Any]]) -> Dict[str, Any]:
+    routing_decision = dict(event.get("routing_decision", {}))
+    routing_decision.update({
+        "current_route_state": "preprocessing_completed",
+        "last_gate_applied": routing_decision.get("last_gate_applied", "1"),
+        "preprocessing_page_count": len(processed_pages),
+        "preprocessing_source_types": sorted(list({
+            p.get("metadata", {}).get("normalization_source_type", "existing_pages")
+            for p in processed_pages
+        }))
+    })
+    return routing_decision
+
+
+def build_evaluation(event: Dict[str, Any], processed_pages: List[Dict[str, Any]]) -> Dict[str, Any]:
+    evaluation = dict(event.get("evaluation", {}))
+    evaluation.update({
+        "preprocessing_completed": True,
+        "preprocessing_page_count": len(processed_pages),
+        "normalized_page_count": len(processed_pages),
+        "routing_acceptance_reason": evaluation.get(
+            "routing_acceptance_reason",
+            "preprocessing_completed_v1"
+        )
+    })
+    return evaluation
+
+
 def resolve_output_s3_location(event: Dict[str, Any]) -> tuple[str, str]:
     output_bucket = event.get("output_s3_bucket", OUTPUT_S3_BUCKET)
     output_key = event.get("output_s3_key", OUTPUT_S3_KEY)
@@ -340,6 +382,8 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     processed_pages = build_processed_pages(event)
     manifest_update = build_manifest_update(event, processed_pages)
     execution_state = build_execution_state(event)
+    routing_decision = build_routing_decision(event, processed_pages)
+    evaluation = build_evaluation(event, processed_pages)
 
     result = {
         "manifest_id": event.get("manifest_id", "UNKNOWN"),
@@ -357,6 +401,9 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         "execution_state": execution_state,
         "documents": manifest_update.get("documents", event.get("documents", [])),
         "pages": processed_pages,
+        "execution_plan": dict(event.get("execution_plan", {})),
+        "routing_decision": routing_decision,
+        "evaluation": evaluation,
         "manifest_update": manifest_update
     }
 
