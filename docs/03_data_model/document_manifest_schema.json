@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "document_manifest_schema",
-  "description": "Controlled baseline schema for OCR processing manifests. Hardened from Phase 4 build-plan Step 3 and Phase 3 schema audit. Expanded to include explicit requested service selection, service lifecycle status tracking, and governed multi-document project semantics for modular pipeline execution.",
+  "description": "Controlled baseline schema for OCR processing manifests. Expanded for hybrid document intelligence execution, governed multi-document project semantics, explicit requested service selection, service lifecycle tracking, and future routing/evaluation traceability.",
   "type": "object",
   "properties": {
     "manifest_id": {
@@ -29,7 +29,7 @@
     },
     "documents": {
       "type": "array",
-      "description": "Documents included in the processing batch.",
+      "description": "Logical documents included in the processing scope.",
       "items": {
         "type": "object",
         "properties": {
@@ -79,7 +79,7 @@
     },
     "processing_parameters": {
       "type": "object",
-      "description": "Batch-level processing configuration.",
+      "description": "Batch-level or manifest-level processing configuration.",
       "default": {}
     },
     "requested_services": {
@@ -136,7 +136,7 @@
     },
     "partial_execution_flags": {
       "type": "object",
-      "description": "Flags indicating page-level or pipeline-level partial execution states.",
+      "description": "Flags indicating page-level, document-level, or pipeline-level partial execution states.",
       "default": {}
     },
     "service_status": {
@@ -228,9 +228,19 @@
         "message": ""
       }
     },
+    "routing_summary": {
+      "type": "object",
+      "description": "Optional manifest-level routing traceability summary for provider selection, fallback usage, and decision basis.",
+      "default": {}
+    },
+    "evaluation_summary": {
+      "type": "object",
+      "description": "Optional manifest-level evaluation summary for quality, completeness, and improvement analysis.",
+      "default": {}
+    },
     "pipeline_history": {
       "type": "array",
-      "description": "Chronological history of pipeline actions, stages, engines, and status transitions.",
+      "description": "Chronological history of pipeline actions, stages, engines, providers, and status transitions.",
       "items": {
         "type": "object",
         "properties": {
@@ -247,6 +257,9 @@
             "type": "string"
           },
           "engine_version": {
+            "type": "string"
+          },
+          "provider": {
             "type": "string"
           },
           "notes": {

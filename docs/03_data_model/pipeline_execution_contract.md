@@ -1,41 +1,50 @@
 # Pipeline Execution Contract
+
 ## 1. Purpose
 
-Define the authoritative runtime contract for the OCR Rebuild pipeline.
+Define the authoritative runtime contract for the OCR Rebuild platform as a hybrid, modular, continuously improving document intelligence system.
 
 This document is the single source of truth for:
-
 - orchestration payload passed between pipeline stages
-- mandatory and optional service execution semantics
-- stage input and output expectations
+- mandatory and optional capability execution semantics
+- embedded execution plan semantics
+- internal and external provider substitution rules
+- fallback and escalation semantics
 - manifest update semantics
-- aggregation semantics for completed, skipped, failed, and unrequested services
-This contract exists to prevent drift between:
+- canonical output assembly semantics
+- evaluation and routing traceability requirements
 
+This contract exists to prevent drift between:
 - Step Functions orchestration
 - Lambda and ECS worker implementations
+- internal capability modules
+- external API-backed capability adapters
 - manifest lifecycle behavior
 - canonical output assembly
 - project documentation
 - deployed AWS runtime behavior
+
 ## 2. Scope
 
 This contract applies to:
-
 - manifest generation
+- normalization
 - preprocessing
 - OCR
-- table extraction
-- logo/template recognition
-- fraud detection
+- structured extraction modules
+- enrichment modules
+- fallback / escalation routing
 - aggregation
+- evaluation and traceability metadata
 
 It governs both:
-
 - state passed between stages
-- service-specific enrichment behavior
+- capability-specific enrichment behavior
+- routing and provider-selection behavior
+- execution plan preservation and update behavior
 
 Local temp files, container-local artifacts, and internal worker implementation details are not the authoritative inter-stage contract.
+
 ## 3. Core Principles
 
 ### 3.1 Contract-first orchestration
@@ -47,60 +56,66 @@ Workers must not rely on durable local state between stages.
 ### 3.3 Manifest-centric control
 Manifest state remains the durable execution control record.
 
-### 3.4 Mandatory core, optional enrichments
-The pipeline consists of:
+### 3.4 Capability-modular execution
+The pipeline consists of modular capability domains that may be:
+- internal
+- open-source based
+- external API-backed
+- placeholder-backed for future implementation
 
-- mandatory core path:
-  - manifest generation
-  - preprocessing
-  - OCR
-- optional enrichment path:
-  - table extraction
-  - logo/template recognition
-  - fraud detection
-- mandatory finalization:
-  - aggregation
+### 3.5 Client outcome first
+Routing and provider selection must prioritize client outcome over engine purity.
 
-### 3.5 Append and enrich, do not destructively replace
+### 3.6 Append and enrich, do not destructively replace
 Stages must preserve required prior payload fields and add their own outputs without removing required upstream state.
+
+### 3.7 Substitution without redesign
+External providers and internal modules must be interchangeable through stable contract fields and routing semantics.
+
+### 3.8 Embedded execution plan baseline
+For the current governed baseline, the execution plan is embedded directly in the runtime payload and must be preserved through all stages.
+
 ## 4. Authoritative Top-Level Execution Payload
 
-The pipeline execution payload must support the following top-level structure.
+The pipeline execution payload must support the following top-level structure:
 
-```json
-{
-  "manifest_id": "string",
-  "document_id": "string",
-  "source_uri": "string",
-  "source_bucket": "string",
-  "source_batch_uri": "string",
-  "document_type": "string",
-  "expected_document_type": "string",
-  "ingestion_timestamp": "ISO-8601 string",
-  "creation_timestamp": "ISO-8601 string",
-  "processing_parameters": {},
-  "requested_services": {
-    "ocr": true,
-    "table_extraction": false,
-    "logo_recognition": false,
-    "fraud_detection": false
-  },
-  "service_status": {
-    "ocr": "requested",
-    "table_extraction": "not_requested",
-    "logo_recognition": "not_requested",
-    "fraud_detection": "not_requested"
-  },
-  "execution_state": {
-    "current_stage": "string",
-    "completed_stages": [],
-    "failed_stages": [],
-    "skipped_stages": []
-  },
-  "documents": [],
-  "pages": [],
-  "manifest_update": {}
-}
+    {
+      "manifest_id": "string",
+      "document_id": "string",
+      "source_uri": "string",
+      "source_bucket": "string",
+      "source_batch_uri": "string",
+      "document_type": "string",
+      "expected_document_type": "string",
+      "ingestion_timestamp": "ISO-8601 string",
+      "creation_timestamp": "ISO-8601 string",
+      "processing_parameters": {},
+      "requested_services": {
+        "ocr": true,
+        "table_extraction": false,
+        "logo_recognition": false,
+        "fraud_detection": false
+      },
+      "service_status": {
+        "ocr": "requested",
+        "table_extraction": "not_requested",
+        "logo_recognition": "not_requested",
+        "fraud_detection": "not_requested"
+      },
+      "execution_state": {
+        "current_stage": "string",
+        "completed_stages": [],
+        "failed_stages": [],
+        "skipped_stages": []
+      },
+      "documents": [],
+      "pages": [],
+      "execution_plan": {},
+      "routing_decision": {},
+      "evaluation": {},
+      "manifest_update": {}
+    }
+
 ## 5. Required Top-Level Fields
 
 The following fields are the minimum controlled execution contract.
@@ -124,39 +139,67 @@ The following fields are the minimum controlled execution contract.
 ### 5.6 Required page payload
 - `pages`
 
-### 5.7 Required manifest update payload
+### 5.7 Required execution intent
+- `execution_plan`
+
+### 5.8 Required routing traceability
+- `routing_decision`
+
+### 5.9 Required evaluation traceability
+- `evaluation`
+
+### 5.10 Required manifest update payload
 - `manifest_update`
+
 ## 6. Requested Services Semantics
 
 ### 6.1 Service categories
 
-#### Mandatory
+#### Mandatory baseline
 - `ocr`
 
-#### Optional
+#### Optional current baseline
 - `table_extraction`
 - `logo_recognition`
 - `fraud_detection`
 
+#### Future governed capability domains
+The contract must remain extensible for future requested service selection such as:
+- handwriting
+- key_value_extraction
+- signature_detection
+- checkbox_detection
+- barcode_extraction
+- language_detection
+- layout_analysis
+- font_analysis
+- image_region_extraction
+- formula_extraction
+- authenticity_scoring
+- tamper_detection
+- clause_extraction
+- question_answer_support
+
 ### 6.2 Defaults
 If omitted by the caller:
-
 - `ocr` defaults to `true`
-- all optional services default to `false`
+- currently optional baseline services default to `false`
 
 ### 6.3 Allowed values
-Each requested service flag must be boolean.
+Each requested service flag must be boolean unless a future governed extension introduces richer selection semantics.
 
 ### 6.4 Execution rule
-A service may only execute if:
+A service or capability domain may only execute if:
 - it is mandatory, or
-- it is explicitly requested
+- it is explicitly requested, or
+- governed routing rules require it for fallback or client outcome protection, or
+- it is required by the embedded execution plan to fulfill the selected service
+
 ## 7. Service Status Semantics
 
 The `service_status` object is authoritative for service execution interpretation.
 
 Allowed normalized states:
-
 - `requested`
 - `not_requested`
 - `skipped`
@@ -174,7 +217,7 @@ The service was selected for execution but has not yet completed.
 The service was not selected and must not be treated as expected output.
 
 #### `skipped`
-The service was requested but intentionally not executed due to rule, routing, or controlled skip logic.
+The service was requested but intentionally not executed due to rule, routing, substitution logic, bundled output reuse, or controlled skip logic.
 
 #### `processing`
 The service is in progress.
@@ -187,14 +230,43 @@ The service was attempted but failed.
 
 #### `partial`
 The service completed only partially and produced partial output.
-## 8. Stage-by-Stage Contract
 
-## 8.1 GenerateManifest
+## 8. Embedded Execution Plan Semantics
+
+The `execution_plan` object is the authoritative embedded execution instruction set for the current runtime payload.
+
+It carries:
+- service intent
+- required and optional capabilities
+- provider/module selection by capability
+- bundled provider reuse semantics
+- fallback policy
+- document and page overrides
+- decision gate history
+- plan lifecycle status
+
+### 8.1 Runtime rule
+All stages must preserve the embedded `execution_plan`.
+
+### 8.2 Stage limitation rule
+Stages may read and update the plan only in controlled ways relevant to their responsibility.
+
+### 8.3 Material change rule
+Any material change to provider assignment, fallback path, reroute, or capability activation must be:
+- reflected in `execution_plan`
+- captured in decision/gate history
+- summarised in `routing_decision`
+- supported by evidence in `evaluation`
+
+## 9. Stage-by-Stage Contract
+
+## 9.1 GenerateManifest
 
 ### Input
 May accept either:
 - a single-document request, or
-- a batch-style request
+- a batch-style request, or
+- a project-style request
 
 Minimum expected input:
 - `manifest_id`
@@ -210,11 +282,16 @@ Must produce:
 - initialized `manifest_update`
 - `documents`
 - normalized top-level identifiers
+- initial `execution_plan`
+- initial `routing_decision`
+- initial `evaluation`
 
 ### Rules
 - must not leave execution payload fragmented across unrelated wrapper objects
 - must normalize input into the authoritative contract shape
-## 8.2 Preprocessing
+- if Gate 0 or equivalent upstream composition has already created an execution plan, it must be carried forward, not discarded
+
+## 9.2 Preprocessing
 
 ### Input
 Must consume:
@@ -223,6 +300,7 @@ Must consume:
 - `source_uri`
 - `documents`
 - `pages` or sufficient source information to derive pages
+- relevant instructions from `execution_plan`
 
 ### Output
 Must preserve:
@@ -231,6 +309,9 @@ Must preserve:
 - requested services
 - service status
 - execution state
+- execution plan
+- routing traceability
+- evaluation traceability
 - manifest update
 
 Must normalize or enrich `pages` with:
@@ -246,11 +327,12 @@ Must normalize or enrich `pages` with:
 - preprocessing is responsible for controlled source normalization for OCR-eligible inputs when governed page records do not already exist
 - preprocessing must support deterministic page ordering
 - preprocessing must not remove or reset requested service selections
+- preprocessing must preserve the embedded execution plan
 - preprocessing completion must update execution and manifest state
 - preprocessing must not route structured-digital source classes into raster OCR-first processing unless explicitly governed
+- preprocessing may add normalization evidence useful to later gates
 
-
-## 8.2.1 Input normalization semantics
+## 9.2.1 Input normalization semantics
 
 ### Manifest scope
 A single execution payload may represent:
@@ -291,18 +373,21 @@ Until a governed structured extraction path exists, these must be rejected, mark
 Where multiple uploaded objects are present, normalization must distinguish between:
 - many pages of one logical document
 - many separate logical documents
+- one project containing multiple logical documents
 
 This distinction must come from:
 - explicit caller metadata, or
 - approved deterministic grouping rules
 
 Workers must not make uncontrolled grouping guesses.
-## 8.3 OCR
+
+## 9.3 OCR
 
 ### Input
 Must consume:
 - normalized execution payload
 - preprocessed page references in `pages`
+- `execution_plan.capability_plan.TEXT_OCR` or equivalent governed OCR instruction
 
 ### Output
 Must preserve upstream payload and enrich `pages` with:
@@ -314,7 +399,11 @@ Must preserve upstream payload and enrich `pages` with:
 ### Rules
 - OCR is mandatory unless explicitly governed otherwise in a future approved design change
 - OCR completion must set `service_status.ocr = completed` on success
-## 8.3.1 Canonical output semantics
+- OCR stages must emit enough metadata for quality-based acceptance or fallback escalation
+- OCR must preserve the embedded execution plan
+- OCR must not invent provider logic outside the plan unless a gate-driven adjustment has occurred
+
+## 9.3.1 Canonical output semantics
 
 ### Logical document rule
 Canonical output is defined per logical document, not per manifest as a whole.
@@ -329,217 +418,186 @@ If a manifest contains multiple logical documents:
 The current implementation may continue to assemble one canonical document for a single-document manifest without redesign.
 Multi-document canonical bundle behavior may be added as a controlled extension.
 
-## 8.4 Table Extraction
+## 9.4 Table Extraction
 
 ### Input
 Must consume:
-- normalized execution payload
-- OCR-enriched `pages`
+- upstream execution payload
+- OCR-enriched pages or other governed extraction-ready page structures
+- relevant capability entries from `execution_plan.capability_plan`
 
 ### Output
-Must preserve upstream payload and enrich pages with:
-- `tables`
+Must preserve upstream payload and enrich the appropriate page/document structures with table results.
 
 ### Rules
-- if `requested_services.table_extraction = false`, the stage must not be treated as expected output
-- absence due to not requested is not an error
-## 8.5 Logo / Template Recognition
+- may be internal, heuristic, or external-provider backed
+- substitution of implementation must not break page/document contract shape
+- must preserve bundled provider reuse semantics where relevant
+- must avoid duplicate extraction if bundled outputs already satisfy required coverage
+- must preserve the embedded execution plan
+
+## 9.5 Logo / Template Recognition
 
 ### Input
 Must consume:
-- normalized execution payload
-- OCR-enriched `pages`
+- upstream execution payload
+- page/document structures sufficient for template or logo detection
+- relevant capability or service instruction from the embedded plan
 
 ### Output
-Must preserve upstream payload and enrich page metadata with:
-- detected logos / template findings
+Must preserve upstream payload and enrich page/document metadata with logo/template results.
 
 ### Rules
-- if `requested_services.logo_recognition = false`, absence is not an error
-## 8.6 Fraud Detection
+- may be heuristic initially
+- future replacements may be model-based or provider-backed without contract redesign
+- must preserve the embedded execution plan
+
+## 9.6 Fraud Detection / Authenticity / Related Trust Signals
 
 ### Input
 Must consume:
-- normalized execution payload
-- OCR-enriched `pages`
+- upstream execution payload
+- OCR and/or structured extraction outputs as required
+- relevant capability entries from the embedded plan
 
 ### Output
-Must preserve upstream payload and enrich page metadata with:
-- fraud flags
-- fraud-related findings
+Must preserve upstream payload and enrich page/document metadata with fraud, authenticity, or anomaly signals.
 
 ### Rules
-- if `requested_services.fraud_detection = false`, absence is not an error
-## 8.7 Aggregation
+- may begin as heuristic
+- future replacements may be more advanced without breaking contract structure
+- must preserve the embedded execution plan
+- should write supporting evidence into `evaluation`
+
+## 9.7 Future Intelligence Modules
+
+The contract must remain forward-compatible with future modules such as:
+- handwriting recognition
+- key-value extraction
+- signature detection
+- checkbox detection
+- barcode extraction
+- language detection
+- layout analysis
+- font analysis
+- image/figure extraction
+- formula extraction
+- clause extraction
+- question-answer support
+
+Each such module must:
+- preserve upstream payload
+- enrich controlled output fields
+- update `service_status` where governed
+- read the relevant capability entries from `execution_plan`
+- update `routing_decision` where provider or path choice matters
+- update `evaluation` where quality/completeness signals are produced
+
+## 9.8 Aggregation
 
 ### Input
 Must consume:
-- normalized execution payload
-- all prior mandatory outputs
-- any optional enrichment outputs that were requested and completed or partially completed
+- full enriched execution payload after prior capability execution
+- final state of the embedded `execution_plan`
 
 ### Output
 Must produce:
-- `canonical_document`
-- final `manifest_update`
-- final aggregation metadata
+- document-level canonical outputs
+- updated manifest state
+- preserved routing lineage
+- preserved evaluation metadata suitable for later analysis
+- preserved final execution plan
 
 ### Rules
-Aggregation must:
-- treat OCR as mandatory
-- treat optional enrichments as optional
-- distinguish:
-  - `not_requested`
-  - `skipped`
-  - `failed`
-  - `partial`
-  - `completed`
-- produce semantically correct canonical output even when optional enrichments are absent
-## 9. Manifest Update Contract
+- aggregation must not erase provider-selection lineage
+- aggregation must preserve explainability of accepted/fallback paths
+- aggregation must support current single-document implementation and future multi-document expansion
+- aggregation is where the final executed path becomes durable lineage
 
-The `manifest_update` section is the authoritative inter-stage manifest mutation payload.
+## 10. Routing Decision Contract
 
-It must support at minimum:
+The `routing_decision` object is authoritative for the summarised runtime view of how the platform chose and adjusted capability paths.
 
-```json
-{
-  "manifest_id": "string",
-  "documents": [],
-  "processing_parameters": {},
-  "pipeline_status": "pending|processing|completed|failed|partial|UNKNOWN",
-  "retry_count": 0,
-  "last_updated": "ISO-8601 string",
-  "partial_execution_flags": {},
-  "client_notification": {
-    "required": false,
-    "status": "not_required",
-    "message": ""
-  },
-  "service_status": {
-    "ocr": "requested",
-    "table_extraction": "not_requested",
-    "logo_recognition": "not_requested",
-    "fraud_detection": "not_requested"
-  },
-  "pipeline_history": []
-}
-### 9.1 Required manifest semantics
-Manifest updates must explicitly record:
-- requested services
-- executed services
-- skipped services
-- failed services
-- partial services
+It should support fields such as:
+- selected_strategy
+- primary_provider_summary
+- fallback_used
+- fallback_provider
+- fallback_reason
+- selected_capability_path
+- decision_basis
+- document_route
+- page_route_overrides
+- current_route_state
+- last_gate_applied
 
-### 9.2 Pipeline history rules
-`pipeline_history` must be append-only.
+The exact implementation may evolve, but routing traceability must exist from the first governed hybrid baseline.
 
-Each history item should include:
-- `stage`
-- `status`
-- `timestamp`
+The `routing_decision` object must remain consistent with, but may be simpler than, the richer embedded `execution_plan`.
 
-And may include:
-- `engine_name`
-- `engine_version`
-- `notes`
-## 10. Execution State Contract
+## 11. Evaluation Contract
 
-`execution_state` is the orchestration-facing transient control state.
+The `evaluation` object is authoritative for execution quality and improvement signals.
 
-Expected structure:
+It should support fields such as:
+- quality_score
+- completeness_score
+- confidence_summary
+- required_fields_present
+- required_fields_missing
+- routing_acceptance_reason
+- benchmark_tags
+- capability_evidence
+- future correction / review metadata
 
-```json
-{
-  "current_stage": "string",
-  "completed_stages": [],
-  "failed_stages": [],
-  "skipped_stages": []
-}
-## 11. Aggregation Semantics
+The exact implementation may evolve, but evaluation traceability must exist from the first governed hybrid baseline.
 
-Aggregation must interpret optional services according to the following rules:
+The `evaluation` object is the evidence base for:
+- fallback activation
+- reroute decisions
+- partial acceptance
+- final acceptance or rejection
 
-| Service state | Aggregation expectation | Error condition |
-| --- | --- | --- |
-| `not_requested` | Do not expect output | No |
-| `skipped` | Do not expect output, but record skip semantics | No |
-| `completed` | Include output if present | Yes, if expected output is missing without explanation |
-| `partial` | Include partial output with explicit partial semantics | No, unless contract-required fields are missing |
-| `failed` | Do not fabricate output; record failure semantics | No, unless failure handling contract is violated |
-## 12. Preservation Rules
+## 12. Manifest Update Semantics
+
+The `manifest_update` object remains the durable execution control update.
+
+It must continue to support:
+- manifest identifiers
+- pipeline status
+- retry state
+- service status
+- client notification state
+- pipeline history
+
+It must also remain extensible for:
+- multi-document semantics
+- routing traceability pointers
+- evaluation summary pointers
+- controlled future provider-substitution metadata
+
+## 13. Preservation Rules
 
 Stages must preserve the following unless there is an approved contract revision:
-
 - `manifest_id`
 - `document_id`
 - `source_uri`
 - `requested_services`
 - `service_status`
+- `documents`
 - `pages`
+- `execution_plan`
+- `routing_decision`
+- `evaluation`
 - `manifest_update`
 
 No stage may silently remove required upstream fields.
 
-## 13. Error, Retry, and Partial Execution Rules
+## 14. Current Baseline Decision
 
-### 13.1 Failure
-A stage failure must:
-- update `service_status` appropriately
-- update `manifest_update.pipeline_status` appropriately
-- append pipeline history
-
-### 13.2 Retry
-Retries must:
-- increment retry semantics in manifest where applicable
-- not corrupt prior successful outputs
-- preserve idempotent behavior as far as practical
-
-### 13.3 Partial execution
-Partial execution must be explicitly represented in:
-- `service_status`
-- `partial_execution_flags`
-- `pipeline_history`
-
-## 14. Implementation Rules
-
-### 14.1 Preferred worker model
-Preferred model:
-- direct structured payload consumption and emission
-
-### 14.2 Allowed local file usage
-Local files may be used:
-- as internal worker implementation detail
-- for temporary artifact handling
-
-Local files must not be the authoritative inter-stage contract.
-
-### 14.3 Orchestration model
-Preferred orchestration model:
-- mandatory core path
-- conditional optional service execution
-- mandatory aggregation/finalization
-
-## 15. Document Authority and Change Control
-
-This document is authoritative for pipeline runtime contract behavior.
-
-No changes to:
-- stage payload shape
-- requested service semantics
-- service status semantics
-- manifest inter-stage semantics
-- aggregation absence/failure semantics
-
-may be implemented unless this contract is updated first or in the same controlled change set.
-
-## 16. Current Gap Summary
-
-At the time of creation of this document, the platform has the following known alignment gaps:
-
-- deployed Step Functions skeleton exists
-- worker input/output contracts are not yet fully normalized to this contract
-- optional service selection is not yet fully implemented in orchestration
-- manifest schema does not yet explicitly encode all service-status semantics defined here
-
-These gaps must be resolved in controlled follow-on implementation steps.
+Effective immediately:
+- OCR Rebuild must treat the execution payload as a hybrid capability orchestration contract
+- the embedded execution plan is the authoritative runtime instruction object
+- preprocessing must no longer be assumed to receive pre-built pages for all requests
+- provider substitution and fallback must be supported without redesign
+- execution traceability must be preserved for future cost/quality optimization

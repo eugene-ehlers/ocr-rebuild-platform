@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "canonical_document_schema",
-  "description": "Controlled baseline schema for the canonical OCR document model. Hardened from the Phase 3 schema audit and aligned to the current page-level contract. This schema represents one logical document. Multi-document manifests may produce multiple canonical documents without breaking this baseline contract.",
+  "description": "Controlled baseline schema for the canonical document intelligence model. This schema represents one logical document. Multi-document manifests may produce multiple canonical documents without breaking this baseline contract. The schema is expanded to support document-level routing, evaluation, and provider-traceability metadata while preserving stable downstream compatibility.",
   "type": "object",
   "properties": {
     "document_id": {
       "type": "string",
-      "description": "Unique document identifier."
+      "description": "Unique logical document identifier."
     },
     "source_uri": {
       "type": "string",
@@ -23,15 +23,25 @@
     },
     "pages": {
       "type": "array",
-      "description": "Page-level document content aligned to the controlled page schema.",
+      "description": "Page-level content aligned to the governed page schema.",
       "items": {
         "$ref": "page_schema.json"
       },
       "default": []
     },
+    "routing_summary": {
+      "type": "object",
+      "description": "Optional document-level routing traceability summary, including provider selection, fallback usage, and accepted capability path.",
+      "default": {}
+    },
+    "evaluation_summary": {
+      "type": "object",
+      "description": "Optional document-level evaluation summary, including quality, completeness, and benchmark metadata.",
+      "default": {}
+    },
     "metadata": {
       "type": "object",
-      "description": "Document-level canonical metadata, including pipeline summaries, enrichment summaries, lineage, and extensible control metadata.",
+      "description": "Document-level canonical metadata, including pipeline summaries, enrichment summaries, lineage, provider traceability, and extensible control metadata.",
       "default": {}
     }
   },

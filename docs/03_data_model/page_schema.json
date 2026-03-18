@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "page_schema",
-  "description": "Controlled baseline schema for page-level OCR pipeline outputs. Hardened from the Phase 3 schema audit. Detailed engine-specific payloads may expand without breaking this baseline contract.",
+  "description": "Controlled baseline schema for page-level document intelligence outputs. Expanded for governed document-to-page linkage, source and processed artifact lineage, routing traceability, provider substitution, and future modular capability enrichment.",
   "type": "object",
   "properties": {
     "document_id": {
@@ -19,11 +19,11 @@
     },
     "source_bucket": {
       "type": "string",
-      "description": "Bucket containing the source page artifact or source-derived page artifact."
+      "description": "Bucket containing the source page artifact or source-derived normalized page artifact."
     },
     "source_key": {
       "type": "string",
-      "description": "Object key for the source page artifact or source-derived page artifact."
+      "description": "Object key for the source page artifact or source-derived normalized page artifact."
     },
     "processed_bucket": {
       "type": "string",
@@ -40,11 +40,11 @@
     },
     "rotation_angle": {
       "type": "number",
-      "description": "Detected page rotation angle from preprocessing."
+      "description": "Detected or assigned page rotation angle from preprocessing."
     },
     "orientation": {
       "type": "string",
-      "description": "Detected page orientation."
+      "description": "Detected or assigned page orientation."
     },
     "language_code": {
       "type": "string",
@@ -127,9 +127,19 @@
       },
       "default": []
     },
+    "routing_decision": {
+      "type": "object",
+      "description": "Optional page-level routing traceability, including primary provider, fallback usage, and page-specific decision basis.",
+      "default": {}
+    },
+    "evaluation": {
+      "type": "object",
+      "description": "Optional page-level quality, completeness, and benchmark traceability metadata.",
+      "default": {}
+    },
     "metadata": {
       "type": "object",
-      "description": "Page-level metadata including engine metadata, fraud flags, logos, confidence summaries, and pipeline history extensions.",
+      "description": "Page-level metadata including engine metadata, provider metadata, fraud flags, logos, confidence summaries, and pipeline history extensions.",
       "default": {}
     },
     "previous_version_id": {
@@ -138,7 +148,7 @@
     },
     "multi_layer_text": {
       "type": "array",
-      "description": "Optional layered text outputs from multiple languages or engines.",
+      "description": "Optional layered text outputs from multiple languages, engines, or providers.",
       "items": {
         "type": "object",
         "additionalProperties": true
@@ -152,6 +162,10 @@
     "engine_version": {
       "type": "string",
       "description": "Version of the engine used for this page output."
+    },
+    "provider": {
+      "type": "string",
+      "description": "Provider used for this page output, whether internal, open-source, or external API-backed."
     }
   },
   "required": [
