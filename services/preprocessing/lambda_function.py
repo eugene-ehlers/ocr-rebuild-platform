@@ -1,9 +1,11 @@
 import boto3
+import fitz
 import io
 import json
 import os
 from datetime import datetime, timezone
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
+from urllib.parse import urlparse
 
 from PIL import Image, ImageFilter, ImageOps
 
@@ -14,9 +16,33 @@ PROCESSED_BUCKET = os.environ.get("PROCESSED_BUCKET", "UNKNOWN")
 OUTPUT_S3_BUCKET = os.environ.get("OUTPUT_S3_BUCKET", "")
 OUTPUT_S3_KEY = os.environ.get("OUTPUT_S3_KEY", "")
 
+SUPPORTED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".tif", ".tiff"}
+SUPPORTED_PDF_EXTENSIONS = {".pdf"}
+
 
 def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def parse_s3_uri(uri: str) -> Tuple[str, str]:
+    parsed = urlparse(uri)
+    if parsed.scheme != "s3" or not parsed.netloc or not parsed.path:
+        raise ValueError(f"Unsupported or invalid S3 URI: {uri}")
+    return parsed.netloc, parsed.path.lstrip("/")
+
+
+def get_extension_from_key(key: str) -> str:
+    key_lower = key.lower()
+    dot_index = key_lower.rfind(".")
+    return key_lower[dot_index:] if dot_index != -1 else ""
+
+
+def build_normalized_source_key(manifest_id: str, document_id: str, page_number: int) -> str:
+    return f"normalized/{manifest_id}/{document_id}/pages/page_{page_number:04d}.png"
+
+
+def build_processed_key(manifest_id: str, document_id: str, page_number: int) -> str:
+    return f"processed/{manifest_id}/{document_id}/pages/page_{page_number:04d}.png"
 
 
 def preprocess_image_bytes(image_bytes: bytes) -> tuple[bytes, Dict[str, Any]]:
@@ -53,21 +79,165 @@ def preprocess_image_bytes(image_bytes: bytes) -> tuple[bytes, Dict[str, Any]]:
         return output.read(), metadata
 
 
-def build_processed_pages(event: Dict[str, Any]) -> List[Dict[str, Any]]:
+def normalize_existing_pages(event: Dict[str, Any]) -> List[Dict[str, Any]]:
     pages = event.get("pages", [])
-    processed_pages: List[Dict[str, Any]] = []
+    normalized_pages: List[Dict[str, Any]] = []
+
+    source_bucket = event.get("source_bucket", "UNKNOWN")
+    default_document_id = event.get("document_id", "UNKNOWN")
 
     for index, page in enumerate(pages, start=1):
-        key = page["s3_key"]
-        processed_key = key.replace("uploads/", "processed/")
+        normalized_pages.append({
+            "document_id": page.get("document_id", default_document_id),
+            "page_number": page.get("page_number", index),
+            "source_bucket": page.get("source_bucket", source_bucket),
+            "source_key": page.get("source_key") or page.get("s3_key", ""),
+            "page_id": page.get("page_id"),
+            "rotation_angle": page.get("rotation_angle", 0),
+            "orientation": page.get("orientation", "UNKNOWN"),
+            "preprocessing_params": dict(page.get("preprocessing_params", {})),
+            "metadata": dict(page.get("metadata", {}))
+        })
+
+    return normalized_pages
+
+
+def normalize_single_image_document(
+    event: Dict[str, Any],
+    source_bucket: str,
+    source_key: str
+) -> List[Dict[str, Any]]:
+    manifest_id = event.get("manifest_id", "UNKNOWN")
+    document_id = event.get("document_id", "UNKNOWN")
+
+    source_obj = s3.get_object(Bucket=source_bucket, Key=source_key)
+    source_bytes = source_obj["Body"].read()
+
+    with Image.open(io.BytesIO(source_bytes)) as img:
+        output = io.BytesIO()
+        img.save(output, format="PNG")
+        output.seek(0)
+        normalized_bytes = output.read()
+
+    normalized_key = build_normalized_source_key(manifest_id, document_id, 1)
+
+    s3.put_object(
+        Bucket=PROCESSED_BUCKET,
+        Key=normalized_key,
+        Body=normalized_bytes,
+        ContentType="image/png"
+    )
+
+    return [{
+        "document_id": document_id,
+        "page_id": f"{document_id}-page-1",
+        "page_number": 1,
+        "source_bucket": PROCESSED_BUCKET,
+        "source_key": normalized_key,
+        "rotation_angle": 0,
+        "orientation": "UNKNOWN",
+        "preprocessing_params": {},
+        "metadata": {
+            "stage": "normalization",
+            "normalization_source_type": "single_image",
+            "original_source_bucket": source_bucket,
+            "original_source_key": source_key
+        }
+    }]
+
+
+def normalize_pdf_document(
+    event: Dict[str, Any],
+    source_bucket: str,
+    source_key: str
+) -> List[Dict[str, Any]]:
+    manifest_id = event.get("manifest_id", "UNKNOWN")
+    document_id = event.get("document_id", "UNKNOWN")
+
+    source_obj = s3.get_object(Bucket=source_bucket, Key=source_key)
+    pdf_bytes = source_obj["Body"].read()
+
+    pdf = fitz.open(stream=pdf_bytes, filetype="pdf")
+    normalized_pages: List[Dict[str, Any]] = []
+
+    for index in range(len(pdf)):
+        page_number = index + 1
+        page = pdf.load_page(index)
+        pix = page.get_pixmap(dpi=200, alpha=False)
+        normalized_bytes = pix.tobytes("png")
+
+        normalized_key = build_normalized_source_key(manifest_id, document_id, page_number)
+
+        s3.put_object(
+            Bucket=PROCESSED_BUCKET,
+            Key=normalized_key,
+            Body=normalized_bytes,
+            ContentType="image/png"
+        )
+
+        normalized_pages.append({
+            "document_id": document_id,
+            "page_id": f"{document_id}-page-{page_number}",
+            "page_number": page_number,
+            "source_bucket": PROCESSED_BUCKET,
+            "source_key": normalized_key,
+            "rotation_angle": 0,
+            "orientation": "UNKNOWN",
+            "preprocessing_params": {},
+            "metadata": {
+                "stage": "normalization",
+                "normalization_source_type": "pdf",
+                "original_source_bucket": source_bucket,
+                "original_source_key": source_key
+            }
+        })
+
+    pdf.close()
+    return normalized_pages
+
+
+def normalize_pages_from_source(event: Dict[str, Any]) -> List[Dict[str, Any]]:
+    existing_pages = event.get("pages", [])
+    if existing_pages:
+        return normalize_existing_pages(event)
+
+    source_uri = event.get("source_uri", "")
+    if not source_uri:
+        return []
+
+    source_bucket, source_key = parse_s3_uri(source_uri)
+    extension = get_extension_from_key(source_key)
+
+    if extension in SUPPORTED_IMAGE_EXTENSIONS:
+        return normalize_single_image_document(event, source_bucket, source_key)
+
+    if extension in SUPPORTED_PDF_EXTENSIONS:
+        return normalize_pdf_document(event, source_bucket, source_key)
+
+    raise ValueError(
+        f"Unsupported OCR normalization source type for preprocessing: {source_key}"
+    )
+
+
+def build_processed_pages(event: Dict[str, Any]) -> List[Dict[str, Any]]:
+    normalized_pages = normalize_pages_from_source(event)
+    processed_pages: List[Dict[str, Any]] = []
+    manifest_id = event.get("manifest_id", "UNKNOWN")
+
+    for index, page in enumerate(normalized_pages, start=1):
+        source_bucket = page["source_bucket"]
+        source_key = page["source_key"]
+        document_id = page.get("document_id", event.get("document_id", "UNKNOWN"))
+        page_number = page.get("page_number", index)
 
         source_obj = s3.get_object(
-            Bucket=event["source_bucket"],
-            Key=key
+            Bucket=source_bucket,
+            Key=source_key
         )
         source_bytes = source_obj["Body"].read()
 
         processed_bytes, recipe_metadata = preprocess_image_bytes(source_bytes)
+        processed_key = build_processed_key(manifest_id, document_id, page_number)
 
         s3.put_object(
             Bucket=PROCESSED_BUCKET,
@@ -77,26 +247,30 @@ def build_processed_pages(event: Dict[str, Any]) -> List[Dict[str, Any]]:
         )
 
         processed_pages.append({
-            "page_number": page.get("page_number", index),
+            "document_id": document_id,
+            "page_id": page.get("page_id", f"{document_id}-page-{page_number}"),
+            "page_number": page_number,
+            "source_bucket": source_bucket,
+            "source_key": source_key,
+            "processed_bucket": PROCESSED_BUCKET,
             "processed_key": processed_key,
-            "rotation_angle": 0,
-            "orientation": "UNKNOWN",
+            "rotation_angle": page.get("rotation_angle", 0),
+            "orientation": page.get("orientation", "UNKNOWN"),
             "preprocessing_params": {
                 "status": "completed_real_increment",
                 "recipe": "grayscale_autocontrast_median3",
                 **recipe_metadata
             },
             "metadata": {
-                "stage": "preprocessing",
-                "source_key": key,
-                "processed_bucket": PROCESSED_BUCKET
+                **dict(page.get("metadata", {})),
+                "stage": "preprocessing"
             }
         })
 
     return processed_pages
 
 
-def build_manifest_update(event: Dict[str, Any]) -> Dict[str, Any]:
+def build_manifest_update(event: Dict[str, Any], processed_pages: List[Dict[str, Any]]) -> Dict[str, Any]:
     now = utc_now_iso()
     manifest_update = dict(event.get("manifest_update", {}))
     pipeline_history = list(manifest_update.get("pipeline_history", []))
@@ -106,9 +280,16 @@ def build_manifest_update(event: Dict[str, Any]) -> Dict[str, Any]:
         "status": "completed_real_increment",
         "timestamp": now,
         "engine_name": "preprocessing_lambda",
-        "engine_version": "v0.2",
-        "notes": "Applied grayscale, autocontrast, and median filter preprocessing."
+        "engine_version": "v0.3",
+        "notes": "Normalized OCR-eligible input into governed pages and applied grayscale, autocontrast, and median filter preprocessing."
     })
+
+    documents = []
+    for doc in event.get("documents", []):
+        doc_copy = dict(doc)
+        doc_id = doc_copy.get("document_id", "UNKNOWN")
+        doc_copy["page_count"] = sum(1 for p in processed_pages if p.get("document_id") == doc_id)
+        documents.append(doc_copy)
 
     manifest_update.update({
         "manifest_id": event.get("manifest_id", manifest_update.get("manifest_id", "UNKNOWN")),
@@ -116,6 +297,7 @@ def build_manifest_update(event: Dict[str, Any]) -> Dict[str, Any]:
         "last_updated": now,
         "partial_execution_flags": manifest_update.get("partial_execution_flags", {}),
         "service_status": event.get("service_status", manifest_update.get("service_status", {})),
+        "documents": documents if documents else manifest_update.get("documents", []),
         "pipeline_history": pipeline_history
     })
 
@@ -156,7 +338,7 @@ def write_output_to_s3(result: Dict[str, Any], event: Dict[str, Any]) -> None:
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     processed_pages = build_processed_pages(event)
-    manifest_update = build_manifest_update(event)
+    manifest_update = build_manifest_update(event, processed_pages)
     execution_state = build_execution_state(event)
 
     result = {
@@ -173,7 +355,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         "requested_services": event.get("requested_services", {}),
         "service_status": event.get("service_status", {}),
         "execution_state": execution_state,
-        "documents": event.get("documents", []),
+        "documents": manifest_update.get("documents", event.get("documents", [])),
         "pages": processed_pages,
         "manifest_update": manifest_update
     }
