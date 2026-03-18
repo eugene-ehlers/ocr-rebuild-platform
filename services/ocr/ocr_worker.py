@@ -33,7 +33,10 @@ def empty_payload() -> Dict[str, Any]:
         "manifest_update": {},
         "execution_state": {},
         "requested_services": {},
-        "service_status": {}
+        "service_status": {},
+        "execution_plan": {},
+        "routing_decision": {},
+        "evaluation": {}
     }
 
 
@@ -63,9 +66,27 @@ def write_output(result: Dict[str, Any], output_path: str) -> None:
         json.dump(result, f, indent=2)
 
 
+def get_text_ocr_plan(event: Dict[str, Any]) -> Dict[str, Any]:
+    execution_plan = dict(event.get("execution_plan", {}))
+    capability_plan = dict(execution_plan.get("capability_plan", {}))
+    text_ocr_plan = dict(capability_plan.get("TEXT_OCR", {}))
+
+    if not text_ocr_plan:
+        return {
+            "provider": "tesseract",
+            "provider_type": "open_source",
+            "execution_mode": "primary",
+            "fallback_allowed": True,
+            "fallback_provider": "aws_textract_detect_document_text",
+            "decision_reason": "default_text_ocr_plan_v1"
+        }
+
+    return text_ocr_plan
+
+
 def run_tesseract_on_image(image_bytes: bytes) -> Dict[str, Any]:
     """
-    First controlled real OCR increment using local Tesseract.
+    Controlled OCR baseline using local Tesseract.
     """
     with Image.open(BytesIO(image_bytes)) as img:
         text = pytesseract.image_to_string(img).strip()
@@ -78,7 +99,25 @@ def run_tesseract_on_image(image_bytes: bytes) -> Dict[str, Any]:
     }
 
 
-def process_page(page: Dict[str, Any]) -> Dict[str, Any]:
+def run_selected_ocr_provider(image_bytes: bytes, text_ocr_plan: Dict[str, Any]) -> Dict[str, Any]:
+    provider = text_ocr_plan.get("provider", "tesseract")
+
+    if provider == "tesseract":
+        result = run_tesseract_on_image(image_bytes)
+        result.update({
+            "provider": "tesseract",
+            "provider_type": text_ocr_plan.get("provider_type", "open_source"),
+            "engine_name": "tesseract",
+            "engine_version": "execution_plan_v1"
+        })
+        return result
+
+    raise ValueError(
+        f"OCR provider '{provider}' is not yet implemented in this worker baseline."
+    )
+
+
+def process_page(page: Dict[str, Any], text_ocr_plan: Dict[str, Any]) -> Dict[str, Any]:
     processed_key = page.get("processed_key", "UNKNOWN")
 
     source_obj = s3.get_object(
@@ -87,7 +126,23 @@ def process_page(page: Dict[str, Any]) -> Dict[str, Any]:
     )
     image_bytes = source_obj["Body"].read()
 
-    ocr_result = run_tesseract_on_image(image_bytes)
+    ocr_result = run_selected_ocr_provider(image_bytes, text_ocr_plan)
+
+    page_evaluation = dict(page.get("evaluation", {}))
+    page_evaluation.update({
+        "ocr_completed": True,
+        "ocr_provider": ocr_result["provider"],
+        "ocr_quality_score": ocr_result["confidence"],
+        "required_fields_present": bool(ocr_result["text"])
+    })
+
+    page_routing = dict(page.get("routing_decision", {}))
+    page_routing.update({
+        "selected_capability_path": "TEXT_OCR",
+        "primary_provider_summary": ocr_result["provider"],
+        "fallback_used": False,
+        "current_route_state": "ocr_completed"
+    })
 
     enriched_page = dict(page)
     enriched_page.update({
@@ -96,22 +151,26 @@ def process_page(page: Dict[str, Any]) -> Dict[str, Any]:
         "line_block_word_confidence": {
             "page_confidence": ocr_result["confidence"]
         },
-        "engine_name": "tesseract",
-        "engine_version": "initial_increment"
+        "engine_name": ocr_result["engine_name"],
+        "engine_version": ocr_result["engine_version"],
+        "provider": ocr_result["provider"],
+        "routing_decision": page_routing,
+        "evaluation": page_evaluation
     })
 
     metadata = dict(page.get("metadata", {})) if isinstance(page.get("metadata", {}), dict) else {}
     metadata.update({
         "stage": "ocr",
         "result_bucket": RESULT_BUCKET,
-        "source_processed_key": processed_key
+        "source_processed_key": processed_key,
+        "provider_type": ocr_result["provider_type"]
     })
     enriched_page["metadata"] = metadata
 
     return enriched_page
 
 
-def build_manifest_update(event: Dict[str, Any]) -> Dict[str, Any]:
+def build_manifest_update(event: Dict[str, Any], text_ocr_plan: Dict[str, Any]) -> Dict[str, Any]:
     now = utc_now_iso()
     manifest_update = dict(event.get("manifest_update", {}))
     pipeline_history = list(manifest_update.get("pipeline_history", []))
@@ -123,9 +182,10 @@ def build_manifest_update(event: Dict[str, Any]) -> Dict[str, Any]:
         "stage": "ocr",
         "status": "completed_real_increment",
         "timestamp": now,
-        "engine_name": "tesseract",
-        "engine_version": "initial_increment",
-        "notes": "Real OCR text extraction executed with Tesseract."
+        "engine_name": text_ocr_plan.get("provider", "tesseract"),
+        "engine_version": "execution_plan_v1",
+        "provider": text_ocr_plan.get("provider", "tesseract"),
+        "notes": "OCR executed using execution-plan-controlled provider selection baseline."
     })
 
     manifest_update.update({
@@ -155,17 +215,63 @@ def build_execution_state(event: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def build_routing_decision(event: Dict[str, Any], text_ocr_plan: Dict[str, Any], ocr_pages: List[Dict[str, Any]]) -> Dict[str, Any]:
+    routing_decision = dict(event.get("routing_decision", {}))
+    routing_decision.update({
+        "selected_strategy": routing_decision.get("selected_strategy", "baseline_v1"),
+        "primary_provider_summary": text_ocr_plan.get("provider", "tesseract"),
+        "fallback_used": False,
+        "selected_capability_path": "TEXT_OCR",
+        "decision_basis": text_ocr_plan.get("decision_reason", "default_text_ocr_plan_v1"),
+        "current_route_state": "ocr_completed",
+        "last_gate_applied": routing_decision.get("last_gate_applied", "2"),
+        "ocr_pages_processed": len(ocr_pages)
+    })
+    return routing_decision
+
+
+def build_evaluation(event: Dict[str, Any], ocr_pages: List[Dict[str, Any]]) -> Dict[str, Any]:
+    evaluation = dict(event.get("evaluation", {}))
+    page_confidences = [
+        page.get("line_block_word_confidence", {}).get("page_confidence", 0.0)
+        for page in ocr_pages
+        if isinstance(page, dict)
+    ]
+    non_empty_pages = sum(1 for page in ocr_pages if (page.get("extracted_text", "") or "").strip())
+    total_pages = len(ocr_pages)
+    quality_score = sum(page_confidences) / len(page_confidences) if page_confidences else 0.0
+
+    evaluation.update({
+        "ocr_completed": True,
+        "quality_score": quality_score,
+        "completeness_score": (non_empty_pages / total_pages) if total_pages else 0.0,
+        "required_fields_present": non_empty_pages > 0,
+        "confidence_summary": {
+            "page_confidences": page_confidences,
+            "average_page_confidence": quality_score
+        },
+        "routing_acceptance_reason": evaluation.get(
+            "routing_acceptance_reason",
+            "ocr_completed_under_execution_plan_v1"
+        )
+    })
+    return evaluation
+
+
 def run(event: Dict[str, Any]) -> Dict[str, Any]:
     pages = event.get("pages", [])
     ocr_pages: List[Dict[str, Any]] = []
+    text_ocr_plan = get_text_ocr_plan(event)
 
     for index, page in enumerate(pages, start=1):
         if not isinstance(page, dict):
             page = {"page_number": index}
-        ocr_pages.append(process_page(page))
+        ocr_pages.append(process_page(page, text_ocr_plan))
 
-    manifest_update = build_manifest_update(event)
+    manifest_update = build_manifest_update(event, text_ocr_plan)
     execution_state = build_execution_state(event)
+    routing_decision = build_routing_decision(event, text_ocr_plan, ocr_pages)
+    evaluation = build_evaluation(event, ocr_pages)
 
     return {
         "manifest_id": event.get("manifest_id", "UNKNOWN"),
@@ -183,12 +289,15 @@ def run(event: Dict[str, Any]) -> Dict[str, Any]:
         "execution_state": execution_state,
         "documents": event.get("documents", []),
         "pages": ocr_pages,
+        "execution_plan": dict(event.get("execution_plan", {})),
+        "routing_decision": routing_decision,
+        "evaluation": evaluation,
         "metadata": {
             "stage": "ocr",
-            "engine_name": "tesseract",
-            "engine_version": "initial_increment",
+            "engine_name": text_ocr_plan.get("provider", "tesseract"),
+            "engine_version": "execution_plan_v1",
             "partial_execution": False,
-            "notes": "Initial real OCR increment using local Tesseract."
+            "notes": "OCR executed using execution-plan-aware provider selection baseline."
         },
         "manifest_update": manifest_update
     }
