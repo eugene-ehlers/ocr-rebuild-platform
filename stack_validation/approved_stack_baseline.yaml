@@ -1,0 +1,51 @@
+stack_baseline:
+  baseline_id: phase6_stack_proof_v1
+  status: draft
+  runtime:
+    python: "3.11"
+    aws_mode:
+      - lambda
+      - lambda_container
+      - ecs_fargate
+  approved_services:
+    preprocessing:
+      packaging: lambda_or_container
+      python_packages:
+        - "boto3"
+        - "Pillow"
+        - "PyMuPDF==1.23.26"
+      os_packages: []
+      provider_baseline: internal
+      status: approved
+    ocr:
+      packaging: container
+      python_packages:
+        - "boto3"
+        - "Pillow"
+        - "pytesseract"
+        - "opencv-python-headless"
+      os_packages:
+        - "tesseract-ocr"
+      provider_baseline: internal_primary_with_textract_fallback
+      fallback_provider:
+        - "aws_textract_detect_document_text"
+      status: approved
+    table_extraction:
+      packaging: container
+      python_packages: []
+      os_packages: []
+      provider_baseline: internal_heuristic_with_textract_fallback
+      fallback_provider:
+        - "aws_textract_analyze_document"
+      status: provisional
+    fraud_authenticity:
+      packaging: container_or_lightweight_worker
+      python_packages:
+        - "boto3"
+      os_packages: []
+      provider_baseline: internal_heuristic
+      status: provisional
+  rejected_for_current_baseline:
+    - "google_document_ai"
+  licensing_review_required:
+    - "PyMuPDF"
