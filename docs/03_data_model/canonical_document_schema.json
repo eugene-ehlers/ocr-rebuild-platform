@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "canonical_document_schema",
-  "description": "Controlled baseline schema for the canonical OCR document model. Hardened from the Phase 3 schema audit and aligned to the current page-level contract. Detailed pipeline-specific enrichments may expand without breaking this baseline contract.",
+  "description": "Controlled baseline schema for the canonical OCR document model. Hardened from the Phase 3 schema audit and aligned to the current page-level contract. This schema represents one logical document. Multi-document manifests may produce multiple canonical documents without breaking this baseline contract.",
   "type": "object",
   "properties": {
     "document_id": {

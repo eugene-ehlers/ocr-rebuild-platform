@@ -112,16 +112,19 @@ The following fields are the minimum controlled execution contract.
 ### 5.2 Required source tracking
 - `source_uri`
 
-### 5.3 Required service selection
+### 5.3 Required document scope tracking
+- `documents`
+
+### 5.4 Required service selection
 - `requested_services`
 
-### 5.4 Required service lifecycle tracking
+### 5.5 Required service lifecycle tracking
 - `service_status`
 
-### 5.5 Required page payload
+### 5.6 Required page payload
 - `pages`
 
-### 5.6 Required manifest update payload
+### 5.7 Required manifest update payload
 - `manifest_update`
 ## 6. Requested Services Semantics
 
@@ -217,26 +220,83 @@ Must produce:
 Must consume:
 - top-level execution payload
 - `source_bucket`
+- `source_uri`
+- `documents`
 - `pages` or sufficient source information to derive pages
 
 ### Output
 Must preserve:
 - identifiers
+- document scope
 - requested services
 - service status
 - execution state
 - manifest update
 
-Must enrich `pages` with:
+Must normalize or enrich `pages` with:
+- `document_id`
 - `page_number`
+- source page location metadata
+- processed page location metadata
 - `rotation_angle`
 - `orientation`
 - `preprocessing_params`
-- processed page location metadata
 
 ### Rules
+- preprocessing is responsible for controlled source normalization for OCR-eligible inputs when governed page records do not already exist
+- preprocessing must support deterministic page ordering
 - preprocessing must not remove or reset requested service selections
 - preprocessing completion must update execution and manifest state
+- preprocessing must not route structured-digital source classes into raster OCR-first processing unless explicitly governed
+
+
+## 8.2.1 Input normalization semantics
+
+### Manifest scope
+A single execution payload may represent:
+- one logical document, or
+- multiple logical documents in one manifest/project scope
+
+### Document scope
+`documents[]` is the authoritative list of logical documents in execution scope.
+
+Each logical document must support:
+- `document_id`
+- `source_uri` or equivalent source lineage
+- `expected_document_type` where available
+
+### Page scope
+`pages[]` is the authoritative OCR-processing page list.
+
+Each page record must belong to a logical document and support deterministic page ordering.
+
+### OCR-eligible source classes
+The following classes normalize into page records for preprocessing and OCR:
+- single-image documents
+- multi-page PDFs
+- multi-page TIFF where supported
+- page-by-page assembled image documents
+
+### Structured-digital source classes
+The following classes are not OCR-first by default:
+- CSV
+- XLSX
+- DOCX
+- text-native PDFs
+- machine-readable structured files
+
+Until a governed structured extraction path exists, these must be rejected, marked unsupported for the OCR path, or handled only under an explicitly approved temporary rule.
+
+### Grouping rules
+Where multiple uploaded objects are present, normalization must distinguish between:
+- many pages of one logical document
+- many separate logical documents
+
+This distinction must come from:
+- explicit caller metadata, or
+- approved deterministic grouping rules
+
+Workers must not make uncontrolled grouping guesses.
 ## 8.3 OCR
 
 ### Input
@@ -254,6 +314,21 @@ Must preserve upstream payload and enrich `pages` with:
 ### Rules
 - OCR is mandatory unless explicitly governed otherwise in a future approved design change
 - OCR completion must set `service_status.ocr = completed` on success
+## 8.3.1 Canonical output semantics
+
+### Logical document rule
+Canonical output is defined per logical document, not per manifest as a whole.
+
+### Multi-document manifest rule
+If a manifest contains multiple logical documents:
+- each document must remain attributable to its own `document_id`
+- aggregation must support one canonical document per logical document
+- a future project-level summary may exist, but it must not replace document-level canonical outputs
+
+### Current implementation rule
+The current implementation may continue to assemble one canonical document for a single-document manifest without redesign.
+Multi-document canonical bundle behavior may be added as a controlled extension.
+
 ## 8.4 Table Extraction
 
 ### Input

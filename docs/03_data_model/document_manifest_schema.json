@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "document_manifest_schema",
-  "description": "Controlled baseline schema for OCR processing manifests. Hardened from Phase 4 build-plan Step 3 and Phase 3 schema audit. Expanded to include explicit requested service selection and service lifecycle status tracking for modular pipeline execution.",
+  "description": "Controlled baseline schema for OCR processing manifests. Hardened from Phase 4 build-plan Step 3 and Phase 3 schema audit. Expanded to include explicit requested service selection, service lifecycle status tracking, and governed multi-document project semantics for modular pipeline execution.",
   "type": "object",
   "properties": {
     "manifest_id": {
@@ -14,7 +14,18 @@
     },
     "source_batch_uri": {
       "type": "string",
-      "description": "Location of the source document batch."
+      "description": "Location of the source document batch or project-level upload scope."
+    },
+    "manifest_scope": {
+      "type": "string",
+      "description": "Governed execution scope classification for this manifest.",
+      "enum": [
+        "single_document",
+        "multi_document",
+        "project",
+        "UNKNOWN"
+      ],
+      "default": "UNKNOWN"
     },
     "documents": {
       "type": "array",
@@ -30,10 +41,34 @@
             "type": "string",
             "description": "Original document location."
           },
+          "source_type": {
+            "type": "string",
+            "description": "Normalized source input class for routing and preprocessing decisions.",
+            "default": "UNKNOWN"
+          },
           "expected_document_type": {
             "type": "string",
             "description": "Expected or classified document type.",
             "default": "UNKNOWN"
+          },
+          "document_status": {
+            "type": "string",
+            "description": "Document-level processing status within the manifest scope.",
+            "enum": [
+              "pending",
+              "processing",
+              "completed",
+              "failed",
+              "partial",
+              "unsupported",
+              "UNKNOWN"
+            ],
+            "default": "UNKNOWN"
+          },
+          "page_count": {
+            "type": "integer",
+            "description": "Normalized page count for the logical document where known.",
+            "minimum": 0
           }
         },
         "required": [
