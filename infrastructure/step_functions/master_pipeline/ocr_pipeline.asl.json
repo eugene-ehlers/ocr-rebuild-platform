@@ -46,6 +46,9 @@
         "execution_state.$": "$.execution_state",
         "documents.$": "$.documents",
         "pages.$": "$.pages",
+        "execution_plan.$": "$.execution_plan",
+        "routing_decision.$": "$.routing_decision",
+        "evaluation.$": "$.evaluation",
         "manifest_update.$": "$.manifest_update",
         "output_s3_bucket": "ocr-rebuild-results",
         "output_s3_key.$": "States.Format('payloads/{}/preprocessing/payload.json', $.manifest_id)"
@@ -119,6 +122,38 @@
         }
       },
       "ResultPath": null,
+      "Next": "Gate2QualityEvaluation",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "ResultPath": "$.error",
+          "Next": "PipelineFailure"
+        }
+      ]
+    },
+
+    "Gate2QualityEvaluation": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:026465780614:function:gate2-quality-evaluator-lambda-prod",
+      "Parameters": {
+        "input_s3_bucket": "ocr-rebuild-results",
+        "input_s3_key.$": "States.Format('payloads/{}/ocr/payload.json', $.manifest_id)",
+        "output_s3_bucket": "ocr-rebuild-results",
+        "output_s3_key.$": "States.Format('payloads/{}/gate2_quality/payload.json', $.manifest_id)"
+      },
+      "ResultPath": "$",
       "Next": "TableExtraction",
       "Retry": [
         {
@@ -171,7 +206,7 @@
                 },
                 {
                   "Name": "INPUT_S3_KEY",
-                  "Value.$": "States.Format('payloads/{}/ocr/payload.json', $.manifest_id)"
+                  "Value.$": "States.Format('payloads/{}/gate2_quality/payload.json', $.manifest_id)"
                 },
                 {
                   "Name": "OUTPUT_S3_BUCKET",
