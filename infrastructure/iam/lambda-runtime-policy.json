@@ -30,7 +30,8 @@
       ],
       "Resource": [
         "arn:aws:s3:::ocr-rebuild-original/*",
-        "arn:aws:s3:::ocr-rebuild-processed/*"
+        "arn:aws:s3:::ocr-rebuild-processed/*",
+        "arn:aws:s3:::ocr-rebuild-results/*"
       ]
     },
     {
@@ -41,7 +42,8 @@
       ],
       "Resource": [
         "arn:aws:s3:::ocr-rebuild-original",
-        "arn:aws:s3:::ocr-rebuild-processed"
+        "arn:aws:s3:::ocr-rebuild-processed",
+        "arn:aws:s3:::ocr-rebuild-results"
       ]
     },
     {

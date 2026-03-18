@@ -1,6 +1,6 @@
 # Deployment Pipeline
 
-Status: DRAFT - CONTROLLED UPDATE REQUIRED
+Status: DRAFT - CONTROLLED UPDATE APPLIED
 
 ## 1. Purpose
 
@@ -86,11 +86,25 @@ Images must be built from Dockerfiles in the service directories and pushed to E
 
 ### 5.3 Tagging rule
 Required tagging baseline:
-- stable phase tag where appropriate
-- immutable traceable tag including commit identifier
+- optional stable phase tag where appropriate
+- required immutable deployment tag including commit identifier
+
+Required immutable tag format:
+- `<phase>-<service>-<yyyymmdd>-<gitsha>`
+
+Example:
+- `phase5-ocr-20260318-4522d81`
 
 ### 5.4 Task definition rule
 ECS task definitions in `infrastructure/ecs/` must reference the intended immutable image tag before registration.
+
+Task definitions must not be registered against only a stable convenience tag such as `phase5` when an immutable deployment tag exists.
+
+### 5.5 Deployment verification rule
+After image push and task definition registration, verify:
+- the expected ECR image digest exists
+- the task definition revision references the intended immutable tag
+- the live workload is using that registered task definition revision
 
 ## 6. CI/CD Standard
 
@@ -139,5 +153,5 @@ Current repository state indicates:
 Next controlled follow-on must:
 - implement the Lambda packaging standard
 - implement buildspec logic
-- rebuild preprocessing Lambda in a Python 3.11-compatible environment
-- redeploy and revalidate pipeline execution
+- preserve immutable ECS artifact traceability during all worker redeployments
+- redeploy and revalidate pipeline execution in governed order

@@ -111,22 +111,22 @@ Example:
 
     docker build --platform linux/amd64 -t ocr-worker services/ocr
 
-Then tag for ECR:
+Then tag for ECR with both:
+- a stable convenience tag where useful
+- a required immutable deployment tag
+
+Required immutable tag format:
+
+    <phase>-<service>-<yyyymmdd>-<gitsha>
+
+Example:
 
     docker tag ocr-worker ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/ocr-worker:phase5
+    docker tag ocr-worker ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/ocr-worker:phase5-ocr-20260318-4522d81
 
-Push:
-
-    docker push ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/ocr-worker:phase5
+Push the immutable deployment tag intended for task registration.
 
 Repeat for all workers.
-
-Image tagging must support traceability.
-
-Recommended tags:
-
-- `phase5`
-- git commit hash
 
 ## 6. ECS Cluster Creation
 
@@ -135,14 +135,17 @@ Create the cluster:
     aws ecs create-cluster --cluster-name ocr-rebuild-cluster
 
 Cluster runtime:
-
 - AWS Fargate
 
 ## 7. ECS Task Registration
 
 Task definitions already exist in:
-
 - `infrastructure/ecs/`
+
+Before registration:
+- update task definition source to reference the immutable deployment tag
+- verify image exists in ECR
+- verify repo task definition source matches intended runtime artifact
 
 Register each task.
 
@@ -151,7 +154,6 @@ Example:
     aws ecs register-task-definition --cli-input-json file://infrastructure/ecs/ocr/task-definition.json
 
 Repeat for:
-
 - `table_extraction`
 - `logo_recognition`
 - `fraud_detection`
@@ -160,17 +162,14 @@ Repeat for:
 ## 8. Lambda Deployment
 
 Lambda functions:
-
 - `manifest-generator-lambda-prod`
 - `preprocessing-lambda-prod`
 
 Source locations:
-
 - `services/manifest_generator`
 - `services/preprocessing`
 
 Deployment must include:
-
 - runtime
 - handler
 - IAM role
@@ -179,15 +178,12 @@ Deployment must include:
 ## 9. Step Functions Deployment
 
 State machine definition:
-
 - `infrastructure/step_functions/master_pipeline/ocr_pipeline.asl.json`
 
 Deploy using:
-
     aws stepfunctions create-state-machine
 
 Configuration must reference:
-
 - Lambda functions
 - ECS cluster
 - ECS task definitions
@@ -195,14 +191,12 @@ Configuration must reference:
 ## 10. IAM Roles
 
 Required roles:
-
 - `ocr-rebuild-ecs-task-role`
 - `ocr-rebuild-ecs-execution-role`
 - `ocr-rebuild-lambda-role`
 - `step-functions-role`
 
 Permissions must include:
-
 - S3
 - ECS
 - ECR
@@ -216,7 +210,6 @@ Permissions must include:
 All resources must be deployed in the same AWS region.
 
 Default region:
-
 - `us-east-1`
 
 ## 12. First Pipeline Execution
@@ -247,7 +240,6 @@ Input:
 ## 14. Success Criteria
 
 Phase 5 is complete when:
-
 - containers run successfully
 - Step Functions completes execution
 - canonical document produced
@@ -257,85 +249,8 @@ Phase 5 is complete when:
 ## 15. Operational Monitoring
 
 Monitoring services:
-
 - CloudWatch Logs
+- ECS task status
 - Step Functions execution history
-- ECS task logs
-
-## 16. Completion Output
-
-Successful run should produce:
-
-- canonical document
-- manifest update
-- document summary metrics
-
-Stored in:
-
-- `ocr-rebuild-results`
-
----
-
-## 16. Phase 5 Execution Status (Live AWS State)
-
-The following components have been successfully deployed and verified in AWS:
-
-### ECR Repositories
-- All repositories created with:
-  - IMMUTABLE tags
-  - scanOnPush enabled
-  - KMS encryption (`alias/ocr-rebuild-platform`)
-
-### Container Images
-- All worker images built and pushed:
-  - ocr-worker:phase5
-  - table-extraction-worker:phase5
-  - logo-recognition-worker:phase5
-  - fraud-detection-worker:phase5
-  - aggregation-worker:phase5
-
-### ECS Cluster
-- Cluster created:
-  - `ocr-rebuild-cluster`
-  - runtime: Fargate
-
-### ECS Task Definitions
-Registered and active:
-- ocr-worker-task-prod (rev 2)
-- table-extraction-worker-task-prod (rev 1)
-- logo-recognition-worker-task-prod (rev 1)
-- fraud-detection-worker-task-prod (rev 1)
-- aggregation-worker-task-prod (rev 1)
-
-All task definitions:
-- reference ECR images with `:phase5` tag
-- use production IAM roles
-- configured for `us-east-1`
-
-### Lambda Functions
-
-#### manifest-generator-lambda-prod
-- runtime: python3.11
-- timeout: 60
-- memory: 512
-- environment:
-  - MANIFEST_TABLE=ocr-rebuild-manifest-store
-
-#### preprocessing-lambda-prod
-- runtime: python3.11
-- timeout: 300
-- memory: 1024
-- environment:
-  - PROCESSED_BUCKET=ocr-rebuild-processed
-
-### Packaging Correction Applied
-- Removed unused dependency:
-  - opencv-python-headless
-- Reason:
-  - not used in code
-  - caused Lambda packaging size + disk pressure issues
-
-### Remaining Deployment Steps
-- Step Functions deployment
-- First pipeline execution validation
-
+- S3 output validation
+- manifest state inspection

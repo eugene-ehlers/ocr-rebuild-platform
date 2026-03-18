@@ -9,7 +9,7 @@
   "containerDefinitions": [
     {
       "name": "ocr-worker",
-      "image": "026465780614.dkr.ecr.us-east-1.amazonaws.com/ocr-worker:phase5",
+      "image": "026465780614.dkr.ecr.us-east-1.amazonaws.com/ocr-worker:phase5-ocr-20260318-eefe91a",
       "essential": true,
       "environment": [
         { "name": "PROCESSED_BUCKET", "value": "ocr-rebuild-processed" },

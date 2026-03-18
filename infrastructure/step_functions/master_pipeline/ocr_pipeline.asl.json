@@ -118,7 +118,7 @@
           }
         }
       },
-      "ResultPath": "$",
+      "ResultPath": null,
       "Next": "TableExtraction",
       "Retry": [
         {
@@ -186,7 +186,7 @@
           ]
         }
       },
-      "ResultPath": "$",
+      "ResultPath": null,
       "Next": "LogoTemplateRecognition",
       "Retry": [
         {
@@ -254,7 +254,7 @@
           ]
         }
       },
-      "ResultPath": "$",
+      "ResultPath": null,
       "Next": "FraudDetection",
       "Retry": [
         {
@@ -322,7 +322,7 @@
           ]
         }
       },
-      "ResultPath": "$",
+      "ResultPath": null,
       "Next": "Aggregation",
       "Retry": [
         {
@@ -390,7 +390,7 @@
           ]
         }
       },
-      "ResultPath": "$",
+      "ResultPath": null,
       "Next": "Complete",
       "Retry": [
         {
