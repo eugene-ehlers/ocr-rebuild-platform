@@ -1,44 +1,91 @@
-# Behavioural Analysis — Capability v1
+# Behavioural Analysis Capability v1
 
 ## Purpose
-Analyze transaction patterns to detect spending behaviour and trends.
+Analyse customer financial behaviour patterns from transactions to support insights on spending habits, savings, recurring patterns, and deviations.
+
+---
 
 ## Inputs
-- classified_transactions
-- cash_flow_classification
-- historical_transactions
-- account_context
+
+Field | Description | Source
+------|-------------|--------
+transaction_amount | Signed transaction amount | Transaction parsing
+transaction_type | Debit or credit | Transaction parsing
+primary_category | Category classification | Category classification
+secondary_category | Optional sub-category | Category classification
+cash_flow_type | Cash flow classification | Cash Flow Classification
+historical_transactions | Past transactions | Data store
+account_context | Account type, profile, and limits | Metadata
+
+---
 
 ## Processing Logic
-- Detect recurring patterns
-- Identify anomalies
-- Compare against historical averages
-- Model spending habits, discretionary vs essential
+
+- Analyse frequency of spending per category
+- Identify recurring transactions and habitual patterns
+- Detect anomalies or deviations from normal behaviour
+- Compute ratios such as:
+  - savings to income
+  - discretionary spend to total spend
+  - debt repayment ratio
+- Apply optional model-based enrichment for predictive insights
+
+---
 
 ## Outputs
+
+Example output structure:
+
 {
-  "behavioural_insights": [
+  "behavioural_metrics": [
     {
-      "pattern": "string",
-      "frequency": "weekly|monthly",
-      "confidence": 0.90
+      "metric_name": "savings_ratio",
+      "value": 0.15,
+      "confidence": 0.92
+    },
+    {
+      "metric_name": "recurring_payment_consistency",
+      "value": 0.98,
+      "confidence": 0.95
     }
-  ]
+  ],
+  "metadata": {
+    "period_start": "YYYY-MM-DD",
+    "period_end": "YYYY-MM-DD",
+    "transactions_analyzed": 120
+  }
 }
 
+---
+
 ## Failure Modes
+
 - Insufficient historical data
-- Low-confidence categories
-- Missing transactions
+- Misclassification of transactions
+- Anomalies misinterpreted due to seasonal effects
+- Data gaps due to missing statements
+
+---
 
 ## Dependencies
+
 - Transaction parsing
 - Category classification
 - Cash flow classification
+- Historical account data
+
+---
 
 ## Cost Consideration
+
 - Medium compute
-- Model-based analysis may require GPU or batch processing
+- Optional model-based enrichment may increase compute and storage requirements
+- No external API required in baseline
+
+---
 
 ## Why this capability is critical
-Supports trend analysis, overdraft detection, and decision engine inputs for financial advice.
+
+- Enables insight into spending and saving habits
+- Supports lending and affordability evaluation
+- Provides foundation for trend detection and advisory services

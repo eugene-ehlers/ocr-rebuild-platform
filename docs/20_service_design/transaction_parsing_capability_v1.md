@@ -1,39 +1,47 @@
-# Transaction Parsing Capability — v1
+# Transaction Parsing Capability v1
 
 ## Purpose
-Parse raw statement text and tables into structured transaction objects to feed downstream Financial Management capabilities. This is foundational for all other analysis and classification layers.
+Parse raw OCR output (text and tables) into structured transaction objects for downstream financial services.
+
+This capability converts unstructured document data into a consistent schema, enabling classification, cash flow analysis, debt detection, and reporting.
+
+---
 
 ## Inputs
 
 Field | Description | Source
-------|------------|--------
-raw_text | OCR extracted text from statement pages | OCR engine
-tables | Extracted tables with positional metadata | Table Extraction
-layout_metadata | Page structure hints (rows, columns, headers) | OCR / Preprocessing
-document_type | Statement type (bank, credit card, utility, etc.) | Classification / Preprocessing
+------|-------------|--------
+raw_text | OCR extracted text from document | OCR engine
+tables | Extracted tables with positional coordinates | OCR engine
+document_type | Type of statement/document | Classification
+layout_metadata | Page layout, headers, and footers | OCR / Preprocessing
+historical_transactions | Prior period transactions for reconciliation | Data store (optional)
+
+---
 
 ## Processing Logic
 
-- Detect table and transaction regions in statement.
-- Extract rows and cells into structured transaction objects.
-- Identify transaction attributes:
-  - Date
-  - Narration / description
-  - Debit / credit indicator
-  - Transaction amount
-  - Running balance (if present)
-- Handle:
-  - Multi-line descriptions
-  - Missing or ambiguous headers
-  - Issuer-specific statement layouts
-- Apply normalization:
-  - Dates into ISO 8601 format
-  - Amounts into signed numeric values
-  - Multi-currency handling if required
+1. Identify transaction table regions using layout hints and patterns.
+2. Extract rows and columns into structured objects.
+3. Parse and normalise:
+   - Transaction date (YYYY-MM-DD)
+   - Transaction narration / description
+   - Debit or credit indicator
+   - Transaction amount (signed)
+   - Running balance where available
+4. Handle edge cases:
+   - Multi-line descriptions
+   - Missing or inconsistent headers
+   - Split or merged rows
+   - Issuer-specific layouts
+5. Generate confidence scores per row and field.
+6. Produce structured JSON per page/document.
+
+---
 
 ## Outputs
 
-Example JSON output:
+Example output structure:
 
 {
   "transactions": [
@@ -49,42 +57,45 @@ Example JSON output:
   ],
   "metadata": {
     "total_transactions": 120,
-    "parsing_confidence": 0.92,
-    "document_id": "string",
-    "source_uri": "s3://bucket/key"
+    "parsing_confidence": 0.92
   }
 }
 
+---
+
 ## Failure Modes
 
-- Table region not detected
+- Table not detected
 - Misaligned columns
-- OCR errors in critical fields (amount, date)
-- Missing or malformed transaction dates
-- Multi-line descriptions split incorrectly
-- Opening or closing balances misinterpreted as transactions
+- OCR errors in amounts or dates
+- Missing rows or split descriptions
+- Conflicting running balances
+
+---
 
 ## Dependencies
 
 - OCR output quality
 - Table extraction accuracy
-- Layout hints / issuer recognition
-- Optional historical transaction context for consistency checks
+- Statement type / layout recognition
+
+---
 
 ## Cost Consideration
 
-- Low compute cost for rules-based parsing
-- Optional model-based enrichment may increase compute
-- No external APIs required in baseline design
+- Low compute for baseline rules-first parsing
+- Higher if multi-pattern or model-based extraction invoked
+- Optional external API cost if validation needed
+
+---
 
 ## Why this capability is critical
 
-- Serves as the foundation for all downstream capabilities:
+- Foundational for:
   - Transaction category classification
   - Cash flow analysis
-  - Spending analysis
-  - Debt / indebtedness analysis
+  - Debt and affordability evaluation
   - Benchmarking
-  - Explanation and reporting layers
-- Incorrect parsing propagates errors throughout the Financial Management service.
+  - Customer and internal reporting
+- Downstream services rely on accuracy and completeness of parsed transactions.
 

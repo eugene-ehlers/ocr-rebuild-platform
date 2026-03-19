@@ -1,46 +1,59 @@
-# Transaction Category Classification Capability — v1
+# Category Classification Capability v1
 
 ## Purpose
-Assign each parsed transaction to one or more semantic categories, enabling downstream services to analyse spending, income, indebtedness, pricing, behaviour, and trends.
+Assign each parsed transaction to one or more semantic financial categories to enable downstream services like cash flow analysis, indebtedness detection, benchmarking, and reporting.
+
+Multiple classifiers are used; one model is not sufficient.
+
+---
 
 ## Inputs
 
 Field | Description | Source
-------|------------|--------
-transaction_date | Normalised transaction date | Transaction Parsing
-transaction_description | Parsed transaction narration | Transaction Parsing
-transaction_amount | Normalised signed amount | Transaction Parsing
-transaction_type | Debit or credit indicator | Transaction Parsing
-running_balance | Running balance if available | Transaction Parsing
-issuer_context | Bank, template, or institution context | Classification / Issuer Recognition
-language_code | Language of source text | Language Detection
-merchant_name | Normalised merchant name if available | Merchant Enrichment
+------|-------------|--------
+transaction_date | Normalised transaction date | Transaction parsing
+transaction_description | Parsed transaction narration | Transaction parsing
+transaction_amount | Signed transaction amount | Transaction parsing
+transaction_type | Debit or credit indicator | Transaction parsing
+running_balance | Running balance where available | Transaction parsing
+issuer_context | Bank, template, or institution context | Classification / issuer recognition
+merchant_name | Normalised merchant where available | Merchant enrichment
+language_code | Language of source text | Language detection
+
+---
 
 ## Processing Logic
 
-- Classify each transaction into categories such as:
-  - Salary / income
-  - Groceries
-  - Transport
-  - Utilities
-  - Rent
-  - Loan repayment
-  - Insurance
-  - Transfers
-  - Fees and charges
-  - Cash withdrawals
-  - Entertainment
-  - Medical
-  - Education
-  - Savings / investments
-- Support primary and optional secondary categories.
-- Assign classification confidence per transaction.
-- Use rules-first baseline with optional ML model refinement.
-- Apply issuer-, merchant-, and language-aware adjustments.
+- Classify each transaction into categories, e.g.:
+  - salary or income
+  - groceries
+  - transport
+  - utilities
+  - rent
+  - loan repayment
+  - insurance
+  - transfers
+  - fees and charges
+  - cash withdrawal
+  - entertainment
+  - medical
+  - education
+  - savings or investment
+- Support:
+  - primary category
+  - optional secondary category
+  - confidence score per classification
+- Allow:
+  - issuer-specific rules
+  - language-aware rules
+  - merchant-aware overrides
+  - rule-first baseline with optional model refinement
+
+---
 
 ## Outputs
 
-Example JSON output:
+Example output structure:
 
 {
   "classified_transactions": [
@@ -58,34 +71,39 @@ Example JSON output:
   }
 }
 
+---
+
 ## Failure Modes
 
-- Transaction description too vague for classification
+- Vague or ambiguous descriptions
 - Merchant not recognised
 - Language ambiguity
-- OCR narration errors affecting classification
+- OCR quality insufficient
+
+---
 
 ## Dependencies
 
-- Transaction Parsing capability
-- Merchant Enrichment (optional)
-- Language Detection capability
-- Issuer Recognition (optional)
+- Transaction parsing
+- Merchant enrichment
+- Language detection
+- Issuer recognition
+
+---
 
 ## Cost Consideration
 
-- Low to medium compute for rules-first approach
-- Higher if ML-based enrichment is used
-- Optional external API cost for merchant enrichment
+- Low to medium compute for rules-first
+- Higher if model-based enrichment used
+- External API may incur cost
+
+---
 
 ## Why this capability is critical
 
 - Foundational for:
   - Spending analysis
   - Income analysis
-  - Indebtedness evaluation
-  - Pricing and benchmarking
-  - Behavioural insights
-  - Trend detection
-- Multiple classifiers required; a single model is insufficient for all downstream services.
-
+  - Debt and affordability analysis
+  - Behaviour insights
+  - Trend and benchmarking services

@@ -1,24 +1,39 @@
-# Debt / Indebtedness Detection — Capability v1
+# Debt / Indebtedness Detection Capability v1
 
 ## Purpose
-Detect debt, repayment schedules, and obligations to support credit evaluation and risk scoring.
+Identify all debt-related transactions, repayment schedules, and outstanding obligations to enable risk scoring, credit evaluation, and affordability assessment.
+
+---
 
 ## Inputs
-- transaction_amount
-- transaction_type
-- primary_category
-- secondary_category
-- cash_flow_type
-- account_context
-- historical_transactions
+
+Field | Description | Source
+------|-------------|--------
+transaction_amount | Signed transaction amount | Transaction parsing
+transaction_type | Debit or credit | Transaction parsing
+primary_category | Category classification | Category classification
+secondary_category | Optional sub-category | Category classification
+cash_flow_type | Cash flow classification | Cash Flow Classification
+account_context | Account type, profile, and limits | Metadata
+historical_transactions | Prior debt-related transactions | Data store
+
+---
 
 ## Processing Logic
-- Identify loans, repayments, credit facilities
-- Calculate outstanding balances
-- Determine repayment trends and risk flags
-- Rules-based first pass; optional model enrichment
+
+- Detect loans, credit facilities, and repayment obligations
+- Calculate outstanding balances per facility
+- Identify overdue or missed payments
+- Track repayment schedules and obligations
+- Determine repayment trends (on-time, late, default risk)
+- Use rules-based first pass; optional model-based enrichment for complex cases
+
+---
 
 ## Outputs
+
+Example output structure:
+
 {
   "debt_positions": [
     {
@@ -37,19 +52,33 @@ Detect debt, repayment schedules, and obligations to support credit evaluation a
   }
 }
 
+---
+
 ## Failure Modes
-- Misidentification of debt
-- Missing historical data
+
+- Misidentification of debt vs non-debt transactions
+- Missing historical transaction data
 - Ambiguous repayment patterns
 
+---
+
 ## Dependencies
+
 - Transaction parsing
 - Category classification
 - Cash flow classification
+- Historical account data
+
+---
 
 ## Cost Consideration
-- Medium compute if model enrichment used
-- Optional external API for credit bureau validation
+
+- Medium compute if model-based enrichment used
+- Optional external API cost for credit bureau validation
+
+---
 
 ## Why this capability is critical
-Supports credit evaluation, affordability assessment, and financial stress detection.
+
+- Core to credit evaluation, affordability assessment, and financial stress detection
+- Provides structured inputs for downstream services in the Financial Management menu
