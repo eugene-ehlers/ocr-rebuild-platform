@@ -882,3 +882,66 @@ Next implementation step must:
 
 ---
 
+
+---
+
+## Phase 13 — Downstream Task Stub Payload Alignment (COMPLETED)
+
+### Objective
+Align downstream service task stubs to the real orchestration payload contract introduced in Phase 12.
+
+### Implementation Summary
+
+Updated task stubs:
+- `infrastructure/ecs/financial_management/task.py`
+- `infrastructure/ecs/fica_compliance/task.py`
+- `infrastructure/ecs/credit_decision/task.py`
+
+Each stub now:
+- accepts the real payload from the decision engine
+- logs the received orchestration payload
+- returns structured execution output including:
+  - `service`
+  - `status`
+  - `received_payload`
+  - `result`
+
+### Verified Behaviour
+
+Validated in Python 3.11 container runtime for all service families:
+
+- `financial_management`
+- `fica`
+- `credit_decision`
+
+Verified conditions:
+- request creation executes successfully
+- service family routing remains correct
+- downstream callable resolved to `run_task`
+- downstream stub receives the real payload
+- `request_id` passed through correctly
+- persisted result retains the real downstream response
+
+### Constraint Removed
+
+The previous Phase 12 limitation is now resolved:
+
+- downstream task stubs no longer rely on internal example payload behaviour
+
+### Remaining Scope Boundary
+
+Phase 13 still does NOT provide:
+- real ECS task execution in AWS
+- real Lambda execution
+- production persistence
+- real consent/document enforcement
+- final downstream business logic
+
+### Next Phase Dependency
+
+Next implementation step must choose between:
+- real AWS ECS/Lambda invocation wiring, or
+- request/consent/document enforcement before execution
+
+---
+

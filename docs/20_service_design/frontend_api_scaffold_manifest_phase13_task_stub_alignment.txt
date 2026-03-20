@@ -1,0 +1,6 @@
+Phase 13 downstream task stub alignment created:
+- infrastructure/ecs/financial_management/task.py updated to consume real payload
+- infrastructure/ecs/fica_compliance/task.py updated to consume real payload
+- infrastructure/ecs/credit_decision/task.py updated to consume real payload
+- internal example payload behavior removed from service stubs
+- Phase 12 orchestrator now passes through real payload contract end-to-end
