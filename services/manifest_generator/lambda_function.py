@@ -150,7 +150,20 @@ def build_execution_plan(event: Dict[str, Any], requested_services: Dict[str, bo
         "capability_plan": {
             "TEXT_OCR": {
                 "provider": "tesseract",
-                "fallback_provider": "aws_textract_detect_document_text"
+                "provider_type": "open_source",
+                "execution_mode": "primary",
+                "fallback_allowed": False,
+                "fallback_chain": [],
+                "decision_reason": "bootstrap_primary_provider_for_controlled_runtime_v1",
+                "minimum_output_requirements": {
+                    "text_required": True,
+                    "page_confidence_required": False,
+                    "minimum_non_empty_pages": 1
+                },
+                "quality_thresholds": {
+                    "minimum_average_page_confidence": 0.0,
+                    "minimum_non_empty_page_ratio": 0.0
+                }
             }
         },
         "plan_status": "planned"
