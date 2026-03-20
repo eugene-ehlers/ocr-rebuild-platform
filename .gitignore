@@ -12,3 +12,9 @@ build/
 __pycache__/
 
 docs/00_program_control/governed_docs_sync_manifest_*.txt
+*.pre_contract_preservation
+*.zip
+services/*/build_py311/
+runtime_data/*.db
+*.sh
+test_*.py
