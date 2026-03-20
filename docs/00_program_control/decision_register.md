@@ -76,3 +76,25 @@ The project is being developed across multiple developers and chat sessions in a
 - Generated artifacts and stale files must not be used as the basis for design or runtime interpretation.
 - Future handovers and implementation work must verify against governed documentation first.
 - Cleanup and retention decisions must be based on governed necessity, not convenience.
+
+### DEC-002 — Runtime Validation Must Prefer Live AWS Baseline For Integrated Pipeline Proof
+
+- **Status:** ACTIVE
+- **Date:** 2026-03-20
+
+#### Decision
+
+Where integrated OCR pipeline behaviour is being validated, the preferred proof point is controlled live AWS execution against the deployed Step Functions, Lambda, ECS, and S3 runtime path.
+
+Local inspection and static code review remain necessary, but they are not sufficient on their own to claim integrated runtime success.
+
+#### Rationale
+
+The pipeline includes cross-service orchestration, S3 payload handoff, Step Functions control flow, Lambda execution, ECS task execution, and persisted runtime payload transitions. These cannot be treated as fully proven through local code inspection alone.
+
+#### Consequences
+
+- Integrated pipeline claims must be backed by controlled live AWS execution evidence.
+- Runtime handover documents must distinguish validated live behaviour from design intent.
+- Static code review remains supporting analysis, not integrated execution proof.
+

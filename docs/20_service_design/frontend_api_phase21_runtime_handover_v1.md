@@ -63,3 +63,35 @@ The current governed document stack for interpretation and change control is:
 - Document stack map:
   - `docs/00_program_control/governed_document_map.md`
 
+### Validated Runtime Baseline — Full OCR Pipeline Execution
+
+A controlled live Step Functions execution has been validated for the current OCR pipeline baseline.
+
+Validated execution:
+- state machine: `ocr-pipeline-sf-prod`
+- execution name: `test-1774044490`
+- manifest id: `manifest-5a87dc9c738a4317bb74429a834fe5ed`
+- source object: `s3://ocr-rebuild-original/test-docs/test.png`
+- validation timestamp: `2026-03-20T22:09:51Z`
+
+Validated live stages completed in AWS:
+- manifest_generation
+- preprocessing
+- ocr
+- gate2_quality_evaluation
+- gate3_service_sufficiency
+- aggregation
+- gate4_final_validation
+
+Validated live outcome:
+- Step Functions execution succeeded
+- `manifest_update.pipeline_status = completed`
+- `execution_plan.plan_status = completed`
+- `execution_plan.final_status = FINAL_ACCEPT`
+- `routing_decision.gate4_final_decision = FINAL_ACCEPT`
+- `routing_decision.delivery_ready = true`
+
+Validated boundary:
+- this confirms successful baseline pipeline execution for a controlled image input
+- this does NOT change the governed interpretation that preprocessing, OCR, and aggregation are still not execution-plan-enforced in the same strict way as the frontend/API orchestration path and governed service-family workers
+
