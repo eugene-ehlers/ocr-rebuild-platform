@@ -293,3 +293,196 @@ Then:
 - the implementation is incorrect
 - the document must be consulted before proceeding
 
+
+---
+
+## System Governance — Source of Truth & Artifact Control
+
+This system operates under strict documentation and artifact governance to ensure consistency, prevent drift, and enable coordinated development across multiple developers and environments.
+
+---
+
+### 1. System Layers (Authoritative Separation)
+
+The system is governed by four strictly separated layers:
+
+#### 1.1 Design Authority (CONTROL)
+
+Defines what must be built and how it must be built.
+
+Includes:
+- architecture
+- execution model (including execution plan design)
+- service boundaries
+- SOPs
+- allowed technology stack
+- governance rules
+- gap register
+
+This is the highest authority in the system.
+
+---
+
+#### 1.2 Decision Register (RATIONALE)
+
+Captures why specific design decisions were made at a given point in time.
+
+Includes:
+- selected option
+- brief rationale
+- relevant constraints
+
+Purpose:
+- prevent rework
+- prevent re-debate of resolved decisions
+- preserve intent behind design choices
+
+Decision records support Design Authority but do not override it.
+
+---
+
+#### 1.3 Runtime State (CURRENT TRUTH)
+
+Describes what currently exists in the system.
+
+Includes:
+- what is implemented
+- what is not implemented
+- current enforcement scope
+- current safe operational boundaries
+
+Runtime State is descriptive only and must not introduce or redefine design.
+
+---
+
+#### 1.4 Implementation (EXECUTION)
+
+Represents the executable system.
+
+Includes:
+- application code
+- infrastructure definitions (including Step Functions, ECS, Lambda, etc.)
+- deployment configurations
+- required runtime artifacts
+
+Implementation must strictly conform to Design Authority.
+
+---
+
+### 2. Hard Separation Rules (Non-Negotiable)
+
+The following rules are strictly enforced:
+
+- Design Authority must not describe temporary runtime behavior.
+- Runtime State must not introduce or redefine design.
+- Implementation must not introduce behavior not defined in Design Authority.
+- Decision Register must not be used to bypass or override Design Authority.
+
+---
+
+### 3. Critical Rule — Design Authority Enforcement
+
+Any behavior not explicitly defined in Design Authority is invalid and must not be implemented.
+
+This applies to:
+- new features
+- modifications
+- interpretations of existing behavior
+
+No implicit or assumed behavior is permitted.
+
+---
+
+### 4. Artifact Classification (Strict Control)
+
+Only the following artifacts are considered valid and governed:
+
+#### Allowed (Authoritative or Required)
+
+- Design documents under docs/
+- Runtime state documents
+- Decision register entries
+- Production code under:
+  - services/
+  - api/
+  - infrastructure/
+- Required deployment and runtime artifacts
+
+---
+
+#### Non-Authoritative (Must Not Be Used for Design or Interpretation)
+
+The following are strictly classified as supporting artifacts only:
+
+- build/ directory contents
+- __pycache__/
+- compiled files (*.pyc)
+- backup files:
+  - *.bak
+  - *.pre_contract_preservation
+  - timestamped backup files
+- generated packaging artifacts
+- temporary or local output files
+
+These may be used for:
+- debugging
+- controlled investigation
+
+They must NOT be used for:
+- design decisions
+- runtime interpretation
+- defining system behavior
+
+---
+
+### 5. Artifact Retention Policy (Minimalist Enforcement)
+
+The system follows a strict minimal-retention model:
+
+- Only artifacts required for:
+  - execution
+  - deployment
+  - reproducibility
+  are retained.
+
+- All non-required artifacts must be:
+  - ignored, or
+  - removed in a controlled manner.
+
+- Historical clutter, duplicate artifacts, and unused outputs are not permitted.
+
+---
+
+### 6. Operational Enforcement
+
+All developers, systems, and automated processes must:
+
+- verify behavior against Design Authority before any change
+- ignore non-authoritative artifacts during analysis
+- avoid deriving behavior from generated or cached files
+- maintain strict alignment between design, runtime state, and implementation
+
+---
+
+### 7. Conflict Resolution
+
+In any conflict:
+
+1. Design Authority is the source of truth
+2. Runtime State reflects current system condition only
+3. Implementation must be corrected to align with Design Authority
+4. Supporting artifacts must be ignored for decision-making
+
+---
+
+### 8. Governance Intent
+
+This structure exists to:
+
+- eliminate ambiguity
+- prevent architectural drift
+- ensure consistent development across contributors
+- maintain a clean, controlled, and scalable system
+
+Deviation from these rules is not permitted.
+
