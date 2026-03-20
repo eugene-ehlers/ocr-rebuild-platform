@@ -120,7 +120,8 @@ Current runtime interpretation remains strict:
 - manifest generation now emits a governed TEXT_OCR instruction block aligned to the provider-interface contract
 - OCR worker now rejects missing or unsupported OCR provider instructions safely
 - OCR worker now normalizes provider execution metadata into the governed OCR payload shape
-- governed multi-provider fallback-chain execution is not yet governed runtime truth across the OCR stage
+- OCR worker now records attempted provider-chain and fallback traceability in OCR payload structures
+- governed executable multi-provider fallback-chain execution is not yet governed runtime truth across the OCR stage
 - broader multi-provider adapter support is not yet governed runtime truth across the OCR stage
 
 Current Tesseract-backed OCR runtime remains:

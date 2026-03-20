@@ -310,6 +310,8 @@ def process_page(page: Dict[str, Any], text_ocr_plan: Dict[str, Any]) -> Dict[st
             "required_fields_present": bool(ocr_result["text"]),
             "ocr_execution_mode": ocr_result["provider_metadata"]["execution_mode"],
             "ocr_decision_reason": ocr_result["provider_metadata"]["decision_reason"],
+            "ocr_attempted_providers": list(ocr_result.get("attempted_providers", [])),
+            "ocr_fallback_used": bool(ocr_result.get("fallback_used", False)),
         }
     )
 
@@ -318,6 +320,7 @@ def process_page(page: Dict[str, Any], text_ocr_plan: Dict[str, Any]) -> Dict[st
         {
             "selected_capability_path": "TEXT_OCR",
             "primary_provider_summary": text_ocr_plan["provider"],
+            "selected_provider_summary": ocr_result["provider"],
             "executed_provider": ocr_result["provider"],
             "fallback_used": ocr_result["fallback_used"],
             "current_route_state": "ocr_completed",
@@ -363,13 +366,29 @@ def process_page(page: Dict[str, Any], text_ocr_plan: Dict[str, Any]) -> Dict[st
     return enriched_page
 
 
-def build_manifest_update(event: Dict[str, Any], text_ocr_plan: Dict[str, Any]) -> Dict[str, Any]:
+def build_manifest_update(event: Dict[str, Any], text_ocr_plan: Dict[str, Any],
+    ocr_pages: List[Dict[str, Any]]) -> Dict[str, Any]:
     now = utc_now_iso()
     manifest_update = dict(event.get("manifest_update", {}))
     pipeline_history = list(manifest_update.get("pipeline_history", []))
     service_status = dict(event.get("service_status", manifest_update.get("service_status", {})))
 
     service_status["ocr"] = "completed"
+
+    fallback_used = any(
+        bool(page.get("metadata", {}).get("fallback_used", False))
+        for page in ocr_pages
+        if isinstance(page, dict)
+    )
+
+    attempted_provider_chain = []
+    for page in ocr_pages:
+        metadata = page.get("metadata", {})
+        if not isinstance(metadata, dict):
+            continue
+        for attempt in metadata.get("attempted_provider_chain", []):
+            if attempt not in attempted_provider_chain:
+                attempted_provider_chain.append(attempt)
 
     pipeline_history.append(
         {
@@ -433,6 +452,7 @@ def build_routing_decision(
             "fallback_used": fallback_used,
             "selected_capability_path": "TEXT_OCR",
             "decision_basis": text_ocr_plan["decision_reason"],
+            "attempted_provider_chain": list(ocr_result.get("attempted_providers", [])),
             "current_route_state": "ocr_completed",
             "last_gate_applied": routing_decision.get("last_gate_applied", "2"),
             "ocr_pages_processed": len(ocr_pages),
@@ -589,7 +609,7 @@ def run(event: Dict[str, Any]) -> Dict[str, Any]:
             page = {"page_number": index}
         ocr_pages.append(process_page(page, text_ocr_plan))
 
-    manifest_update = build_manifest_update(event, text_ocr_plan)
+    manifest_update = build_manifest_update(event, text_ocr_plan, ocr_pages)
     execution_state = build_execution_state(event)
     routing_decision = build_routing_decision(event, text_ocr_plan, ocr_pages)
     evaluation = build_evaluation(event, ocr_pages)
