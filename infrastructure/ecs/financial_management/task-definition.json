@@ -1,0 +1,30 @@
+{
+  "family": "financial-management-worker-task-prod",
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "networkMode": "awsvpc",
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "arn:aws:iam::026465780614:role/ocr-rebuild-ecs-execution-role",
+  "taskRoleArn": "arn:aws:iam::026465780614:role/ocr-rebuild-ecs-task-role",
+  "containerDefinitions": [
+    {
+      "name": "financial_management",
+      "image": "026465780614.dkr.ecr.us-east-1.amazonaws.com/financial-management-worker:phase5",
+      "essential": true,
+      "command": [
+        "python",
+        "services/financial_management/worker.py"
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/financial-management-worker",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

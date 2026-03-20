@@ -1466,3 +1466,30 @@ Phase 20 does NOT yet provide:
 
 ---
 
+
+---
+
+## Breakpoint Update — Phase 21E.10 Runtime Packaging Stop Point
+
+Work paused after:
+- ECS repos created
+- ECS log groups created
+- ECS task definitions created and registered
+- worker Dockerfiles, requirements, worker entrypoints, and local service runners created
+- local Docker image build succeeded for all three service families
+
+Latest verified blocker:
+- worker containers fail at runtime import resolution
+- latest error:
+  - `ModuleNotFoundError: No module named 'services'`
+
+Important:
+- this followed an earlier failed attempt using imports from `infrastructure.ecs...task`
+- future developer must NOT retry the same import logic blindly
+- next step must inspect package/import resolution inside the built image before further refactoring
+
+Reference handover:
+- `docs/20_service_design/frontend_api_phase21_runtime_handover_v1.md`
+
+---
+
