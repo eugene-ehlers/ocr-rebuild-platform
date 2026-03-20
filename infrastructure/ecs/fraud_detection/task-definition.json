@@ -1,7 +1,9 @@
 {
   "family": "fraud-detection-worker-task-prod",
   "networkMode": "awsvpc",
-  "requiresCompatibilities": ["FARGATE"],
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
   "cpu": "1024",
   "memory": "2048",
   "executionRoleArn": "arn:aws:iam::026465780614:role/ocr-rebuild-ecs-execution-role",
@@ -9,11 +11,17 @@
   "containerDefinitions": [
     {
       "name": "fraud-detection-worker",
-      "image": "026465780614.dkr.ecr.us-east-1.amazonaws.com/fraud-detection-worker:phase5-785f478",
+      "image": "026465780614.dkr.ecr.us-east-1.amazonaws.com/fraud-detection-worker:phase5-fraud-detection-20260319-5f83c1f",
       "essential": true,
       "environment": [
-        { "name": "FRAUD_INPUT", "value": "/tmp/fraud_input.json" },
-        { "name": "FRAUD_OUTPUT", "value": "/tmp/fraud_output.json" }
+        {
+          "name": "FRAUD_INPUT",
+          "value": "/tmp/fraud_input.json"
+        },
+        {
+          "name": "FRAUD_OUTPUT",
+          "value": "/tmp/fraud_output.json"
+        }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",

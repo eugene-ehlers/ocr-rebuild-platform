@@ -1,0 +1,11 @@
+Phase 21B boto3 ECS bridge created:
+- services/decision_engine/engine.py updated to remove aws CLI dependency
+- aws execution path now uses boto3 ECS client
+- local fallback preserved if:
+  - boto3 import fails
+  - ECS invocation fails
+- orchestration contract unchanged
+- downstream execution now distinguishes:
+  - aws_live
+  - aws_fallback
+  - service_stub

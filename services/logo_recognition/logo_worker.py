@@ -203,6 +203,9 @@ def build_output(payload: Dict[str, Any]) -> Dict[str, Any]:
         "execution_state": execution_state,
         "documents": payload.get("documents", []),
         "pages": output_pages,
+        "execution_plan": payload.get("execution_plan", {}),
+        "routing_decision": payload.get("routing_decision", {}),
+        "evaluation": payload.get("evaluation", {}),
         "metadata": {
             "stage": "logo_recognition",
             "partial_execution": False,

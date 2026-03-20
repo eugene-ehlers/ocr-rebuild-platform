@@ -1,5 +1,5 @@
 {
-  "Comment": "OCR Rebuild Master Pipeline - controlled hardened skeleton with retries and result paths",
+  "Comment": "OCR Rebuild Master Pipeline - gate-driven controlled baseline",
   "StartAt": "GenerateManifest",
   "States": {
     "GenerateManifest": {
@@ -143,7 +143,6 @@
         }
       ]
     },
-
     "Gate2QualityEvaluation": {
       "Type": "Task",
       "Resource": "arn:aws:lambda:us-east-1:026465780614:function:gate2-quality-evaluator-lambda-prod",
@@ -154,7 +153,7 @@
         "output_s3_key.$": "States.Format('payloads/{}/gate2_quality/payload.json', $.manifest_id)"
       },
       "ResultPath": "$",
-      "Next": "TableExtraction",
+      "Next": "Gate3AfterGate2",
       "Retry": [
         {
           "ErrorEquals": [
@@ -175,13 +174,163 @@
         }
       ]
     },
+    "Gate3AfterGate2": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:026465780614:function:gate3-service-sufficiency-evaluator-lambda-prod",
+      "Parameters": {
+        "input_s3_bucket": "ocr-rebuild-results",
+        "input_s3_key.$": "States.Format('payloads/{}/gate2_quality/payload.json', $.manifest_id)",
+        "output_s3_bucket": "ocr-rebuild-results",
+        "output_s3_key.$": "States.Format('payloads/{}/gate3_service_sufficiency/payload.json', $.manifest_id)"
+      },
+      "ResultPath": "$",
+      "Next": "Gate3EnrichmentChoice",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "ResultPath": "$.error",
+          "Next": "PipelineFailure"
+        }
+      ]
+    },
+    "Gate3AfterTableExtraction": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:026465780614:function:gate3-service-sufficiency-evaluator-lambda-prod",
+      "Parameters": {
+        "input_s3_bucket": "ocr-rebuild-results",
+        "input_s3_key.$": "States.Format('payloads/{}/table_extraction/payload.json', $.manifest_id)",
+        "output_s3_bucket": "ocr-rebuild-results",
+        "output_s3_key.$": "States.Format('payloads/{}/gate3_service_sufficiency/payload.json', $.manifest_id)"
+      },
+      "ResultPath": "$",
+      "Next": "Gate3EnrichmentChoice",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "ResultPath": "$.error",
+          "Next": "PipelineFailure"
+        }
+      ]
+    },
+    "Gate3AfterLogoRecognition": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:026465780614:function:gate3-service-sufficiency-evaluator-lambda-prod",
+      "Parameters": {
+        "input_s3_bucket": "ocr-rebuild-results",
+        "input_s3_key.$": "States.Format('payloads/{}/logo_recognition/payload.json', $.manifest_id)",
+        "output_s3_bucket": "ocr-rebuild-results",
+        "output_s3_key.$": "States.Format('payloads/{}/gate3_service_sufficiency/payload.json', $.manifest_id)"
+      },
+      "ResultPath": "$",
+      "Next": "Gate3EnrichmentChoice",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "ResultPath": "$.error",
+          "Next": "PipelineFailure"
+        }
+      ]
+    },
+    "Gate3AfterFraudDetection": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:026465780614:function:gate3-service-sufficiency-evaluator-lambda-prod",
+      "Parameters": {
+        "input_s3_bucket": "ocr-rebuild-results",
+        "input_s3_key.$": "States.Format('payloads/{}/fraud_detection/payload.json', $.manifest_id)",
+        "output_s3_bucket": "ocr-rebuild-results",
+        "output_s3_key.$": "States.Format('payloads/{}/gate3_service_sufficiency/payload.json', $.manifest_id)"
+      },
+      "ResultPath": "$",
+      "Next": "Gate3EnrichmentChoice",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "ResultPath": "$.error",
+          "Next": "PipelineFailure"
+        }
+      ]
+    },
+    "Gate3EnrichmentChoice": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.routing_decision.gate3_next_stage",
+          "StringEquals": "table_extraction",
+          "Next": "TableExtraction"
+        },
+        {
+          "Variable": "$.routing_decision.gate3_next_stage",
+          "StringEquals": "logo_recognition",
+          "Next": "LogoTemplateRecognition"
+        },
+        {
+          "Variable": "$.routing_decision.gate3_next_stage",
+          "StringEquals": "fraud_detection",
+          "Next": "FraudDetection"
+        },
+        {
+          "Variable": "$.routing_decision.gate3_next_stage",
+          "StringEquals": "aggregation",
+          "Next": "Aggregation"
+        }
+      ],
+      "Default": "PipelineFailure"
+    },
     "TableExtraction": {
       "Type": "Task",
       "Resource": "arn:aws:states:::ecs:runTask.sync",
       "Parameters": {
         "LaunchType": "FARGATE",
         "Cluster": "arn:aws:ecs:us-east-1:026465780614:cluster/ocr-rebuild-cluster",
-        "TaskDefinition": "table-extraction-worker-task-prod:2",
+        "TaskDefinition": "table-extraction-worker-task-prod:3",
         "NetworkConfiguration": {
           "AwsvpcConfiguration": {
             "Subnets": [
@@ -206,7 +355,7 @@
                 },
                 {
                   "Name": "INPUT_S3_KEY",
-                  "Value.$": "States.Format('payloads/{}/gate2_quality/payload.json', $.manifest_id)"
+                  "Value.$": "States.Format('payloads/{}/gate3_service_sufficiency/payload.json', $.manifest_id)"
                 },
                 {
                   "Name": "OUTPUT_S3_BUCKET",
@@ -222,7 +371,7 @@
         }
       },
       "ResultPath": null,
-      "Next": "LogoTemplateRecognition",
+      "Next": "Gate3AfterTableExtraction",
       "Retry": [
         {
           "ErrorEquals": [
@@ -249,7 +398,7 @@
       "Parameters": {
         "LaunchType": "FARGATE",
         "Cluster": "arn:aws:ecs:us-east-1:026465780614:cluster/ocr-rebuild-cluster",
-        "TaskDefinition": "logo-recognition-worker-task-prod:2",
+        "TaskDefinition": "logo-recognition-worker-task-prod:3",
         "NetworkConfiguration": {
           "AwsvpcConfiguration": {
             "Subnets": [
@@ -274,7 +423,7 @@
                 },
                 {
                   "Name": "INPUT_S3_KEY",
-                  "Value.$": "States.Format('payloads/{}/table_extraction/payload.json', $.manifest_id)"
+                  "Value.$": "States.Format('payloads/{}/gate3_service_sufficiency/payload.json', $.manifest_id)"
                 },
                 {
                   "Name": "OUTPUT_S3_BUCKET",
@@ -290,7 +439,7 @@
         }
       },
       "ResultPath": null,
-      "Next": "FraudDetection",
+      "Next": "Gate3AfterLogoRecognition",
       "Retry": [
         {
           "ErrorEquals": [
@@ -317,7 +466,7 @@
       "Parameters": {
         "LaunchType": "FARGATE",
         "Cluster": "arn:aws:ecs:us-east-1:026465780614:cluster/ocr-rebuild-cluster",
-        "TaskDefinition": "fraud-detection-worker-task-prod:2",
+        "TaskDefinition": "fraud-detection-worker-task-prod:3",
         "NetworkConfiguration": {
           "AwsvpcConfiguration": {
             "Subnets": [
@@ -342,7 +491,7 @@
                 },
                 {
                   "Name": "INPUT_S3_KEY",
-                  "Value.$": "States.Format('payloads/{}/logo_recognition/payload.json', $.manifest_id)"
+                  "Value.$": "States.Format('payloads/{}/gate3_service_sufficiency/payload.json', $.manifest_id)"
                 },
                 {
                   "Name": "OUTPUT_S3_BUCKET",
@@ -358,7 +507,7 @@
         }
       },
       "ResultPath": null,
-      "Next": "Aggregation",
+      "Next": "Gate3AfterFraudDetection",
       "Retry": [
         {
           "ErrorEquals": [
@@ -385,7 +534,7 @@
       "Parameters": {
         "LaunchType": "FARGATE",
         "Cluster": "arn:aws:ecs:us-east-1:026465780614:cluster/ocr-rebuild-cluster",
-        "TaskDefinition": "aggregation-worker-task-prod:2",
+        "TaskDefinition": "aggregation-worker-task-prod:3",
         "NetworkConfiguration": {
           "AwsvpcConfiguration": {
             "Subnets": [
@@ -410,7 +559,7 @@
                 },
                 {
                   "Name": "INPUT_S3_KEY",
-                  "Value.$": "States.Format('payloads/{}/fraud_detection/payload.json', $.manifest_id)"
+                  "Value.$": "States.Format('payloads/{}/gate3_service_sufficiency/payload.json', $.manifest_id)"
                 },
                 {
                   "Name": "OUTPUT_S3_BUCKET",
@@ -426,7 +575,7 @@
         }
       },
       "ResultPath": null,
-      "Next": "Complete",
+      "Next": "Gate4FinalValidation",
       "Retry": [
         {
           "ErrorEquals": [
@@ -446,6 +595,76 @@
           "Next": "PipelineFailure"
         }
       ]
+    },
+    "Gate4FinalValidation": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:026465780614:function:gate4-final-validation-evaluator-lambda-prod",
+      "Parameters": {
+        "input_s3_bucket": "ocr-rebuild-results",
+        "input_s3_key.$": "States.Format('payloads/{}/aggregation/payload.json', $.manifest_id)",
+        "output_s3_bucket": "ocr-rebuild-results",
+        "output_s3_key.$": "States.Format('payloads/{}/gate4_final_validation/payload.json', $.manifest_id)"
+      },
+      "ResultPath": "$",
+      "Next": "Gate4DecisionChoice",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "ResultPath": "$.error",
+          "Next": "PipelineFailure"
+        }
+      ]
+    },
+    "Gate4DecisionChoice": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.evaluation.gate4_final_decision",
+          "StringEquals": "FINAL_ACCEPT",
+          "Next": "Complete"
+        },
+        {
+          "Variable": "$.evaluation.gate4_final_decision",
+          "StringEquals": "FINAL_ACCEPT_PARTIAL",
+          "Next": "Complete"
+        },
+        {
+          "Variable": "$.evaluation.gate4_final_decision",
+          "StringEquals": "FINAL_ACCEPT_WITH_QUALIFICATION",
+          "Next": "Complete"
+        },
+        {
+          "Variable": "$.evaluation.gate4_final_decision",
+          "StringEquals": "ESCALATE",
+          "Next": "PipelineEscalated"
+        },
+        {
+          "Variable": "$.evaluation.gate4_final_decision",
+          "StringEquals": "FINAL_REJECT",
+          "Next": "PipelineRejected"
+        }
+      ],
+      "Default": "PipelineFailure"
+    },
+    "PipelineEscalated": {
+      "Type": "Fail",
+      "Cause": "OCR rebuild pipeline escalated by Gate 4"
+    },
+    "PipelineRejected": {
+      "Type": "Fail",
+      "Cause": "OCR rebuild pipeline rejected by Gate 4"
     },
     "PipelineFailure": {
       "Type": "Fail",

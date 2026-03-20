@@ -11,7 +11,7 @@
   "containerDefinitions": [
     {
       "name": "aggregation-worker",
-      "image": "026465780614.dkr.ecr.us-east-1.amazonaws.com/aggregation-worker:phase5-785f478",
+      "image": "026465780614.dkr.ecr.us-east-1.amazonaws.com/aggregation-worker:phase5-aggregation-20260319-5f83c1f",
       "essential": true,
       "environment": [
         {

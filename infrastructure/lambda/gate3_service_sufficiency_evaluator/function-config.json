@@ -1,0 +1,15 @@
+{
+  "function_name": "gate3-service-sufficiency-evaluator-lambda-prod",
+  "runtime": "python3.11",
+  "handler": "lambda_function.lambda_handler",
+  "timeout": 60,
+  "memory_size": 256,
+  "architectures": [
+    "x86_64"
+  ],
+  "environment": {
+    "Variables": {
+      "OUTPUT_S3_BUCKET": "ocr-rebuild-results"
+    }
+  }
+}
