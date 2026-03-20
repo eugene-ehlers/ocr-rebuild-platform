@@ -65,6 +65,14 @@ It is NOT:
 - Bootstrap OCR implementations may exist for controlled runtime validation, but they must not become design truth
 - No stage may hard-code provider-specific behavior as permanent architecture
 
+
+### 3.5B OCR provider interface and execution-plan contract
+- OCR provider execution must operate through a governed abstraction interface
+- OCR provider instructions must be carried explicitly in the execution plan
+- OCR workers must reject invalid or incomplete provider instructions safely
+- provider-specific raw outputs must not become the governed runtime payload contract
+- fallback execution is valid only when explicitly permitted in the execution plan
+
 ### 3.6 Full traceability
 - routing_decision must summarise execution path
 - evaluation must capture quality and completeness
@@ -77,6 +85,7 @@ It is NOT:
 
 ### OCR provider abstraction control
 `docs/05_ocr_engines/ocr_provider_abstraction_control.md`
+`docs/05_ocr_engines/ocr_provider_interface_and_execution_plan_contract.md`
 
 Defines:
 - provider abstraction boundary

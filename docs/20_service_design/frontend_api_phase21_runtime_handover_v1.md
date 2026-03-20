@@ -110,3 +110,19 @@ Current governed boundary:
 - execution-plan-driven provider selection for OCR remains incomplete
 - current Tesseract-backed OCR must not be treated as permanent design truth
 
+### OCR Provider Interface Contract Boundary
+
+The governed OCR provider interface and execution-plan contract now exists in design authority.
+
+Current runtime interpretation remains strict:
+
+- OCR provider interface enforcement is not yet fully implemented end-to-end in runtime code
+- OCR instruction completeness validation is not yet governed runtime truth across the OCR stage
+- governed fallback-chain execution is not yet governed runtime truth across the OCR stage
+- normalized provider-interface control is a design requirement that still requires implementation completion
+
+Current Tesseract-backed OCR runtime remains:
+- operational as bootstrap runtime
+- valid for controlled baseline execution
+- not sufficient to claim full provider-interface contract enforcement
+

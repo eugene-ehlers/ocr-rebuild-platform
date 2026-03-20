@@ -122,3 +122,27 @@ The approved platform design is a modular document-intelligence orchestration sy
 - Provider-specific logic must be isolated behind a governed abstraction boundary.
 - Future OCR integrations must conform to a normalized interface before being treated as valid runtime providers.
 
+### DEC-004 — OCR Provider Execution Must Be Governed By Explicit Plan-Carried Interface Control
+
+- **Status:** ACTIVE
+- **Date:** 2026-03-20
+
+#### Decision
+
+OCR execution must be controlled through an explicit execution-plan OCR instruction block and a normalized provider interface contract.
+
+No OCR worker may silently infer provider choice, silently substitute providers, or expose provider-specific raw output as the governed runtime payload model.
+
+Fallback is allowed only when explicitly permitted in the execution plan and only through a governed fallback chain.
+
+#### Rationale
+
+Provider abstraction control is not sufficient unless the runtime control object and provider execution interface are both explicitly governed. Without this, hidden defaults, silent substitutions, and provider-shaped payloads can reintroduce provider lock-in and architectural drift even when higher-level design documents prohibit it.
+
+#### Consequences
+
+- OCR workers must validate provider instruction completeness before execution.
+- Unsupported or incomplete OCR instructions must be rejected safely.
+- Fallback behavior must be explicit, traceable, and plan-driven.
+- OCR provider adapters must normalize output into the governed page-level payload model.
+
