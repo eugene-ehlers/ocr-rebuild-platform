@@ -1013,3 +1013,92 @@ Next implementation step may choose one of:
 
 ---
 
+
+---
+
+## Phase 15 — Deep Document Readiness Under Soft Enforcement (COMPLETED)
+
+### Objective
+Extend soft pre-execution enforcement with richer document readiness evaluation.
+
+### Implementation Summary
+
+Updated:
+- `services/decision_engine/frontend_request_orchestrator.py`
+
+Added behaviour:
+- infers document type from document identifier
+- evaluates expected document types by service family
+- creates per-document assessment records
+- calculates average document readiness score
+- records missing expected document types
+- enriches remediation prompts for document readiness issues
+- persists document readiness state with the request
+- still executes downstream stubs under soft enforcement
+
+### Expected Document Types Introduced
+
+- `financial_management`
+  - `bank_statement`
+
+- `fica`
+  - `identity_document`
+  - `proof_of_address`
+
+- `credit_decision`
+  - `bank_statement`
+  - `identity_document`
+
+### Verified Behaviour
+
+Validated in Python 3.11 container runtime:
+
+#### Pass case
+Service:
+- `credit_decision`
+
+Documents:
+- `bank_statement_march_001`
+- `identity_document_user_001`
+
+Observed:
+- enforcement overall status = `pass`
+- average readiness score = `100`
+- missing expected document types = `0`
+- remediation prompts = `0`
+
+#### Fail case
+Service:
+- `fica`
+
+Documents:
+- `mystery_file_x`
+- `id_doc_01`
+
+Observed:
+- enforcement overall status = `fail`
+- average readiness score = `85`
+- missing expected document types = `proof_of_address`
+- remediation prompts generated
+- execution still proceeds under soft enforcement
+- persisted status/result include document readiness details
+
+### Scope Boundary
+
+Phase 15 does NOT yet provide:
+- hard blocking on failed document readiness
+- OCR-backed document classification
+- true freshness validation
+- true completeness validation
+- production-grade document quality scoring
+
+### Next Phase Dependency
+
+Next implementation step may choose one of:
+- hard enforcement (`Phase 14B` style escalation)
+- real consent proof / standing consent handling
+- OCR-backed document classification and readiness
+- production persistence replacement
+
+---
+

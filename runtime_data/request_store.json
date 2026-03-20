@@ -476,6 +476,354 @@
         "selected_service_code": "financial_management",
         "selected_service_family": "financial_management"
       }
+    },
+    "req_c9100a32e955": {
+      "consent_check": {
+        "disclosure_consent_present": null,
+        "disclosure_consent_required": false,
+        "mode": "soft_enforcement",
+        "processing_consent_present": true,
+        "processing_consent_required": true,
+        "reasons": [],
+        "status": "pass"
+      },
+      "document_check": {
+        "assessments": [
+          {
+            "completeness_status": "unknown",
+            "document_id": "mystery_file_x",
+            "expected_for_service": false,
+            "freshness_status": "unknown",
+            "inferred_type": "unknown",
+            "quality_status": "acceptable",
+            "readiness_score": 70,
+            "reasons": [
+              "document_type_unknown"
+            ],
+            "status": "pass"
+          },
+          {
+            "completeness_status": "assumed_present",
+            "document_id": "id_doc_01",
+            "expected_for_service": true,
+            "freshness_status": "unknown",
+            "inferred_type": "identity_document",
+            "quality_status": "acceptable",
+            "readiness_score": 100,
+            "reasons": [],
+            "status": "pass"
+          }
+        ],
+        "average_readiness_score": 85,
+        "document_count": 2,
+        "document_ids_received": [
+          "mystery_file_x",
+          "id_doc_01"
+        ],
+        "expected_document_types": [
+          "identity_document",
+          "proof_of_address"
+        ],
+        "missing_expected_document_types": [
+          "proof_of_address"
+        ],
+        "mode": "soft_enforcement",
+        "reasons": [
+          "required_document_types_missing"
+        ],
+        "status": "fail"
+      },
+      "downstream_execution": {
+        "downstream_status": "executed",
+        "execution": {
+          "callable": "run_task",
+          "execution_mode": "service_stub",
+          "invocation": {
+            "invocation_style": "payload_arg",
+            "result": {
+              "received_payload": {
+                "customer_id": "cust_doc_fail",
+                "disclose_to_third_party": false,
+                "document_ids": [
+                  "mystery_file_x",
+                  "id_doc_01"
+                ],
+                "request_id": "req_c9100a32e955",
+                "service_code": "fica",
+                "service_family": "fica",
+                "timestamp": "2026-03-20T15:16:51.145068+00:00"
+              },
+              "result": {
+                "capabilities": [
+                  "transaction_compliance_classification",
+                  "document_validation",
+                  "identity_owner_verification"
+                ],
+                "summary": "FICA compliance stub executed with real orchestration payload."
+              },
+              "service": "fica_compliance",
+              "status": "executed"
+            }
+          },
+          "module": "infrastructure.ecs.fica_compliance.task"
+        },
+        "service_family": "fica",
+        "summary": "fica execution invoked via decision engine."
+      },
+      "enforcement": {
+        "blocks_execution": false,
+        "consent": {
+          "disclosure_consent_present": null,
+          "disclosure_consent_required": false,
+          "mode": "soft_enforcement",
+          "processing_consent_present": true,
+          "processing_consent_required": true,
+          "reasons": [],
+          "status": "pass"
+        },
+        "documents": {
+          "assessments": [
+            {
+              "completeness_status": "unknown",
+              "document_id": "mystery_file_x",
+              "expected_for_service": false,
+              "freshness_status": "unknown",
+              "inferred_type": "unknown",
+              "quality_status": "acceptable",
+              "readiness_score": 70,
+              "reasons": [
+                "document_type_unknown"
+              ],
+              "status": "pass"
+            },
+            {
+              "completeness_status": "assumed_present",
+              "document_id": "id_doc_01",
+              "expected_for_service": true,
+              "freshness_status": "unknown",
+              "inferred_type": "identity_document",
+              "quality_status": "acceptable",
+              "readiness_score": 100,
+              "reasons": [],
+              "status": "pass"
+            }
+          ],
+          "average_readiness_score": 85,
+          "document_count": 2,
+          "document_ids_received": [
+            "mystery_file_x",
+            "id_doc_01"
+          ],
+          "expected_document_types": [
+            "identity_document",
+            "proof_of_address"
+          ],
+          "missing_expected_document_types": [
+            "proof_of_address"
+          ],
+          "mode": "soft_enforcement",
+          "reasons": [
+            "required_document_types_missing"
+          ],
+          "status": "fail"
+        },
+        "enforcement_mode": "soft",
+        "overall_status": "fail"
+      },
+      "last_updated": "2026-03-20T15:16:51.145312+00:00",
+      "remediation_prompts": [
+        {
+          "reason": "required_document_types_missing",
+          "suggestedAction": "Provide missing document types required for this service: proof_of_address."
+        },
+        {
+          "reason": "document_type_unknown",
+          "suggestedAction": "Clarify or relabel document mystery_file_x so its type can be identified."
+        }
+      ],
+      "request": {
+        "created_at": "2026-03-20T15:16:51.145044+00:00",
+        "customer_id": "cust_doc_fail",
+        "disclose_to_third_party": false,
+        "document_ids": [
+          "mystery_file_x",
+          "id_doc_01"
+        ],
+        "request_id": "req_c9100a32e955",
+        "service_code": "fica",
+        "service_family": "fica"
+      },
+      "request_status": "completed",
+      "result_status": "available",
+      "routing": {
+        "orchestration_layer": "services.decision_engine.frontend_request_orchestrator",
+        "selected_service_code": "fica",
+        "selected_service_family": "fica"
+      }
+    },
+    "req_feae25e75183": {
+      "consent_check": {
+        "disclosure_consent_present": true,
+        "disclosure_consent_required": true,
+        "mode": "soft_enforcement",
+        "processing_consent_present": true,
+        "processing_consent_required": true,
+        "reasons": [],
+        "status": "pass"
+      },
+      "document_check": {
+        "assessments": [
+          {
+            "completeness_status": "assumed_present",
+            "document_id": "bank_statement_march_001",
+            "expected_for_service": true,
+            "freshness_status": "unknown",
+            "inferred_type": "bank_statement",
+            "quality_status": "acceptable",
+            "readiness_score": 100,
+            "reasons": [],
+            "status": "pass"
+          },
+          {
+            "completeness_status": "assumed_present",
+            "document_id": "identity_document_user_001",
+            "expected_for_service": true,
+            "freshness_status": "unknown",
+            "inferred_type": "identity_document",
+            "quality_status": "acceptable",
+            "readiness_score": 100,
+            "reasons": [],
+            "status": "pass"
+          }
+        ],
+        "average_readiness_score": 100,
+        "document_count": 2,
+        "document_ids_received": [
+          "bank_statement_march_001",
+          "identity_document_user_001"
+        ],
+        "expected_document_types": [
+          "bank_statement",
+          "identity_document"
+        ],
+        "missing_expected_document_types": [],
+        "mode": "soft_enforcement",
+        "reasons": [],
+        "status": "pass"
+      },
+      "downstream_execution": {
+        "downstream_status": "executed",
+        "execution": {
+          "callable": "run_task",
+          "execution_mode": "service_stub",
+          "invocation": {
+            "invocation_style": "payload_arg",
+            "result": {
+              "received_payload": {
+                "customer_id": "cust_doc_pass",
+                "disclose_to_third_party": true,
+                "document_ids": [
+                  "bank_statement_march_001",
+                  "identity_document_user_001"
+                ],
+                "request_id": "req_feae25e75183",
+                "service_code": "credit_decision",
+                "service_family": "credit_decision",
+                "timestamp": "2026-03-20T15:16:51.143740+00:00"
+              },
+              "result": {
+                "capabilities": [
+                  "affordability",
+                  "prevet",
+                  "bureau_assessment",
+                  "offer_generation"
+                ],
+                "summary": "Credit decision stub executed with real orchestration payload."
+              },
+              "service": "credit_decision",
+              "status": "executed"
+            }
+          },
+          "module": "infrastructure.ecs.credit_decision.task"
+        },
+        "service_family": "credit_decision",
+        "summary": "credit_decision execution invoked via decision engine."
+      },
+      "enforcement": {
+        "blocks_execution": false,
+        "consent": {
+          "disclosure_consent_present": true,
+          "disclosure_consent_required": true,
+          "mode": "soft_enforcement",
+          "processing_consent_present": true,
+          "processing_consent_required": true,
+          "reasons": [],
+          "status": "pass"
+        },
+        "documents": {
+          "assessments": [
+            {
+              "completeness_status": "assumed_present",
+              "document_id": "bank_statement_march_001",
+              "expected_for_service": true,
+              "freshness_status": "unknown",
+              "inferred_type": "bank_statement",
+              "quality_status": "acceptable",
+              "readiness_score": 100,
+              "reasons": [],
+              "status": "pass"
+            },
+            {
+              "completeness_status": "assumed_present",
+              "document_id": "identity_document_user_001",
+              "expected_for_service": true,
+              "freshness_status": "unknown",
+              "inferred_type": "identity_document",
+              "quality_status": "acceptable",
+              "readiness_score": 100,
+              "reasons": [],
+              "status": "pass"
+            }
+          ],
+          "average_readiness_score": 100,
+          "document_count": 2,
+          "document_ids_received": [
+            "bank_statement_march_001",
+            "identity_document_user_001"
+          ],
+          "expected_document_types": [
+            "bank_statement",
+            "identity_document"
+          ],
+          "missing_expected_document_types": [],
+          "mode": "soft_enforcement",
+          "reasons": [],
+          "status": "pass"
+        },
+        "enforcement_mode": "soft",
+        "overall_status": "pass"
+      },
+      "last_updated": "2026-03-20T15:16:51.144220+00:00",
+      "remediation_prompts": [],
+      "request": {
+        "created_at": "2026-03-20T15:16:51.143712+00:00",
+        "customer_id": "cust_doc_pass",
+        "disclose_to_third_party": true,
+        "document_ids": [
+          "bank_statement_march_001",
+          "identity_document_user_001"
+        ],
+        "request_id": "req_feae25e75183",
+        "service_code": "credit_decision",
+        "service_family": "credit_decision"
+      },
+      "request_status": "completed",
+      "result_status": "available",
+      "routing": {
+        "orchestration_layer": "services.decision_engine.frontend_request_orchestrator",
+        "selected_service_code": "credit_decision",
+        "selected_service_family": "credit_decision"
+      }
     }
   }
 }

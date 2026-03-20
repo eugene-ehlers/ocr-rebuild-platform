@@ -44,6 +44,13 @@ SUPPORTED_SERVICE_FAMILIES = {
 }
 
 
+EXPECTED_DOCUMENT_TYPES = {
+    "financial_management": {"bank_statement"},
+    "fica": {"identity_document", "proof_of_address"},
+    "credit_decision": {"bank_statement", "identity_document"},
+}
+
+
 @dataclass
 class OrchestrationContext:
     request_id: str
@@ -138,22 +145,89 @@ def _evaluate_consent(context: OrchestrationContext, payload: Dict[str, Any]) ->
     }
 
 
-def _evaluate_documents(context: OrchestrationContext) -> Dict[str, Any]:
-    has_documents = len(context.document_ids) > 0
-    invalid_ids = [doc_id for doc_id in context.document_ids if not str(doc_id).strip()]
+def _infer_document_type(document_id: str) -> str:
+    normalized = document_id.strip().lower()
+    if "bank" in normalized or "statement" in normalized:
+        return "bank_statement"
+    if "id" in normalized or "identity" in normalized:
+        return "identity_document"
+    if "address" in normalized or "poa" in normalized or "proof" in normalized:
+        return "proof_of_address"
+    return "unknown"
 
-    status = "pass" if has_documents and not invalid_ids else "fail"
+
+def _assess_document(document_id: str, expected_types: set[str]) -> Dict[str, Any]:
+    inferred_type = _infer_document_type(document_id)
+    quality_status = "acceptable" if len(document_id.strip()) >= 6 else "poor"
+    freshness_status = "unknown"
+    completeness_status = "unknown"
 
     reasons: List[str] = []
-    if not has_documents:
+    readiness_score = 100
+
+    if inferred_type == "unknown":
+        reasons.append("document_type_unknown")
+        readiness_score -= 30
+
+    if inferred_type not in expected_types and inferred_type != "unknown":
+        reasons.append("document_type_not_expected_for_service")
+        readiness_score -= 20
+
+    if quality_status != "acceptable":
+        reasons.append("document_identifier_quality_poor")
+        readiness_score -= 20
+
+    if inferred_type in {"bank_statement", "identity_document", "proof_of_address"}:
+        completeness_status = "assumed_present"
+    else:
+        completeness_status = "unknown"
+
+    readiness_score = max(0, readiness_score)
+
+    status = "pass" if readiness_score >= 70 and not any(
+        reason in {"document_type_not_expected_for_service"} for reason in reasons
+    ) else "fail"
+
+    return {
+        "document_id": document_id,
+        "inferred_type": inferred_type,
+        "expected_for_service": inferred_type in expected_types,
+        "quality_status": quality_status,
+        "freshness_status": freshness_status,
+        "completeness_status": completeness_status,
+        "readiness_score": readiness_score,
+        "status": status,
+        "reasons": reasons,
+    }
+
+
+def _evaluate_documents(context: OrchestrationContext) -> Dict[str, Any]:
+    expected_types = EXPECTED_DOCUMENT_TYPES.get(context.service_family, set())
+    assessments = [_assess_document(doc_id, expected_types) for doc_id in context.document_ids]
+
+    reasons: List[str] = []
+    if not context.document_ids:
         reasons.append("documents_missing")
-    if invalid_ids:
-        reasons.append("document_ids_invalid")
+
+    supplied_types = {a["inferred_type"] for a in assessments if a["inferred_type"] != "unknown"}
+    missing_expected_types = sorted(list(expected_types - supplied_types))
+
+    if missing_expected_types:
+        reasons.append("required_document_types_missing")
+
+    failing_docs = [a for a in assessments if a["status"] == "fail"]
+    avg_score = int(sum(a["readiness_score"] for a in assessments) / len(assessments)) if assessments else 0
+
+    overall_status = "pass" if not reasons and not failing_docs and avg_score >= 70 else "fail"
 
     return {
         "document_ids_received": context.document_ids,
         "document_count": len(context.document_ids),
-        "status": status,
+        "assessments": assessments,
+        "expected_document_types": sorted(list(expected_types)),
+        "missing_expected_document_types": missing_expected_types,
+        "average_readiness_score": avg_score,
+        "status": overall_status,
         "reasons": reasons,
         "mode": "soft_enforcement",
     }
@@ -191,13 +265,39 @@ def _build_remediation_prompts(enforcement: Dict[str, Any]) -> List[Dict[str, st
                 "reason": reason,
                 "suggestedAction": "Upload the required documents before execution.",
             })
-        elif reason == "document_ids_invalid":
+        elif reason == "required_document_types_missing":
+            missing = enforcement["documents"].get("missing_expected_document_types", [])
             prompts.append({
                 "reason": reason,
-                "suggestedAction": "Correct invalid document identifiers before execution.",
+                "suggestedAction": f"Provide missing document types required for this service: {', '.join(missing)}.",
             })
 
-    return prompts
+    for assessment in enforcement["documents"].get("assessments", []):
+        for reason in assessment.get("reasons", []):
+            if reason == "document_type_unknown":
+                prompts.append({
+                    "reason": reason,
+                    "suggestedAction": f"Clarify or relabel document {assessment['document_id']} so its type can be identified.",
+                })
+            elif reason == "document_type_not_expected_for_service":
+                prompts.append({
+                    "reason": reason,
+                    "suggestedAction": f"Replace document {assessment['document_id']} with one expected for this service.",
+                })
+            elif reason == "document_identifier_quality_poor":
+                prompts.append({
+                    "reason": reason,
+                    "suggestedAction": f"Improve document identifier or source quality for {assessment['document_id']}.",
+                })
+
+    deduped: List[Dict[str, str]] = []
+    seen = set()
+    for prompt in prompts:
+        key = (prompt["reason"], prompt["suggestedAction"])
+        if key not in seen:
+            seen.add(key)
+            deduped.append(prompt)
+    return deduped
 
 
 def _execute(context: OrchestrationContext) -> Dict[str, Any]:
@@ -278,7 +378,7 @@ def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
     return _base_response(
         success=True,
         status="executed_with_soft_enforcement",
-        message="Request evaluated, executed, and persisted under soft enforcement.",
+        message="Request evaluated, executed, and persisted under soft enforcement with deep document readiness.",
         data=orchestration_record,
     )
 
@@ -303,6 +403,7 @@ def get_status(request_id: str) -> Dict[str, Any]:
             "resultStatus": record.get("result_status", "unknown"),
             "serviceFamily": record["request"]["service_family"],
             "enforcementOverallStatus": record.get("enforcement", {}).get("overall_status"),
+            "documentReadinessScore": record.get("document_check", {}).get("average_readiness_score"),
             "lastUpdated": record.get("last_updated"),
         },
     )
@@ -347,6 +448,7 @@ def get_result(request_id: str) -> Dict[str, Any]:
             "requestId": request_id,
             "resultStatus": record.get("result_status", "unknown"),
             "enforcement": record.get("enforcement"),
+            "documentCheck": record.get("document_check"),
             "result": record.get("downstream_execution"),
         },
     )

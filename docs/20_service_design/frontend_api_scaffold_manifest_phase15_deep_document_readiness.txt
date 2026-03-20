@@ -1,0 +1,7 @@
+Phase 15 deep document readiness created:
+- services/decision_engine/frontend_request_orchestrator.py updated with document type inference
+- per-document readiness assessments added
+- expected document types by service family added
+- average readiness scoring added
+- remediation prompts enriched for document readiness issues
+- execution remains enabled under soft enforcement
