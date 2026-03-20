@@ -1,4 +1,26 @@
 {
+  "consents": {
+    "cust_standing_001": [
+      {
+        "captured_at": "2026-03-20T15:30:59.998008+00:00",
+        "consent_id": "consent_e0923f9365",
+        "consent_type": "processing",
+        "evidence_ref": "consent://processing/standing001",
+        "is_expired": false,
+        "provided": true,
+        "required": true,
+        "reused": false,
+        "revoked": true,
+        "revoked_at": "2026-03-20T15:31:00.004041+00:00",
+        "source": "ui_checkbox",
+        "standing": true,
+        "status": "valid",
+        "valid_from": "2026-03-20T15:30:59.998008+00:00",
+        "valid_until": "2026-04-19T15:30:59.998008+00:00",
+        "validity_window_seconds": 2592000
+      }
+    ]
+  },
   "requests": {
     "req_0287ba419537": {
       "consent_check": {
@@ -116,6 +138,255 @@
         "orchestration_layer": "services.decision_engine.frontend_request_orchestrator",
         "selected_service_code": "fica",
         "selected_service_family": "fica"
+      }
+    },
+    "req_1ac5a9f97241": {
+      "consent_check": {
+        "consent_records": [
+          {
+            "captured_at": "2026-03-20T15:30:59.998008+00:00",
+            "consent_id": "consent_e0923f9365",
+            "consent_type": "processing",
+            "evidence_ref": "consent://processing/standing001",
+            "is_expired": false,
+            "provided": true,
+            "required": true,
+            "reused": false,
+            "revoked": false,
+            "revoked_at": null,
+            "source": "ui_checkbox",
+            "standing": true,
+            "status": "valid",
+            "valid_from": "2026-03-20T15:30:59.998008+00:00",
+            "valid_until": "2026-04-19T15:30:59.998008+00:00",
+            "validity_window_seconds": 2592000
+          },
+          {
+            "captured_at": null,
+            "consent_id": "consent_254fbbf2f9",
+            "consent_type": "disclosure",
+            "evidence_ref": null,
+            "is_expired": false,
+            "provided": false,
+            "required": false,
+            "reused": false,
+            "revoked": false,
+            "revoked_at": null,
+            "source": null,
+            "standing": false,
+            "status": "not_required",
+            "valid_from": null,
+            "valid_until": null,
+            "validity_window_seconds": null
+          }
+        ],
+        "disclosure_consent_required": false,
+        "mode": "soft_enforcement",
+        "processing_consent_required": true,
+        "reasons": [],
+        "status": "pass"
+      },
+      "consent_records": [
+        {
+          "captured_at": "2026-03-20T15:30:59.998008+00:00",
+          "consent_id": "consent_e0923f9365",
+          "consent_type": "processing",
+          "evidence_ref": "consent://processing/standing001",
+          "is_expired": false,
+          "provided": true,
+          "required": true,
+          "reused": false,
+          "revoked": false,
+          "revoked_at": null,
+          "source": "ui_checkbox",
+          "standing": true,
+          "status": "valid",
+          "valid_from": "2026-03-20T15:30:59.998008+00:00",
+          "valid_until": "2026-04-19T15:30:59.998008+00:00",
+          "validity_window_seconds": 2592000
+        },
+        {
+          "captured_at": null,
+          "consent_id": "consent_254fbbf2f9",
+          "consent_type": "disclosure",
+          "evidence_ref": null,
+          "is_expired": false,
+          "provided": false,
+          "required": false,
+          "reused": false,
+          "revoked": false,
+          "revoked_at": null,
+          "source": null,
+          "standing": false,
+          "status": "not_required",
+          "valid_from": null,
+          "valid_until": null,
+          "validity_window_seconds": null
+        }
+      ],
+      "document_check": {
+        "assessments": [
+          {
+            "completeness_status": "assumed_present",
+            "document_id": "bank_statement_apr_003",
+            "expected_for_service": true,
+            "freshness_status": "unknown",
+            "inferred_type": "bank_statement",
+            "quality_status": "acceptable",
+            "readiness_score": 100,
+            "reasons": [],
+            "status": "pass"
+          }
+        ],
+        "average_readiness_score": 100,
+        "document_count": 1,
+        "document_ids_received": [
+          "bank_statement_apr_003"
+        ],
+        "expected_document_types": [
+          "bank_statement"
+        ],
+        "missing_expected_document_types": [],
+        "mode": "soft_enforcement",
+        "reasons": [],
+        "status": "pass"
+      },
+      "downstream_execution": {
+        "downstream_status": "executed",
+        "execution": {
+          "callable": "run_task",
+          "execution_mode": "service_stub",
+          "invocation": {
+            "invocation_style": "payload_arg",
+            "result": {
+              "received_payload": {
+                "customer_id": "cust_standing_001",
+                "disclose_to_third_party": false,
+                "document_ids": [
+                  "bank_statement_apr_003"
+                ],
+                "request_id": "req_1ac5a9f97241",
+                "service_code": "financial_management",
+                "service_family": "financial_management",
+                "timestamp": "2026-03-20T15:30:59.999719+00:00"
+              },
+              "result": {
+                "capabilities": [
+                  "transaction_parsing",
+                  "category_classification",
+                  "cash_flow_classification",
+                  "debt_detection",
+                  "behavioural_analysis",
+                  "benchmarking",
+                  "reporting_explanation"
+                ],
+                "summary": "Financial management stub executed with real orchestration payload."
+              },
+              "service": "financial_management",
+              "status": "executed"
+            }
+          },
+          "module": "infrastructure.ecs.financial_management.task"
+        },
+        "service_family": "financial_management",
+        "summary": "financial_management execution invoked via decision engine."
+      },
+      "enforcement": {
+        "blocks_execution": false,
+        "consent": {
+          "consent_records": [
+            {
+              "captured_at": "2026-03-20T15:30:59.998008+00:00",
+              "consent_id": "consent_e0923f9365",
+              "consent_type": "processing",
+              "evidence_ref": "consent://processing/standing001",
+              "is_expired": false,
+              "provided": true,
+              "required": true,
+              "reused": false,
+              "revoked": false,
+              "revoked_at": null,
+              "source": "ui_checkbox",
+              "standing": true,
+              "status": "valid",
+              "valid_from": "2026-03-20T15:30:59.998008+00:00",
+              "valid_until": "2026-04-19T15:30:59.998008+00:00",
+              "validity_window_seconds": 2592000
+            },
+            {
+              "captured_at": null,
+              "consent_id": "consent_254fbbf2f9",
+              "consent_type": "disclosure",
+              "evidence_ref": null,
+              "is_expired": false,
+              "provided": false,
+              "required": false,
+              "reused": false,
+              "revoked": false,
+              "revoked_at": null,
+              "source": null,
+              "standing": false,
+              "status": "not_required",
+              "valid_from": null,
+              "valid_until": null,
+              "validity_window_seconds": null
+            }
+          ],
+          "disclosure_consent_required": false,
+          "mode": "soft_enforcement",
+          "processing_consent_required": true,
+          "reasons": [],
+          "status": "pass"
+        },
+        "documents": {
+          "assessments": [
+            {
+              "completeness_status": "assumed_present",
+              "document_id": "bank_statement_apr_003",
+              "expected_for_service": true,
+              "freshness_status": "unknown",
+              "inferred_type": "bank_statement",
+              "quality_status": "acceptable",
+              "readiness_score": 100,
+              "reasons": [],
+              "status": "pass"
+            }
+          ],
+          "average_readiness_score": 100,
+          "document_count": 1,
+          "document_ids_received": [
+            "bank_statement_apr_003"
+          ],
+          "expected_document_types": [
+            "bank_statement"
+          ],
+          "missing_expected_document_types": [],
+          "mode": "soft_enforcement",
+          "reasons": [],
+          "status": "pass"
+        },
+        "enforcement_mode": "soft",
+        "overall_status": "pass"
+      },
+      "last_updated": "2026-03-20T15:31:00.000181+00:00",
+      "remediation_prompts": [],
+      "request": {
+        "created_at": "2026-03-20T15:30:59.997992+00:00",
+        "customer_id": "cust_standing_001",
+        "disclose_to_third_party": false,
+        "document_ids": [
+          "bank_statement_apr_003"
+        ],
+        "request_id": "req_1ac5a9f97241",
+        "service_code": "financial_management",
+        "service_family": "financial_management"
+      },
+      "request_status": "completed",
+      "result_status": "available",
+      "routing": {
+        "orchestration_layer": "services.decision_engine.frontend_request_orchestrator",
+        "selected_service_code": "financial_management",
+        "selected_service_family": "financial_management"
       }
     },
     "req_1cf281c93ca0": {
@@ -631,6 +902,255 @@
         "selected_service_family": "financial_management"
       }
     },
+    "req_b29bb17f6251": {
+      "consent_check": {
+        "consent_records": [
+          {
+            "captured_at": "2026-03-20T15:30:59.998008+00:00",
+            "consent_id": "consent_e0923f9365",
+            "consent_type": "processing",
+            "evidence_ref": "consent://processing/standing001",
+            "is_expired": false,
+            "provided": true,
+            "required": true,
+            "reused": true,
+            "revoked": false,
+            "revoked_at": null,
+            "source": "ui_checkbox",
+            "standing": true,
+            "status": "valid",
+            "valid_from": "2026-03-20T15:30:59.998008+00:00",
+            "valid_until": "2026-04-19T15:30:59.998008+00:00",
+            "validity_window_seconds": 2592000
+          },
+          {
+            "captured_at": null,
+            "consent_id": "consent_7269e939e1",
+            "consent_type": "disclosure",
+            "evidence_ref": null,
+            "is_expired": false,
+            "provided": false,
+            "required": false,
+            "reused": false,
+            "revoked": false,
+            "revoked_at": null,
+            "source": null,
+            "standing": false,
+            "status": "not_required",
+            "valid_from": null,
+            "valid_until": null,
+            "validity_window_seconds": null
+          }
+        ],
+        "disclosure_consent_required": false,
+        "mode": "soft_enforcement",
+        "processing_consent_required": true,
+        "reasons": [],
+        "status": "pass"
+      },
+      "consent_records": [
+        {
+          "captured_at": "2026-03-20T15:30:59.998008+00:00",
+          "consent_id": "consent_e0923f9365",
+          "consent_type": "processing",
+          "evidence_ref": "consent://processing/standing001",
+          "is_expired": false,
+          "provided": true,
+          "required": true,
+          "reused": true,
+          "revoked": false,
+          "revoked_at": null,
+          "source": "ui_checkbox",
+          "standing": true,
+          "status": "valid",
+          "valid_from": "2026-03-20T15:30:59.998008+00:00",
+          "valid_until": "2026-04-19T15:30:59.998008+00:00",
+          "validity_window_seconds": 2592000
+        },
+        {
+          "captured_at": null,
+          "consent_id": "consent_7269e939e1",
+          "consent_type": "disclosure",
+          "evidence_ref": null,
+          "is_expired": false,
+          "provided": false,
+          "required": false,
+          "reused": false,
+          "revoked": false,
+          "revoked_at": null,
+          "source": null,
+          "standing": false,
+          "status": "not_required",
+          "valid_from": null,
+          "valid_until": null,
+          "validity_window_seconds": null
+        }
+      ],
+      "document_check": {
+        "assessments": [
+          {
+            "completeness_status": "assumed_present",
+            "document_id": "bank_statement_apr_004",
+            "expected_for_service": true,
+            "freshness_status": "unknown",
+            "inferred_type": "bank_statement",
+            "quality_status": "acceptable",
+            "readiness_score": 100,
+            "reasons": [],
+            "status": "pass"
+          }
+        ],
+        "average_readiness_score": 100,
+        "document_count": 1,
+        "document_ids_received": [
+          "bank_statement_apr_004"
+        ],
+        "expected_document_types": [
+          "bank_statement"
+        ],
+        "missing_expected_document_types": [],
+        "mode": "soft_enforcement",
+        "reasons": [],
+        "status": "pass"
+      },
+      "downstream_execution": {
+        "downstream_status": "executed",
+        "execution": {
+          "callable": "run_task",
+          "execution_mode": "service_stub",
+          "invocation": {
+            "invocation_style": "payload_arg",
+            "result": {
+              "received_payload": {
+                "customer_id": "cust_standing_001",
+                "disclose_to_third_party": false,
+                "document_ids": [
+                  "bank_statement_apr_004"
+                ],
+                "request_id": "req_b29bb17f6251",
+                "service_code": "financial_management",
+                "service_family": "financial_management",
+                "timestamp": "2026-03-20T15:31:00.002273+00:00"
+              },
+              "result": {
+                "capabilities": [
+                  "transaction_parsing",
+                  "category_classification",
+                  "cash_flow_classification",
+                  "debt_detection",
+                  "behavioural_analysis",
+                  "benchmarking",
+                  "reporting_explanation"
+                ],
+                "summary": "Financial management stub executed with real orchestration payload."
+              },
+              "service": "financial_management",
+              "status": "executed"
+            }
+          },
+          "module": "infrastructure.ecs.financial_management.task"
+        },
+        "service_family": "financial_management",
+        "summary": "financial_management execution invoked via decision engine."
+      },
+      "enforcement": {
+        "blocks_execution": false,
+        "consent": {
+          "consent_records": [
+            {
+              "captured_at": "2026-03-20T15:30:59.998008+00:00",
+              "consent_id": "consent_e0923f9365",
+              "consent_type": "processing",
+              "evidence_ref": "consent://processing/standing001",
+              "is_expired": false,
+              "provided": true,
+              "required": true,
+              "reused": true,
+              "revoked": false,
+              "revoked_at": null,
+              "source": "ui_checkbox",
+              "standing": true,
+              "status": "valid",
+              "valid_from": "2026-03-20T15:30:59.998008+00:00",
+              "valid_until": "2026-04-19T15:30:59.998008+00:00",
+              "validity_window_seconds": 2592000
+            },
+            {
+              "captured_at": null,
+              "consent_id": "consent_7269e939e1",
+              "consent_type": "disclosure",
+              "evidence_ref": null,
+              "is_expired": false,
+              "provided": false,
+              "required": false,
+              "reused": false,
+              "revoked": false,
+              "revoked_at": null,
+              "source": null,
+              "standing": false,
+              "status": "not_required",
+              "valid_from": null,
+              "valid_until": null,
+              "validity_window_seconds": null
+            }
+          ],
+          "disclosure_consent_required": false,
+          "mode": "soft_enforcement",
+          "processing_consent_required": true,
+          "reasons": [],
+          "status": "pass"
+        },
+        "documents": {
+          "assessments": [
+            {
+              "completeness_status": "assumed_present",
+              "document_id": "bank_statement_apr_004",
+              "expected_for_service": true,
+              "freshness_status": "unknown",
+              "inferred_type": "bank_statement",
+              "quality_status": "acceptable",
+              "readiness_score": 100,
+              "reasons": [],
+              "status": "pass"
+            }
+          ],
+          "average_readiness_score": 100,
+          "document_count": 1,
+          "document_ids_received": [
+            "bank_statement_apr_004"
+          ],
+          "expected_document_types": [
+            "bank_statement"
+          ],
+          "missing_expected_document_types": [],
+          "mode": "soft_enforcement",
+          "reasons": [],
+          "status": "pass"
+        },
+        "enforcement_mode": "soft",
+        "overall_status": "pass"
+      },
+      "last_updated": "2026-03-20T15:31:00.002326+00:00",
+      "remediation_prompts": [],
+      "request": {
+        "created_at": "2026-03-20T15:31:00.001722+00:00",
+        "customer_id": "cust_standing_001",
+        "disclose_to_third_party": false,
+        "document_ids": [
+          "bank_statement_apr_004"
+        ],
+        "request_id": "req_b29bb17f6251",
+        "service_code": "financial_management",
+        "service_family": "financial_management"
+      },
+      "request_status": "completed",
+      "result_status": "available",
+      "routing": {
+        "orchestration_layer": "services.decision_engine.frontend_request_orchestrator",
+        "selected_service_code": "financial_management",
+        "selected_service_family": "financial_management"
+      }
+    },
     "req_bafd0e7af4fa": {
       "consent_check": {
         "disclosure_consent_required": false,
@@ -692,6 +1212,264 @@
           "doc_financial_management_001"
         ],
         "request_id": "req_bafd0e7af4fa",
+        "service_code": "financial_management",
+        "service_family": "financial_management"
+      },
+      "request_status": "completed",
+      "result_status": "available",
+      "routing": {
+        "orchestration_layer": "services.decision_engine.frontend_request_orchestrator",
+        "selected_service_code": "financial_management",
+        "selected_service_family": "financial_management"
+      }
+    },
+    "req_bd51e2bb1e02": {
+      "consent_check": {
+        "consent_records": [
+          {
+            "captured_at": null,
+            "consent_id": "consent_07bf09bfa6",
+            "consent_type": "processing",
+            "evidence_ref": null,
+            "is_expired": false,
+            "provided": false,
+            "required": true,
+            "reused": false,
+            "revoked": false,
+            "revoked_at": null,
+            "source": null,
+            "standing": false,
+            "status": "missing",
+            "valid_from": null,
+            "valid_until": null,
+            "validity_window_seconds": null
+          },
+          {
+            "captured_at": null,
+            "consent_id": "consent_27d4d98b37",
+            "consent_type": "disclosure",
+            "evidence_ref": null,
+            "is_expired": false,
+            "provided": false,
+            "required": false,
+            "reused": false,
+            "revoked": false,
+            "revoked_at": null,
+            "source": null,
+            "standing": false,
+            "status": "not_required",
+            "valid_from": null,
+            "valid_until": null,
+            "validity_window_seconds": null
+          }
+        ],
+        "disclosure_consent_required": false,
+        "mode": "soft_enforcement",
+        "processing_consent_required": true,
+        "reasons": [
+          "processing_consent_missing"
+        ],
+        "status": "fail"
+      },
+      "consent_records": [
+        {
+          "captured_at": null,
+          "consent_id": "consent_07bf09bfa6",
+          "consent_type": "processing",
+          "evidence_ref": null,
+          "is_expired": false,
+          "provided": false,
+          "required": true,
+          "reused": false,
+          "revoked": false,
+          "revoked_at": null,
+          "source": null,
+          "standing": false,
+          "status": "missing",
+          "valid_from": null,
+          "valid_until": null,
+          "validity_window_seconds": null
+        },
+        {
+          "captured_at": null,
+          "consent_id": "consent_27d4d98b37",
+          "consent_type": "disclosure",
+          "evidence_ref": null,
+          "is_expired": false,
+          "provided": false,
+          "required": false,
+          "reused": false,
+          "revoked": false,
+          "revoked_at": null,
+          "source": null,
+          "standing": false,
+          "status": "not_required",
+          "valid_from": null,
+          "valid_until": null,
+          "validity_window_seconds": null
+        }
+      ],
+      "document_check": {
+        "assessments": [
+          {
+            "completeness_status": "assumed_present",
+            "document_id": "bank_statement_apr_005",
+            "expected_for_service": true,
+            "freshness_status": "unknown",
+            "inferred_type": "bank_statement",
+            "quality_status": "acceptable",
+            "readiness_score": 100,
+            "reasons": [],
+            "status": "pass"
+          }
+        ],
+        "average_readiness_score": 100,
+        "document_count": 1,
+        "document_ids_received": [
+          "bank_statement_apr_005"
+        ],
+        "expected_document_types": [
+          "bank_statement"
+        ],
+        "missing_expected_document_types": [],
+        "mode": "soft_enforcement",
+        "reasons": [],
+        "status": "pass"
+      },
+      "downstream_execution": {
+        "downstream_status": "executed",
+        "execution": {
+          "callable": "run_task",
+          "execution_mode": "service_stub",
+          "invocation": {
+            "invocation_style": "payload_arg",
+            "result": {
+              "received_payload": {
+                "customer_id": "cust_standing_001",
+                "disclose_to_third_party": false,
+                "document_ids": [
+                  "bank_statement_apr_005"
+                ],
+                "request_id": "req_bd51e2bb1e02",
+                "service_code": "financial_management",
+                "service_family": "financial_management",
+                "timestamp": "2026-03-20T15:31:00.006370+00:00"
+              },
+              "result": {
+                "capabilities": [
+                  "transaction_parsing",
+                  "category_classification",
+                  "cash_flow_classification",
+                  "debt_detection",
+                  "behavioural_analysis",
+                  "benchmarking",
+                  "reporting_explanation"
+                ],
+                "summary": "Financial management stub executed with real orchestration payload."
+              },
+              "service": "financial_management",
+              "status": "executed"
+            }
+          },
+          "module": "infrastructure.ecs.financial_management.task"
+        },
+        "service_family": "financial_management",
+        "summary": "financial_management execution invoked via decision engine."
+      },
+      "enforcement": {
+        "blocks_execution": false,
+        "consent": {
+          "consent_records": [
+            {
+              "captured_at": null,
+              "consent_id": "consent_07bf09bfa6",
+              "consent_type": "processing",
+              "evidence_ref": null,
+              "is_expired": false,
+              "provided": false,
+              "required": true,
+              "reused": false,
+              "revoked": false,
+              "revoked_at": null,
+              "source": null,
+              "standing": false,
+              "status": "missing",
+              "valid_from": null,
+              "valid_until": null,
+              "validity_window_seconds": null
+            },
+            {
+              "captured_at": null,
+              "consent_id": "consent_27d4d98b37",
+              "consent_type": "disclosure",
+              "evidence_ref": null,
+              "is_expired": false,
+              "provided": false,
+              "required": false,
+              "reused": false,
+              "revoked": false,
+              "revoked_at": null,
+              "source": null,
+              "standing": false,
+              "status": "not_required",
+              "valid_from": null,
+              "valid_until": null,
+              "validity_window_seconds": null
+            }
+          ],
+          "disclosure_consent_required": false,
+          "mode": "soft_enforcement",
+          "processing_consent_required": true,
+          "reasons": [
+            "processing_consent_missing"
+          ],
+          "status": "fail"
+        },
+        "documents": {
+          "assessments": [
+            {
+              "completeness_status": "assumed_present",
+              "document_id": "bank_statement_apr_005",
+              "expected_for_service": true,
+              "freshness_status": "unknown",
+              "inferred_type": "bank_statement",
+              "quality_status": "acceptable",
+              "readiness_score": 100,
+              "reasons": [],
+              "status": "pass"
+            }
+          ],
+          "average_readiness_score": 100,
+          "document_count": 1,
+          "document_ids_received": [
+            "bank_statement_apr_005"
+          ],
+          "expected_document_types": [
+            "bank_statement"
+          ],
+          "missing_expected_document_types": [],
+          "mode": "soft_enforcement",
+          "reasons": [],
+          "status": "pass"
+        },
+        "enforcement_mode": "soft",
+        "overall_status": "fail"
+      },
+      "last_updated": "2026-03-20T15:31:00.006424+00:00",
+      "remediation_prompts": [
+        {
+          "reason": "processing_consent_missing",
+          "suggestedAction": "Capture valid processing consent before production execution."
+        }
+      ],
+      "request": {
+        "created_at": "2026-03-20T15:31:00.005790+00:00",
+        "customer_id": "cust_standing_001",
+        "disclose_to_third_party": false,
+        "document_ids": [
+          "bank_statement_apr_005"
+        ],
+        "request_id": "req_bd51e2bb1e02",
         "service_code": "financial_management",
         "service_family": "financial_management"
       },

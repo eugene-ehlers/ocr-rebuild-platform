@@ -1,0 +1,17 @@
+Phase 17 standing consent, expiry, and revocation created:
+- services/decision_engine/request_store.py updated with customer consent registry
+- services/decision_engine/frontend_request_orchestrator.py updated with standing consent reuse
+- consent records now include:
+  - standing
+  - validity_window_seconds
+  - valid_from
+  - valid_until
+  - is_expired
+  - revoked
+  - revoked_at
+  - reused
+- consent evaluation now supports:
+  - reuse of valid standing consent
+  - expiry detection
+  - revocation detection
+- revoke_consent() added

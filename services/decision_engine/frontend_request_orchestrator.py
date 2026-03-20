@@ -1,12 +1,19 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, asdict
-from datetime import datetime, timezone
-from typing import Any, Dict, List
+from datetime import datetime, timezone, timedelta
+from typing import Any, Dict, List, Optional
 import uuid
 
 from services.decision_engine.engine import execute_service_family
-from services.decision_engine.request_store import get_request, save_request, update_request
+from services.decision_engine.request_store import (
+    get_customer_consent_records,
+    get_request,
+    revoke_customer_consent,
+    save_consent_record,
+    save_request,
+    update_request,
+)
 
 
 SUPPORTED_SERVICE_FAMILIES = {
@@ -50,6 +57,11 @@ EXPECTED_DOCUMENT_TYPES = {
     "credit_decision": {"bank_statement", "identity_document"},
 }
 
+DEFAULT_VALIDITY_SECONDS = {
+    "processing": 60 * 60 * 24 * 30,
+    "disclosure": 60 * 60 * 24 * 7,
+}
+
 
 @dataclass
 class OrchestrationContext:
@@ -64,6 +76,12 @@ class OrchestrationContext:
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _parse_iso(ts: Optional[str]) -> Optional[datetime]:
+    if not ts:
+        return None
+    return datetime.fromisoformat(ts)
 
 
 def _new_request_id() -> str:
@@ -123,54 +141,121 @@ def _base_response(
     }
 
 
-def _build_consent_record(consent_type: str, provided: bool, payload: Dict[str, Any], required: bool) -> Dict[str, Any]:
+def _find_reusable_consent(customer_id: str, consent_type: str) -> Optional[Dict[str, Any]]:
+    records = get_customer_consent_records(customer_id)
+    candidates = [
+        r for r in records
+        if r.get("consent_type") == consent_type
+    ]
+    if not candidates:
+        return None
+
+    candidates.sort(key=lambda r: r.get("captured_at") or "", reverse=True)
+    for record in candidates:
+        if record.get("status") == "valid" and not record.get("is_expired") and not record.get("revoked", False):
+            return record
+    return None
+
+
+def _derive_record_status(record: Dict[str, Any]) -> str:
+    if not record.get("required", False):
+        return "not_required"
+    if record.get("revoked", False):
+        return "revoked"
+    if not record.get("provided", False):
+        return "missing"
+    if not record.get("evidence_ref"):
+        return "invalid"
+
+    valid_until = _parse_iso(record.get("valid_until"))
+    if valid_until and valid_until < datetime.now(timezone.utc):
+        return "expired"
+
+    return "valid"
+
+
+def _build_new_consent_record(consent_type: str, provided: bool, payload: Dict[str, Any], required: bool) -> Dict[str, Any]:
     source = str(payload.get(f"{consent_type}ConsentSource", "ui_checkbox"))
     evidence_ref = str(payload.get(f"{consent_type}ConsentEvidenceRef", "")).strip()
+    standing = bool(payload.get(f"{consent_type}StandingConsent", True))
+    now = datetime.now(timezone.utc)
 
-    if not required:
-        status = "not_required"
-    elif not provided:
-        status = "missing"
-    elif not evidence_ref:
-        status = "invalid"
-    else:
-        status = "valid"
+    validity_seconds = DEFAULT_VALIDITY_SECONDS[consent_type]
+    valid_from = now.isoformat() if provided else None
+    valid_until = (now + timedelta(seconds=validity_seconds)).isoformat() if provided and standing else now.isoformat() if provided else None
 
-    return {
+    record = {
         "consent_id": _new_consent_id(),
         "consent_type": consent_type,
         "required": required,
         "provided": provided,
-        "status": status,
-        "captured_at": _utc_now() if provided else None,
+        "status": "unknown",
+        "captured_at": now.isoformat() if provided else None,
         "source": source if provided else None,
         "evidence_ref": evidence_ref if provided else None,
+        "standing": standing if provided else False,
+        "validity_window_seconds": validity_seconds if provided else None,
+        "valid_from": valid_from,
+        "valid_until": valid_until,
+        "is_expired": False,
+        "revoked": False,
+        "revoked_at": None,
+        "reused": False,
     }
+
+    record["status"] = _derive_record_status(record)
+    record["is_expired"] = record["status"] == "expired"
+    return record
+
+
+def _get_or_create_consent_record(customer_id: str, consent_type: str, provided: bool, payload: Dict[str, Any], required: bool) -> Dict[str, Any]:
+    if provided:
+        record = _build_new_consent_record(consent_type, provided, payload, required)
+        save_consent_record(customer_id, record)
+        return record
+
+    reusable = _find_reusable_consent(customer_id, consent_type)
+    if reusable:
+        reused = dict(reusable)
+        reused["reused"] = True
+        reused["status"] = _derive_record_status(reused)
+        reused["is_expired"] = reused["status"] == "expired"
+        return reused
+
+    record = _build_new_consent_record(consent_type, False, payload, required)
+    return record
 
 
 def _evaluate_consent(context: OrchestrationContext, payload: Dict[str, Any]) -> Dict[str, Any]:
     processing_provided = bool(payload.get("processingConsent", False))
     disclosure_provided = bool(payload.get("disclosureConsent", False))
 
-    processing_record = _build_consent_record("processing", processing_provided, payload, True)
-    disclosure_record = _build_consent_record("disclosure", disclosure_provided, payload, context.disclose_to_third_party)
+    processing_record = _get_or_create_consent_record(
+        context.customer_id, "processing", processing_provided, payload, True
+    )
+    disclosure_record = _get_or_create_consent_record(
+        context.customer_id, "disclosure", disclosure_provided, payload, context.disclose_to_third_party
+    )
 
     consent_records = [processing_record, disclosure_record]
 
-    invalid_required = [
-        record["consent_type"]
-        for record in consent_records
-        if record["required"] and record["status"] != "valid"
-    ]
-
-    status = "pass" if not invalid_required else "fail"
+    status = "pass" if all(
+        (not r["required"]) or r["status"] == "valid"
+        for r in consent_records
+    ) else "fail"
 
     reasons: List[str] = []
     for record in consent_records:
-        if record["required"] and record["status"] == "missing":
+        if not record["required"]:
+            continue
+        if record["status"] == "missing":
             reasons.append(f"{record['consent_type']}_consent_missing")
-        elif record["required"] and record["status"] == "invalid":
+        elif record["status"] == "invalid":
             reasons.append(f"{record['consent_type']}_consent_invalid")
+        elif record["status"] == "expired":
+            reasons.append(f"{record['consent_type']}_consent_expired")
+        elif record["status"] == "revoked":
+            reasons.append(f"{record['consent_type']}_consent_revoked")
 
     return {
         "processing_consent_required": True,
@@ -305,6 +390,26 @@ def _build_remediation_prompts(enforcement: Dict[str, Any]) -> List[Dict[str, st
                 "reason": reason,
                 "suggestedAction": "Provide valid disclosure consent evidence reference and source.",
             })
+        elif reason == "processing_consent_expired":
+            prompts.append({
+                "reason": reason,
+                "suggestedAction": "Refresh expired processing consent before execution.",
+            })
+        elif reason == "disclosure_consent_expired":
+            prompts.append({
+                "reason": reason,
+                "suggestedAction": "Refresh expired disclosure consent before sharing.",
+            })
+        elif reason == "processing_consent_revoked":
+            prompts.append({
+                "reason": reason,
+                "suggestedAction": "Capture a new processing consent because the previous one was revoked.",
+            })
+        elif reason == "disclosure_consent_revoked":
+            prompts.append({
+                "reason": reason,
+                "suggestedAction": "Capture a new disclosure consent because the previous one was revoked.",
+            })
 
     for reason in enforcement["documents"]["reasons"]:
         if reason == "documents_missing":
@@ -426,7 +531,7 @@ def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
     return _base_response(
         success=True,
         status="executed_with_soft_enforcement",
-        message="Request evaluated, executed, and persisted under soft enforcement with consent traceability.",
+        message="Request evaluated, executed, and persisted under soft enforcement with standing consent handling.",
         data=orchestration_record,
     )
 
@@ -543,4 +648,22 @@ def rerun_request(request_id: str) -> Dict[str, Any]:
             "requestId": request_id,
             "updatedRecord": updated,
         },
+    )
+
+
+def revoke_consent(consent_id: str) -> Dict[str, Any]:
+    revoked = revoke_customer_consent(consent_id, _utc_now())
+    if not revoked:
+        return _base_response(
+            success=False,
+            status="not_found",
+            message="Consent record not found for revocation.",
+            data={"consentId": consent_id},
+        )
+
+    return _base_response(
+        success=True,
+        status="revoked",
+        message="Consent record revoked.",
+        data={"consentId": consent_id},
     )

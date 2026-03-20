@@ -1174,3 +1174,79 @@ Next implementation step may now safely choose:
 
 ---
 
+
+---
+
+## Phase 17 — Standing Consent, Expiry, and Revocation (COMPLETED)
+
+### Objective
+Introduce customer-level consent lifecycle management so consent can be reused, expire, or be revoked across requests.
+
+### Implementation Summary
+
+Updated:
+- `services/decision_engine/request_store.py`
+- `services/decision_engine/frontend_request_orchestrator.py`
+
+Added behaviour:
+- customer-level consent registry persisted in request store
+- valid standing consent can be reused across requests
+- consent records now include lifecycle fields:
+  - `standing`
+  - `validity_window_seconds`
+  - `valid_from`
+  - `valid_until`
+  - `is_expired`
+  - `revoked`
+  - `revoked_at`
+  - `reused`
+
+- consent evaluation now supports:
+  - reuse of valid standing consent
+  - expiry detection
+  - revocation handling
+
+- `revoke_consent(consent_id)` added
+
+### Verified Behaviour
+
+Validated in Python 3.11 container runtime:
+
+#### Initial consent case
+Observed:
+- enforcement overall status = `pass`
+- processing consent status = `valid`
+
+#### Reuse case
+Observed:
+- enforcement overall status = `pass`
+- processing consent status = `valid`
+- `reused = True`
+
+#### Revocation case
+Observed:
+- consent revocation returned `revoked`
+- subsequent request enforcement overall status = `fail`
+- remediation prompts generated
+
+### Known Behaviour
+
+After revocation, subsequent request evaluation surfaced processing consent as effectively unavailable for reuse and produced a failing enforcement result. This is operationally correct for soft enforcement, though later phases may choose to expose revoked status more explicitly in the newly evaluated record.
+
+### Scope Boundary
+
+Phase 17 does NOT yet provide:
+- hard blocking enforcement
+- formal consent expiry testing via time-shifted scenarios
+- signed legal evidence validation
+- cross-system consent registry integration
+
+### Next Phase Dependency
+
+Next implementation step may now safely choose:
+- hard blocking enforcement
+- explicit expired/revoked surfaced-state refinement
+- production persistence upgrade
+
+---
+
