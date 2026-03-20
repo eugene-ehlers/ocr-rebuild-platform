@@ -6,7 +6,12 @@ from typing import Any, Dict, List, Optional
 import boto3
 
 from services.ocr.providers.base_provider import OCRProviderAdapter
-from services.ocr.providers.tesseract_provider import TesseractProviderAdapter
+from services.ocr.providers.provider_registry import (
+    PROVIDER_ADAPTERS,
+    SUPPORTED_PROVIDERS,
+    get_runtime_enabled_providers,
+    get_supported_provider_config,
+)
 
 
 s3 = boto3.client("s3")
@@ -26,18 +31,6 @@ REQUIRED_TEXT_OCR_FIELDS = [
     "fallback_allowed",
     "decision_reason",
 ]
-
-SUPPORTED_PROVIDERS = {
-    "tesseract": {
-        "provider_type": "open_source",
-        "execution_modes": {"primary", "fallback", "recovery"},
-    }
-}
-
-PROVIDER_ADAPTERS: Dict[str, OCRProviderAdapter] = {
-    "tesseract": TesseractProviderAdapter(),
-}
-
 
 class OCRInstructionValidationError(ValueError):
     pass
@@ -174,17 +167,21 @@ def get_text_ocr_plan(event: Dict[str, Any]) -> Dict[str, Any]:
     return dict(text_ocr_plan)
 
 
-def validate_provider_support(provider_instruction: Dict[str, Any]) -> None:
+def validate_provider_support(
+    provider_instruction: Dict[str, Any],
+    *,
+    require_runtime_enabled: bool,
+) -> None:
     provider = provider_instruction["provider"]
     provider_type = provider_instruction["provider_type"]
     execution_mode = provider_instruction["execution_mode"]
 
-    if provider not in SUPPORTED_PROVIDERS:
-        raise OCRInstructionValidationError(
-            f"OCR provider '{provider}' is not supported by current governed runtime."
-        )
+    supported = get_supported_provider_config(provider)
 
-    supported = SUPPORTED_PROVIDERS[provider]
+    if not supported:
+        raise OCRInstructionValidationError(
+            f"OCR provider '{provider}' is not supported by governed provider registry."
+        )
 
     if provider_type != supported["provider_type"]:
         raise OCRInstructionValidationError(
@@ -194,6 +191,13 @@ def validate_provider_support(provider_instruction: Dict[str, Any]) -> None:
     if execution_mode not in supported["execution_modes"]:
         raise OCRInstructionValidationError(
             f"OCR provider '{provider}' does not support execution_mode '{execution_mode}'."
+        )
+
+    if require_runtime_enabled and not bool(supported.get("runtime_enabled", False)):
+        enabled = ", ".join(get_runtime_enabled_providers()) or "none"
+        raise OCRInstructionValidationError(
+            f"OCR provider '{provider}' is governed but not runtime-enabled in current baseline. "
+            f"Runtime-enabled providers: {enabled}."
         )
 
 
@@ -236,9 +240,12 @@ def attempt_provider_chain(
 
     for index, provider_instruction in enumerate(provider_candidates):
         fallback_used = index > 0
-        validate_provider_support(provider_instruction)
 
         try:
+            validate_provider_support(
+                provider_instruction,
+                require_runtime_enabled=True,
+            )
             result = execute_provider(image_bytes, provider_instruction)
             result["attempted_providers"] = attempted_providers + [
                 {
@@ -263,15 +270,24 @@ def attempt_provider_chain(
             last_error = build_controlled_error(
                 code="OCR_PROVIDER_EXECUTION_FAILED",
                 message=str(exc),
-                details={"provider_instruction": provider_instruction},
+                details={
+                    "provider_instruction": provider_instruction,
+                    "attempted_providers": attempted_providers,
+                },
             )
             if not text_ocr_plan.get("fallback_allowed"):
                 break
 
-    raise OCRProviderExecutionError(json.dumps(last_error or build_controlled_error(
-        code="OCR_PROVIDER_EXECUTION_FAILED",
-        message="OCR provider execution failed without structured error.",
-    )))
+    raise OCRProviderExecutionError(
+        json.dumps(
+            last_error
+            or build_controlled_error(
+                code="OCR_PROVIDER_EXECUTION_FAILED",
+                message="OCR provider execution failed without structured error.",
+                details={"attempted_providers": attempted_providers},
+            )
+        )
+    )
 
 
 def process_page(page: Dict[str, Any], text_ocr_plan: Dict[str, Any]) -> Dict[str, Any]:
