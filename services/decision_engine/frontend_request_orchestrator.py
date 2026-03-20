@@ -112,6 +112,94 @@ def _base_response(
     }
 
 
+def _evaluate_consent(context: OrchestrationContext, payload: Dict[str, Any]) -> Dict[str, Any]:
+    processing_consent = bool(payload.get("processingConsent", False))
+    disclosure_consent = bool(payload.get("disclosureConsent", False))
+
+    disclosure_required = context.disclose_to_third_party
+    disclosure_ok = True if not disclosure_required else disclosure_consent
+
+    status = "pass" if processing_consent and disclosure_ok else "fail"
+
+    reasons: List[str] = []
+    if not processing_consent:
+        reasons.append("processing_consent_missing")
+    if disclosure_required and not disclosure_consent:
+        reasons.append("disclosure_consent_missing")
+
+    return {
+        "processing_consent_required": True,
+        "processing_consent_present": processing_consent,
+        "disclosure_consent_required": disclosure_required,
+        "disclosure_consent_present": disclosure_consent if disclosure_required else None,
+        "status": status,
+        "reasons": reasons,
+        "mode": "soft_enforcement",
+    }
+
+
+def _evaluate_documents(context: OrchestrationContext) -> Dict[str, Any]:
+    has_documents = len(context.document_ids) > 0
+    invalid_ids = [doc_id for doc_id in context.document_ids if not str(doc_id).strip()]
+
+    status = "pass" if has_documents and not invalid_ids else "fail"
+
+    reasons: List[str] = []
+    if not has_documents:
+        reasons.append("documents_missing")
+    if invalid_ids:
+        reasons.append("document_ids_invalid")
+
+    return {
+        "document_ids_received": context.document_ids,
+        "document_count": len(context.document_ids),
+        "status": status,
+        "reasons": reasons,
+        "mode": "soft_enforcement",
+    }
+
+
+def _build_enforcement(consent_check: Dict[str, Any], document_check: Dict[str, Any]) -> Dict[str, Any]:
+    overall = "pass" if consent_check["status"] == "pass" and document_check["status"] == "pass" else "fail"
+    return {
+        "consent": consent_check,
+        "documents": document_check,
+        "overall_status": overall,
+        "enforcement_mode": "soft",
+        "blocks_execution": False,
+    }
+
+
+def _build_remediation_prompts(enforcement: Dict[str, Any]) -> List[Dict[str, str]]:
+    prompts: List[Dict[str, str]] = []
+
+    for reason in enforcement["consent"]["reasons"]:
+        if reason == "processing_consent_missing":
+            prompts.append({
+                "reason": reason,
+                "suggestedAction": "Capture valid processing consent before production execution.",
+            })
+        elif reason == "disclosure_consent_missing":
+            prompts.append({
+                "reason": reason,
+                "suggestedAction": "Capture valid disclosure consent before third-party sharing.",
+            })
+
+    for reason in enforcement["documents"]["reasons"]:
+        if reason == "documents_missing":
+            prompts.append({
+                "reason": reason,
+                "suggestedAction": "Upload the required documents before execution.",
+            })
+        elif reason == "document_ids_invalid":
+            prompts.append({
+                "reason": reason,
+                "suggestedAction": "Correct invalid document identifiers before execution.",
+            })
+
+    return prompts
+
+
 def _execute(context: OrchestrationContext) -> Dict[str, Any]:
     execution_payload = {
         "request_id": context.request_id,
@@ -160,19 +248,20 @@ def get_catalog() -> Dict[str, Any]:
 
 def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
     context = _build_context(payload)
+
+    consent_check = _evaluate_consent(context, payload)
+    document_check = _evaluate_documents(context)
+    enforcement = _build_enforcement(consent_check, document_check)
+    remediation_prompts = _build_remediation_prompts(enforcement)
+
     downstream_execution = _execute(context)
 
     orchestration_record = {
         "request": asdict(context),
-        "consent_check": {
-            "processing_consent_required": True,
-            "disclosure_consent_required": context.disclose_to_third_party,
-            "status": "placeholder_not_enforced_in_backend_phase12",
-        },
-        "document_check": {
-            "document_ids_received": context.document_ids,
-            "status": "placeholder_not_enforced_in_backend_phase12",
-        },
+        "consent_check": consent_check,
+        "document_check": document_check,
+        "enforcement": enforcement,
+        "remediation_prompts": remediation_prompts,
         "routing": {
             "selected_service_family": context.service_family,
             "selected_service_code": context.service_code,
@@ -188,8 +277,8 @@ def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
 
     return _base_response(
         success=True,
-        status="executed",
-        message="Request created, executed, and persisted through backend orchestration.",
+        status="executed_with_soft_enforcement",
+        message="Request evaluated, executed, and persisted under soft enforcement.",
         data=orchestration_record,
     )
 
@@ -213,6 +302,7 @@ def get_status(request_id: str) -> Dict[str, Any]:
             "requestStatus": record.get("request_status", "unknown"),
             "resultStatus": record.get("result_status", "unknown"),
             "serviceFamily": record["request"]["service_family"],
+            "enforcementOverallStatus": record.get("enforcement", {}).get("overall_status"),
             "lastUpdated": record.get("last_updated"),
         },
     )
@@ -228,25 +318,13 @@ def get_remediation(request_id: str) -> Dict[str, Any]:
             data={"requestId": request_id},
         )
 
-    prompts = []
-    if record["consent_check"]["status"] != "enforced":
-        prompts.append({
-            "reason": "consent_not_enforced_yet",
-            "suggestedAction": "Implement real consent validation in a later phase.",
-        })
-    if record["document_check"]["status"] != "enforced":
-        prompts.append({
-            "reason": "document_validation_not_enforced_yet",
-            "suggestedAction": "Implement real document readiness validation in a later phase.",
-        })
-
     return _base_response(
         success=True,
         status="ready",
         message="Remediation prompts retrieved.",
         data={
             "requestId": request_id,
-            "prompts": prompts,
+            "prompts": record.get("remediation_prompts", []),
         },
     )
 
@@ -268,6 +346,7 @@ def get_result(request_id: str) -> Dict[str, Any]:
         data={
             "requestId": request_id,
             "resultStatus": record.get("result_status", "unknown"),
+            "enforcement": record.get("enforcement"),
             "result": record.get("downstream_execution"),
         },
     )

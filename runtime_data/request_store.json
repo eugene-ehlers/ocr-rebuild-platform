@@ -49,6 +49,433 @@
         "selected_service_code": "financial_management",
         "selected_service_family": "financial_management"
       }
+    },
+    "req_04895178ca61": {
+      "consent_check": {
+        "disclosure_consent_required": false,
+        "processing_consent_required": true,
+        "status": "placeholder_not_enforced_in_backend_phase12"
+      },
+      "document_check": {
+        "document_ids_received": [
+          "doc_fica_001"
+        ],
+        "status": "placeholder_not_enforced_in_backend_phase12"
+      },
+      "downstream_execution": {
+        "downstream_status": "executed",
+        "execution": {
+          "callable": "run_task",
+          "execution_mode": "service_stub",
+          "invocation": {
+            "invocation_style": "payload_arg",
+            "result": {
+              "received_payload": {
+                "customer_id": "cust_fica",
+                "disclose_to_third_party": false,
+                "document_ids": [
+                  "doc_fica_001"
+                ],
+                "request_id": "req_04895178ca61",
+                "service_code": "fica",
+                "service_family": "fica",
+                "timestamp": "2026-03-20T15:06:35.345643+00:00"
+              },
+              "result": {
+                "capabilities": [
+                  "transaction_compliance_classification",
+                  "document_validation",
+                  "identity_owner_verification"
+                ],
+                "summary": "FICA compliance stub executed with real orchestration payload."
+              },
+              "service": "fica_compliance",
+              "status": "executed"
+            }
+          },
+          "module": "infrastructure.ecs.fica_compliance.task"
+        },
+        "service_family": "fica",
+        "summary": "fica execution invoked via decision engine."
+      },
+      "last_updated": "2026-03-20T15:06:35.346117+00:00",
+      "request": {
+        "created_at": "2026-03-20T15:06:35.345637+00:00",
+        "customer_id": "cust_fica",
+        "disclose_to_third_party": false,
+        "document_ids": [
+          "doc_fica_001"
+        ],
+        "request_id": "req_04895178ca61",
+        "service_code": "fica",
+        "service_family": "fica"
+      },
+      "request_status": "completed",
+      "result_status": "available",
+      "routing": {
+        "orchestration_layer": "services.decision_engine.frontend_request_orchestrator",
+        "selected_service_code": "fica",
+        "selected_service_family": "fica"
+      }
+    },
+    "req_426b0b152394": {
+      "consent_check": {
+        "disclosure_consent_required": true,
+        "processing_consent_required": true,
+        "status": "placeholder_not_enforced_in_backend_phase12"
+      },
+      "document_check": {
+        "document_ids_received": [
+          "doc_credit_decision_001"
+        ],
+        "status": "placeholder_not_enforced_in_backend_phase12"
+      },
+      "downstream_execution": {
+        "downstream_status": "executed",
+        "execution": {
+          "callable": "run_task",
+          "execution_mode": "service_stub",
+          "invocation": {
+            "invocation_style": "payload_arg",
+            "result": {
+              "received_payload": {
+                "customer_id": "cust_credit_decision",
+                "disclose_to_third_party": true,
+                "document_ids": [
+                  "doc_credit_decision_001"
+                ],
+                "request_id": "req_426b0b152394",
+                "service_code": "credit_decision",
+                "service_family": "credit_decision",
+                "timestamp": "2026-03-20T15:06:35.346619+00:00"
+              },
+              "result": {
+                "capabilities": [
+                  "affordability",
+                  "prevet",
+                  "bureau_assessment",
+                  "offer_generation"
+                ],
+                "summary": "Credit decision stub executed with real orchestration payload."
+              },
+              "service": "credit_decision",
+              "status": "executed"
+            }
+          },
+          "module": "infrastructure.ecs.credit_decision.task"
+        },
+        "service_family": "credit_decision",
+        "summary": "credit_decision execution invoked via decision engine."
+      },
+      "last_updated": "2026-03-20T15:06:35.347084+00:00",
+      "request": {
+        "created_at": "2026-03-20T15:06:35.346613+00:00",
+        "customer_id": "cust_credit_decision",
+        "disclose_to_third_party": true,
+        "document_ids": [
+          "doc_credit_decision_001"
+        ],
+        "request_id": "req_426b0b152394",
+        "service_code": "credit_decision",
+        "service_family": "credit_decision"
+      },
+      "request_status": "completed",
+      "result_status": "available",
+      "routing": {
+        "orchestration_layer": "services.decision_engine.frontend_request_orchestrator",
+        "selected_service_code": "credit_decision",
+        "selected_service_family": "credit_decision"
+      }
+    },
+    "req_42f03a8d1d65": {
+      "consent_check": {
+        "disclosure_consent_present": false,
+        "disclosure_consent_required": true,
+        "mode": "soft_enforcement",
+        "processing_consent_present": false,
+        "processing_consent_required": true,
+        "reasons": [
+          "processing_consent_missing",
+          "disclosure_consent_missing"
+        ],
+        "status": "fail"
+      },
+      "document_check": {
+        "document_count": 1,
+        "document_ids_received": [
+          "doc_soft_fail_001"
+        ],
+        "mode": "soft_enforcement",
+        "reasons": [],
+        "status": "pass"
+      },
+      "downstream_execution": {
+        "downstream_status": "executed",
+        "execution": {
+          "callable": "run_task",
+          "execution_mode": "service_stub",
+          "invocation": {
+            "invocation_style": "payload_arg",
+            "result": {
+              "received_payload": {
+                "customer_id": "cust_soft_fail",
+                "disclose_to_third_party": true,
+                "document_ids": [
+                  "doc_soft_fail_001"
+                ],
+                "request_id": "req_42f03a8d1d65",
+                "service_code": "credit_decision",
+                "service_family": "credit_decision",
+                "timestamp": "2026-03-20T15:11:19.037454+00:00"
+              },
+              "result": {
+                "capabilities": [
+                  "affordability",
+                  "prevet",
+                  "bureau_assessment",
+                  "offer_generation"
+                ],
+                "summary": "Credit decision stub executed with real orchestration payload."
+              },
+              "service": "credit_decision",
+              "status": "executed"
+            }
+          },
+          "module": "infrastructure.ecs.credit_decision.task"
+        },
+        "service_family": "credit_decision",
+        "summary": "credit_decision execution invoked via decision engine."
+      },
+      "enforcement": {
+        "blocks_execution": false,
+        "consent": {
+          "disclosure_consent_present": false,
+          "disclosure_consent_required": true,
+          "mode": "soft_enforcement",
+          "processing_consent_present": false,
+          "processing_consent_required": true,
+          "reasons": [
+            "processing_consent_missing",
+            "disclosure_consent_missing"
+          ],
+          "status": "fail"
+        },
+        "documents": {
+          "document_count": 1,
+          "document_ids_received": [
+            "doc_soft_fail_001"
+          ],
+          "mode": "soft_enforcement",
+          "reasons": [],
+          "status": "pass"
+        },
+        "enforcement_mode": "soft",
+        "overall_status": "fail"
+      },
+      "last_updated": "2026-03-20T15:11:19.037747+00:00",
+      "remediation_prompts": [
+        {
+          "reason": "processing_consent_missing",
+          "suggestedAction": "Capture valid processing consent before production execution."
+        },
+        {
+          "reason": "disclosure_consent_missing",
+          "suggestedAction": "Capture valid disclosure consent before third-party sharing."
+        }
+      ],
+      "request": {
+        "created_at": "2026-03-20T15:11:19.037444+00:00",
+        "customer_id": "cust_soft_fail",
+        "disclose_to_third_party": true,
+        "document_ids": [
+          "doc_soft_fail_001"
+        ],
+        "request_id": "req_42f03a8d1d65",
+        "service_code": "credit_decision",
+        "service_family": "credit_decision"
+      },
+      "request_status": "completed",
+      "result_status": "available",
+      "routing": {
+        "orchestration_layer": "services.decision_engine.frontend_request_orchestrator",
+        "selected_service_code": "credit_decision",
+        "selected_service_family": "credit_decision"
+      }
+    },
+    "req_57b6729366fb": {
+      "consent_check": {
+        "disclosure_consent_present": null,
+        "disclosure_consent_required": false,
+        "mode": "soft_enforcement",
+        "processing_consent_present": true,
+        "processing_consent_required": true,
+        "reasons": [],
+        "status": "pass"
+      },
+      "document_check": {
+        "document_count": 1,
+        "document_ids_received": [
+          "doc_soft_pass_001"
+        ],
+        "mode": "soft_enforcement",
+        "reasons": [],
+        "status": "pass"
+      },
+      "downstream_execution": {
+        "downstream_status": "executed",
+        "execution": {
+          "callable": "run_task",
+          "execution_mode": "service_stub",
+          "invocation": {
+            "invocation_style": "payload_arg",
+            "result": {
+              "received_payload": {
+                "customer_id": "cust_soft_pass",
+                "disclose_to_third_party": false,
+                "document_ids": [
+                  "doc_soft_pass_001"
+                ],
+                "request_id": "req_57b6729366fb",
+                "service_code": "financial_management",
+                "service_family": "financial_management",
+                "timestamp": "2026-03-20T15:11:19.036397+00:00"
+              },
+              "result": {
+                "capabilities": [
+                  "transaction_parsing",
+                  "category_classification",
+                  "cash_flow_classification",
+                  "debt_detection",
+                  "behavioural_analysis",
+                  "benchmarking",
+                  "reporting_explanation"
+                ],
+                "summary": "Financial management stub executed with real orchestration payload."
+              },
+              "service": "financial_management",
+              "status": "executed"
+            }
+          },
+          "module": "infrastructure.ecs.financial_management.task"
+        },
+        "service_family": "financial_management",
+        "summary": "financial_management execution invoked via decision engine."
+      },
+      "enforcement": {
+        "blocks_execution": false,
+        "consent": {
+          "disclosure_consent_present": null,
+          "disclosure_consent_required": false,
+          "mode": "soft_enforcement",
+          "processing_consent_present": true,
+          "processing_consent_required": true,
+          "reasons": [],
+          "status": "pass"
+        },
+        "documents": {
+          "document_count": 1,
+          "document_ids_received": [
+            "doc_soft_pass_001"
+          ],
+          "mode": "soft_enforcement",
+          "reasons": [],
+          "status": "pass"
+        },
+        "enforcement_mode": "soft",
+        "overall_status": "pass"
+      },
+      "last_updated": "2026-03-20T15:11:19.036878+00:00",
+      "remediation_prompts": [],
+      "request": {
+        "created_at": "2026-03-20T15:11:19.036380+00:00",
+        "customer_id": "cust_soft_pass",
+        "disclose_to_third_party": false,
+        "document_ids": [
+          "doc_soft_pass_001"
+        ],
+        "request_id": "req_57b6729366fb",
+        "service_code": "financial_management",
+        "service_family": "financial_management"
+      },
+      "request_status": "completed",
+      "result_status": "available",
+      "routing": {
+        "orchestration_layer": "services.decision_engine.frontend_request_orchestrator",
+        "selected_service_code": "financial_management",
+        "selected_service_family": "financial_management"
+      }
+    },
+    "req_bafd0e7af4fa": {
+      "consent_check": {
+        "disclosure_consent_required": false,
+        "processing_consent_required": true,
+        "status": "placeholder_not_enforced_in_backend_phase12"
+      },
+      "document_check": {
+        "document_ids_received": [
+          "doc_financial_management_001"
+        ],
+        "status": "placeholder_not_enforced_in_backend_phase12"
+      },
+      "downstream_execution": {
+        "downstream_status": "executed",
+        "execution": {
+          "callable": "run_task",
+          "execution_mode": "service_stub",
+          "invocation": {
+            "invocation_style": "payload_arg",
+            "result": {
+              "received_payload": {
+                "customer_id": "cust_financial_management",
+                "disclose_to_third_party": false,
+                "document_ids": [
+                  "doc_financial_management_001"
+                ],
+                "request_id": "req_bafd0e7af4fa",
+                "service_code": "financial_management",
+                "service_family": "financial_management",
+                "timestamp": "2026-03-20T15:06:35.344352+00:00"
+              },
+              "result": {
+                "capabilities": [
+                  "transaction_parsing",
+                  "category_classification",
+                  "cash_flow_classification",
+                  "debt_detection",
+                  "behavioural_analysis",
+                  "benchmarking",
+                  "reporting_explanation"
+                ],
+                "summary": "Financial management stub executed with real orchestration payload."
+              },
+              "service": "financial_management",
+              "status": "executed"
+            }
+          },
+          "module": "infrastructure.ecs.financial_management.task"
+        },
+        "service_family": "financial_management",
+        "summary": "financial_management execution invoked via decision engine."
+      },
+      "last_updated": "2026-03-20T15:06:35.345192+00:00",
+      "request": {
+        "created_at": "2026-03-20T15:06:35.344337+00:00",
+        "customer_id": "cust_financial_management",
+        "disclose_to_third_party": false,
+        "document_ids": [
+          "doc_financial_management_001"
+        ],
+        "request_id": "req_bafd0e7af4fa",
+        "service_code": "financial_management",
+        "service_family": "financial_management"
+      },
+      "request_status": "completed",
+      "result_status": "available",
+      "routing": {
+        "orchestration_layer": "services.decision_engine.frontend_request_orchestrator",
+        "selected_service_code": "financial_management",
+        "selected_service_family": "financial_management"
+      }
     }
   }
 }

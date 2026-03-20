@@ -1,0 +1,10 @@
+Phase 14A soft enforcement created:
+- services/decision_engine/frontend_request_orchestrator.py updated with consent evaluation
+- services/decision_engine/frontend_request_orchestrator.py updated with document readiness evaluation
+- soft enforcement result added:
+  - consent
+  - documents
+  - overall_status
+  - blocks_execution=false
+- remediation prompts now generated dynamically
+- execution remains enabled under soft enforcement

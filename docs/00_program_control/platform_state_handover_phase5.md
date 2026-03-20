@@ -945,3 +945,71 @@ Next implementation step must choose between:
 
 ---
 
+
+---
+
+## Phase 14A — Soft Pre-Execution Enforcement (COMPLETED)
+
+### Objective
+Introduce pre-execution evaluation for:
+- consent
+- document readiness
+
+without yet blocking downstream execution.
+
+### Implementation Summary
+
+Updated:
+- `services/decision_engine/frontend_request_orchestrator.py`
+
+Added behaviour:
+- evaluates processing consent
+- evaluates disclosure consent when third-party disclosure is requested
+- evaluates basic document readiness
+- builds structured enforcement object:
+  - `consent`
+  - `documents`
+  - `overall_status`
+  - `enforcement_mode`
+  - `blocks_execution`
+
+- generates remediation prompts dynamically
+- persists enforcement state with request record
+- still executes downstream service stubs under soft enforcement
+
+### Verified Behaviour
+
+Validated in Python 3.11 container runtime:
+
+#### Pass case
+- enforcement overall status = `pass`
+- remediation prompts = `0`
+- execution proceeds
+
+#### Fail case
+- enforcement overall status = `fail`
+- `blocks_execution = False`
+- remediation prompts generated
+- execution still proceeds
+- enforcement state persists into:
+  - status response
+  - result response
+  - remediation response
+
+### Scope Boundary
+
+Phase 14A does NOT:
+- block execution on failed checks
+- perform production-grade consent proof validation
+- perform deep document completeness/quality validation
+- replace placeholder persistence
+
+### Next Phase Dependency
+
+Next implementation step may choose one of:
+- **Phase 14B** — hard blocking enforcement
+- deeper document readiness enforcement
+- real consent proof / standing consent handling
+
+---
+
