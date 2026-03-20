@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+
 from typing import Dict, List
 
 from services.ocr.providers.base_provider import OCRProviderAdapter
@@ -18,7 +20,7 @@ SUPPORTED_PROVIDERS: Dict[str, Dict[str, object]] = {
     "aws_textract_detect_document_text": {
         "provider_type": "managed_service",
         "execution_modes": {"primary", "fallback", "recovery"},
-        "runtime_enabled": False,
+        "runtime_enabled": os.environ.get("ENABLE_AWS_TEXTRACT_PROVIDER", "false").strip().lower() == "true",
     },
 }
 
@@ -38,3 +40,8 @@ def get_runtime_enabled_providers() -> List[str]:
         for provider_name, config in SUPPORTED_PROVIDERS.items()
         if bool(config.get("runtime_enabled", False))
     ]
+
+
+def is_provider_runtime_enabled(provider_name: str) -> bool:
+    config = get_supported_provider_config(provider_name)
+    return bool(config.get("runtime_enabled", False))

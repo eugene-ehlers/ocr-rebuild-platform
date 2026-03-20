@@ -246,6 +246,29 @@ def attempt_provider_chain(
                 provider_instruction,
                 require_runtime_enabled=True,
             )
+        except Exception as exc:
+            attempted_providers.append(
+                {
+                    "provider": provider_instruction["provider"],
+                    "provider_type": provider_instruction["provider_type"],
+                    "execution_mode": provider_instruction["execution_mode"],
+                    "status": "not_runtime_enabled_or_invalid",
+                    "error_message": str(exc),
+                }
+            )
+            last_error = build_controlled_error(
+                code="OCR_PROVIDER_VALIDATION_FAILED",
+                message=str(exc),
+                details={
+                    "provider_instruction": provider_instruction,
+                    "attempted_providers": attempted_providers,
+                },
+            )
+            if not text_ocr_plan.get("fallback_allowed"):
+                break
+            continue
+
+        try:
             result = execute_provider(image_bytes, provider_instruction)
             result["attempted_providers"] = attempted_providers + [
                 {
