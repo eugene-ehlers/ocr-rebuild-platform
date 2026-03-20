@@ -49,3 +49,17 @@ The following are supporting artifacts only and must not be treated as design or
 
 If any conflict exists, governed documentation and live implementation source take precedence.
 
+### Governed Document References
+
+The current governed document stack for interpretation and change control is:
+
+- Design Authority:
+  - `docs/00_program_control/document_intelligence_operating_baseline.md`
+  - `docs/00_program_control/known_gaps_and_improvement_register.md`
+- Decision Register:
+  - `docs/00_program_control/decision_register.md`
+- Runtime State:
+  - `docs/20_service_design/frontend_api_phase21_runtime_handover_v1.md`
+- Document stack map:
+  - `docs/00_program_control/governed_document_map.md`
+

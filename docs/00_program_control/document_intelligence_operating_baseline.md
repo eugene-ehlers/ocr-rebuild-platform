@@ -486,3 +486,18 @@ This structure exists to:
 
 Deviation from these rules is not permitted.
 
+## Governed Document Stack
+
+The project operates with the following controlled document classes:
+
+- Design Authority
+- Decision Register
+- Runtime State
+- Implementation
+
+The governed file-to-class mapping is maintained in:
+
+- `docs/00_program_control/governed_document_map.md`
+
+This mapping is mandatory and must be kept aligned as the document stack evolves.
+
