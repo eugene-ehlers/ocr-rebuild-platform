@@ -1,0 +1,8 @@
+Phase 19 production persistence replacement created:
+- services/decision_engine/request_store.py migrated from JSON-file persistence to SQLite persistence
+- request records stored in requests table
+- consent records stored in consents table
+- customer-level consent lookup preserved
+- revoke/update semantics preserved
+- persistence health inspection added
+- runtime_data/request_store.db is now the authoritative local persistence artifact

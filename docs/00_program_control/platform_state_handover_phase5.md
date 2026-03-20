@@ -1329,3 +1329,72 @@ This phase closes:
 
 ---
 
+
+---
+
+## Phase 19 — SQLite Persistence Replacement (COMPLETED)
+
+### Objective
+Replace file-based JSON persistence with a structured local persistence layer aligned to production persistence expectations.
+
+### Implementation Summary
+
+Updated:
+- `services/decision_engine/request_store.py`
+
+Added behaviour:
+- request persistence moved to SQLite
+- consent persistence moved to SQLite
+- request records stored in `requests` table
+- consent records stored in `consents` table
+- customer-level consent lookup preserved
+- revoke/update semantics preserved
+- persistence health inspection added
+
+Authoritative local persistence artifact:
+- `runtime_data/request_store.db`
+
+### Verified Behaviour
+
+Validated in Python 3.11 container runtime:
+
+#### Executed request
+Observed:
+- request created successfully
+- request status retrievable as `completed`
+- result persisted and retrievable
+
+#### Blocked request
+Observed:
+- request blocked by enforcement
+- request status retrievable as `blocked`
+- blocked result persisted as `None`
+
+#### Persistence checks
+Observed:
+- backend = `sqlite`
+- requests persisted
+- consents persisted
+
+### Operational Note
+
+During container-based verification, the SQLite database file may be created with container-owned file permissions. This is a local development artifact ownership issue, not a persistence design issue.
+
+### Gap Register Impact
+
+This phase materially reduces:
+- GAP-004 — Persistence
+
+It does not yet close:
+- GAP-015 — audit-grade/event-driven persistence model
+
+### Scope Boundary
+
+Phase 19 does NOT yet provide:
+- cloud-managed production datastore
+- append-only/event-sourced persistence
+- cross-service transactional guarantees
+- retention/archival governance
+
+---
+
