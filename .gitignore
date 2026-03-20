@@ -9,3 +9,6 @@ venv/
 .DS_Store
 build/
 *.bak*
+__pycache__/
+
+docs/00_program_control/governed_docs_sync_manifest_*.txt
