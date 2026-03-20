@@ -1,0 +1,9 @@
+Phase 11 backend orchestration created:
+- services/decision_engine/__init__.py
+- services/decision_engine/frontend_request_orchestrator.py
+- api/requests_results/routes.py updated to call backend orchestrator
+- requests_results backend routing now selects:
+  - financial_management
+  - fica
+  - credit_decision
+- structured create/status/remediation/result/rerun responses added
