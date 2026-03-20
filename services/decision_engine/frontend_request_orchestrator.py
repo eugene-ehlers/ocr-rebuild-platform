@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
+import os
 import uuid
 
 from services.decision_engine.engine import execute_service_family
@@ -92,6 +93,10 @@ def _new_request_id() -> str:
 
 def _new_consent_id() -> str:
     return f"consent_{uuid.uuid4().hex[:10]}"
+
+
+def _new_plan_id(request_id: str) -> str:
+    return f"plan_{request_id}"
 
 
 def _resolve_service_family(service_code: str) -> str:
@@ -407,6 +412,204 @@ def _build_remediation_prompts(enforcement: Dict[str, Any]) -> List[Dict[str, st
     return deduped
 
 
+def _execution_mode() -> str:
+    return os.getenv("EXECUTION_MODE", "local").strip().lower()
+
+
+def _resolve_downstream_target(service_family: str) -> Dict[str, Any]:
+    targets = {
+        "financial_management": {
+            "target_type": "ecs",
+            "cluster": "ocr-rebuild-cluster",
+            "task_definition": "financial-management-worker-task-prod",
+            "container_name": "financial_management",
+        },
+        "fica": {
+            "target_type": "ecs",
+            "cluster": "ocr-rebuild-cluster",
+            "task_definition": "fica-compliance-worker-task-prod",
+            "container_name": "fica_compliance",
+        },
+        "credit_decision": {
+            "target_type": "ecs",
+            "cluster": "ocr-rebuild-cluster",
+            "task_definition": "credit-decision-worker-task-prod",
+            "container_name": "credit_decision",
+        },
+    }
+    if service_family not in targets:
+        raise ValueError(f"Unsupported service_family for downstream target: {service_family}")
+    return targets[service_family]
+
+
+def _build_execution_plan(context: OrchestrationContext, execution_mode: str) -> Dict[str, Any]:
+    downstream_target = _resolve_downstream_target(context.service_family)
+
+    stages = [
+        {
+            "stage_id": "consent_check",
+            "stage_order": 10,
+            "stage_type": "validation",
+            "required": True,
+            "blocking": True,
+            "status": "pending",
+            "target": {
+                "target_type": "internal",
+                "callable": "_evaluate_consent",
+            },
+            "inputs": {
+                "input_source": "request_payload",
+                "payload_builder": None,
+                "depends_on": [],
+            },
+            "outputs": {
+                "result_key": "consent_check",
+                "persist": True,
+            },
+            "failure_policy": {
+                "on_fail": "stop_plan",
+                "result_status": "blocked",
+            },
+        },
+        {
+            "stage_id": "document_check",
+            "stage_order": 20,
+            "stage_type": "validation",
+            "required": True,
+            "blocking": True,
+            "status": "pending",
+            "target": {
+                "target_type": "internal",
+                "callable": "_evaluate_documents",
+            },
+            "inputs": {
+                "input_source": "request_context",
+                "payload_builder": None,
+                "depends_on": [],
+            },
+            "outputs": {
+                "result_key": "document_check",
+                "persist": True,
+            },
+            "failure_policy": {
+                "on_fail": "stop_plan",
+                "result_status": "blocked",
+            },
+        },
+        {
+            "stage_id": "enforcement_decision",
+            "stage_order": 30,
+            "stage_type": "decision",
+            "required": True,
+            "blocking": True,
+            "status": "pending",
+            "target": {
+                "target_type": "internal",
+                "callable": "_build_enforcement",
+            },
+            "inputs": {
+                "input_source": "prior_stage_results",
+                "payload_builder": None,
+                "depends_on": ["consent_check", "document_check"],
+            },
+            "outputs": {
+                "result_key": "enforcement",
+                "persist": True,
+            },
+            "failure_policy": {
+                "on_fail": "stop_plan",
+                "result_status": "blocked",
+            },
+        },
+        {
+            "stage_id": "downstream_execution",
+            "stage_order": 40,
+            "stage_type": "execution",
+            "required": True,
+            "blocking": False,
+            "status": "pending",
+            "target": downstream_target,
+            "inputs": {
+                "input_source": "execution_payload",
+                "payload_builder": "request_execution_payload_v1",
+                "depends_on": ["enforcement_decision"],
+            },
+            "outputs": {
+                "result_key": "downstream_execution",
+                "persist": True,
+            },
+            "failure_policy": {
+                "on_fail": "mark_execution_failed",
+                "result_status": "execution_failed",
+            },
+        },
+        {
+            "stage_id": "result_finalize",
+            "stage_order": 50,
+            "stage_type": "finalization",
+            "required": True,
+            "blocking": False,
+            "status": "pending",
+            "target": {
+                "target_type": "internal",
+                "callable": "_finalize_result_record",
+            },
+            "inputs": {
+                "input_source": "prior_stage_results",
+                "payload_builder": None,
+                "depends_on": ["enforcement_decision", "downstream_execution"],
+            },
+            "outputs": {
+                "result_key": "finalization",
+                "persist": True,
+            },
+            "failure_policy": {
+                "on_fail": "mark_execution_failed",
+                "result_status": "execution_failed",
+            },
+        },
+    ]
+
+    return {
+        "plan_id": _new_plan_id(context.request_id),
+        "request_id": context.request_id,
+        "service_family": context.service_family,
+        "service_code": context.service_code,
+        "plan_version": "execution_plan_v1",
+        "execution_mode": execution_mode,
+        "created_at": _utc_now(),
+        "plan_status": "pending",
+        "stages": stages,
+        "finalization": {
+            "persist_request_record": True,
+            "persist_stage_results": True,
+            "generate_remediation_prompts": True,
+        },
+        "plan_summary": {
+            "blocking_stage_count": sum(1 for s in stages if s["blocking"]),
+            "required_stage_count": sum(1 for s in stages if s["required"]),
+            "execution_stage_count": sum(1 for s in stages if s["stage_type"] == "execution"),
+        },
+    }
+
+
+def _set_stage_status(plan: Dict[str, Any], stage_id: str, status: str) -> None:
+    for stage in plan["stages"]:
+        if stage["stage_id"] == stage_id:
+            stage["status"] = status
+            return
+    raise ValueError(f"Stage not found in plan: {stage_id}")
+
+
+def _mark_remaining_stages(plan: Dict[str, Any], after_stage_id: str, status: str) -> None:
+    seen = False
+    for stage in plan["stages"]:
+        if seen and stage["status"] == "pending":
+            stage["status"] = status
+        if stage["stage_id"] == after_stage_id:
+            seen = True
+
+
 def _execute(context: OrchestrationContext) -> Dict[str, Any]:
     execution_payload = {
         "request_id": context.request_id,
@@ -420,6 +623,103 @@ def _execute(context: OrchestrationContext) -> Dict[str, Any]:
     return execute_service_family(context.service_family, execution_payload)
 
 
+def _finalize_result_record(
+    plan: Dict[str, Any],
+    enforcement: Dict[str, Any],
+    downstream_execution: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    if enforcement["overall_status"] != "pass":
+        return {
+            "request_status": "blocked",
+            "result_status": "blocked",
+            "plan_status": "blocked",
+        }
+
+    execution_mode = None
+    if downstream_execution:
+        execution_mode = downstream_execution.get("execution", {}).get("execution_mode")
+
+    if execution_mode in {"aws_live", "service_stub"}:
+        return {
+            "request_status": "completed",
+            "result_status": "available",
+            "plan_status": "completed",
+        }
+
+    return {
+        "request_status": "completed",
+        "result_status": "execution_failed",
+        "plan_status": "failed",
+    }
+
+
+def _execute_plan(
+    plan: Dict[str, Any],
+    context: OrchestrationContext,
+    payload: Dict[str, Any],
+) -> Dict[str, Any]:
+    stage_results: Dict[str, Any] = {}
+    plan["plan_status"] = "running"
+
+    _set_stage_status(plan, "consent_check", "running")
+    consent_check = _evaluate_consent(context, payload)
+    stage_results["consent_check"] = consent_check
+    _set_stage_status(plan, "consent_check", "passed" if consent_check["status"] == "pass" else "failed")
+
+    _set_stage_status(plan, "document_check", "running")
+    document_check = _evaluate_documents(context)
+    stage_results["document_check"] = document_check
+    _set_stage_status(plan, "document_check", "passed" if document_check["status"] == "pass" else "failed")
+
+    _set_stage_status(plan, "enforcement_decision", "running")
+    enforcement = _build_enforcement(consent_check, document_check)
+    stage_results["enforcement_decision"] = enforcement
+
+    if enforcement["overall_status"] != "pass":
+        _set_stage_status(plan, "enforcement_decision", "failed")
+        _mark_remaining_stages(plan, "enforcement_decision", "blocked")
+        finalization = _finalize_result_record(plan, enforcement, None)
+        stage_results["result_finalize"] = finalization
+        plan["plan_status"] = finalization["plan_status"]
+        return {
+            "plan": plan,
+            "stage_results": stage_results,
+            "consent_check": consent_check,
+            "document_check": document_check,
+            "enforcement": enforcement,
+            "downstream_execution": None,
+            "finalization": finalization,
+        }
+
+    _set_stage_status(plan, "enforcement_decision", "passed")
+
+    _set_stage_status(plan, "downstream_execution", "running")
+    downstream_execution = _execute(context)
+    stage_results["downstream_execution"] = downstream_execution
+
+    execution_mode = downstream_execution.get("execution", {}).get("execution_mode")
+    if execution_mode in {"aws_live", "service_stub"}:
+        _set_stage_status(plan, "downstream_execution", "completed")
+    else:
+        _set_stage_status(plan, "downstream_execution", "failed")
+
+    _set_stage_status(plan, "result_finalize", "running")
+    finalization = _finalize_result_record(plan, enforcement, downstream_execution)
+    stage_results["result_finalize"] = finalization
+    _set_stage_status(plan, "result_finalize", "completed")
+    plan["plan_status"] = finalization["plan_status"]
+
+    return {
+        "plan": plan,
+        "stage_results": stage_results,
+        "consent_check": consent_check,
+        "document_check": document_check,
+        "enforcement": enforcement,
+        "downstream_execution": downstream_execution,
+        "finalization": finalization,
+    }
+
+
 def get_catalog() -> Dict[str, Any]:
     items = [
         {"serviceCode": "financial_management", "serviceName": "Financial Management", "serviceFamily": "financial_management", "requiresProcessingConsent": True, "requiresDisclosureConsent": False},
@@ -431,16 +731,23 @@ def get_catalog() -> Dict[str, Any]:
 
 def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
     context = _build_context(payload)
+    execution_plan = _build_execution_plan(context, _execution_mode())
 
-    consent_check = _evaluate_consent(context, payload)
-    document_check = _evaluate_documents(context)
-    enforcement = _build_enforcement(consent_check, document_check)
+    plan_execution = _execute_plan(execution_plan, context, payload)
+    execution_plan = plan_execution["plan"]
+    stage_results = plan_execution["stage_results"]
+    consent_check = plan_execution["consent_check"]
+    document_check = plan_execution["document_check"]
+    enforcement = plan_execution["enforcement"]
+    downstream_execution = plan_execution["downstream_execution"]
+    finalization = plan_execution["finalization"]
+
     remediation_prompts = _build_remediation_prompts(enforcement)
-
-    blocked = enforcement["overall_status"] == "fail" and ENFORCEMENT_MODE == "hard"
 
     orchestration_record = {
         "request": asdict(context),
+        "execution_plan": execution_plan,
+        "stage_results": stage_results,
         "consent_check": consent_check,
         "consent_records": consent_check["consent_records"],
         "document_check": document_check,
@@ -451,18 +758,15 @@ def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
             "selected_service_code": context.service_code,
             "orchestration_layer": "services.decision_engine.frontend_request_orchestrator",
         },
-        "request_status": "blocked" if blocked else "completed",
-        "result_status": "blocked" if blocked else "available",
-        "downstream_execution": None,
+        "request_status": finalization["request_status"],
+        "result_status": finalization["result_status"],
+        "downstream_execution": downstream_execution,
         "last_updated": _utc_now(),
     }
 
-    if not blocked:
-        orchestration_record["downstream_execution"] = _execute(context)
-
     save_request(orchestration_record)
 
-    if blocked:
+    if finalization["request_status"] == "blocked":
         return _base_response(
             success=False,
             status="blocked_by_enforcement",
@@ -521,14 +825,13 @@ def get_result(request_id: str) -> Dict[str, Any]:
     return _base_response(
         success=True,
         status="ready",
-        message="Result retrieved.",
+        message="Request result retrieved.",
         data={
             "requestId": request_id,
+            "requestStatus": record.get("request_status", "unknown"),
             "resultStatus": record.get("result_status", "unknown"),
-            "enforcement": record.get("enforcement"),
-            "consentRecords": record.get("consent_records", []),
-            "documentCheck": record.get("document_check"),
             "result": record.get("downstream_execution"),
+            "enforcement": record.get("enforcement"),
         },
     )
 
@@ -536,42 +839,28 @@ def get_result(request_id: str) -> Dict[str, Any]:
 def rerun_request(request_id: str) -> Dict[str, Any]:
     record = get_request(request_id)
     if not record:
-        return _base_response(success=False, status="not_found", message="Rerun target not found.", data={"requestId": request_id})
+        return _base_response(success=False, status="not_found", message="Request not found for rerun.", data={"requestId": request_id})
 
-    if record.get("enforcement", {}).get("overall_status") == "fail":
-        return _base_response(
-            success=False,
-            status="blocked_by_enforcement",
-            message="Rerun blocked due to failed pre-execution checks.",
-            data={"requestId": request_id, "enforcement": record.get("enforcement"), "remediation_prompts": record.get("remediation_prompts", [])},
-        )
+    context_payload = {
+        "customerId": record["request"]["customer_id"],
+        "serviceCode": record["request"]["service_code"],
+        "documentIds": record["request"]["document_ids"],
+        "discloseToThirdParty": record["request"]["disclose_to_third_party"],
+        "processingConsent": True,
+        "processingConsentSource": "rerun",
+        "processingConsentEvidenceRef": "rerun_processing_consent",
+        "disclosureConsent": record["request"]["disclose_to_third_party"],
+        "disclosureConsentSource": "rerun" if record["request"]["disclose_to_third_party"] else None,
+        "disclosureConsentEvidenceRef": "rerun_disclosure_consent" if record["request"]["disclose_to_third_party"] else None,
+    }
 
-    context = OrchestrationContext(
-        request_id=request_id,
-        customer_id=record["request"]["customer_id"],
-        service_code=record["request"]["service_code"],
-        service_family=record["request"]["service_family"],
-        document_ids=record["request"]["document_ids"],
-        disclose_to_third_party=record["request"]["disclose_to_third_party"],
-        created_at=record["request"]["created_at"],
-    )
-
-    downstream_execution = _execute(context)
-    updated = update_request(
-        request_id,
-        {
-            "downstream_execution": downstream_execution,
-            "request_status": "completed",
-            "result_status": "available",
-            "last_updated": _utc_now(),
+    rerun_response = create_request(context_payload)
+    return _base_response(
+        success=rerun_response["success"],
+        status=rerun_response["status"],
+        message="Request rerun attempted.",
+        data={
+            "originalRequestId": request_id,
+            "rerunResponse": rerun_response["data"],
         },
     )
-
-    return _base_response(success=True, status="executed", message="Rerun executed and persisted.", data={"requestId": request_id, "updatedRecord": updated})
-
-
-def revoke_consent(consent_id: str) -> Dict[str, Any]:
-    revoked = revoke_customer_consent(consent_id, _utc_now())
-    if not revoked:
-        return _base_response(success=False, status="not_found", message="Consent record not found for revocation.", data={"consentId": consent_id})
-    return _base_response(success=True, status="revoked", message="Consent record revoked.", data={"consentId": consent_id})

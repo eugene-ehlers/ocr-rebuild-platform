@@ -286,6 +286,39 @@ Validated under Python 3.11 container runtime:
 - orchestration record persisted successfully to SQLite
 - stored request was read back successfully with JSON-safe downstream execution state
 
+### Resolution — execution plan enforcement v1
+
+Validated implementation:
+- `services/decision_engine/frontend_request_orchestrator.py` now builds a persisted `execution_plan`
+- validation, enforcement, downstream execution, and result finalization now run through plan-driven orchestration
+- per-stage results are persisted under `stage_results`
+- request/result state is now derived from plan finalization output
+- current API behaviour remains compatible for:
+  - `create`
+  - `status`
+  - `result`
+  - `remediation`
+  - `rerun`
+
+Validated stage model:
+- `consent_check`
+- `document_check`
+- `enforcement_decision`
+- `downstream_execution`
+- `result_finalize`
+
+Validated outcomes:
+- blocked requests terminate with plan status:
+  - `blocked`
+- successful AWS-mode requests terminate with plan status:
+  - `completed`
+- downstream execution is now recorded as a plan stage result
+- final request status and result status are now plan-derived
+
+Controlled limitation:
+- execution plan enforcement is currently implemented for the frontend/API orchestration path only
+- broader OCR pipeline-wide execution-plan enforcement remains a separate governed scope
+
 ### Remaining controlled note
 CloudShell host runtime remains:
 - Python 3.9
