@@ -1,0 +1,20 @@
+Phase 1 scaffolding created:
+- src/modules/identity_and_access
+- src/modules/client_operational_admin
+- src/modules/consent
+- src/modules/document_workspace
+- src/modules/requests_and_results
+- src/modules/annotation_and_correction
+- src/modules/support_and_interaction
+- src/modules/design_system
+- src/modules/telemetry_and_ml_readiness
+- src/api
+- src/shared
+- api/identity_admin
+- api/consent
+- api/documents
+- api/requests_results
+- api/annotations
+- api/operational_admin
+- api/support
+- api/telemetry

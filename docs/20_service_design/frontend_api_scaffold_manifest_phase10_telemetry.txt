@@ -1,0 +1,18 @@
+Phase 10 telemetry scaffolding created:
+- src/modules/telemetry_and_ml_readiness/types/index.ts
+- src/modules/telemetry_and_ml_readiness/services/telemetryService.ts
+- src/modules/telemetry_and_ml_readiness/services/index.ts
+- src/modules/telemetry_and_ml_readiness/hooks/useWorkflowTracking.ts
+- src/modules/telemetry_and_ml_readiness/hooks/useDocumentTelemetry.ts
+- src/modules/telemetry_and_ml_readiness/hooks/useSupportTelemetry.ts
+- src/modules/telemetry_and_ml_readiness/hooks/index.ts
+- src/modules/telemetry_and_ml_readiness/components/TelemetryStructureNotice.tsx
+- src/modules/telemetry_and_ml_readiness/components/TelemetryEventSchemaPanel.tsx
+- src/modules/telemetry_and_ml_readiness/components/index.ts
+- src/modules/telemetry_and_ml_readiness/pages/TelemetryOverviewPage.tsx
+- src/modules/telemetry_and_ml_readiness/pages/WorkflowTrackingPage.tsx
+- src/modules/telemetry_and_ml_readiness/pages/DocumentTelemetryPage.tsx
+- src/modules/telemetry_and_ml_readiness/pages/SupportTelemetryPage.tsx
+- src/modules/telemetry_and_ml_readiness/pages/index.ts
+- api/telemetry/routes.py
+- api/telemetry/README.md

@@ -1,0 +1,19 @@
+Phase 8 operational admin scaffolding created:
+- src/modules/client_operational_admin/types/index.ts
+- src/modules/client_operational_admin/services/operationalAdminService.ts
+- src/modules/client_operational_admin/services/index.ts
+- src/modules/client_operational_admin/hooks/useOperationalAdmin.ts
+- src/modules/client_operational_admin/hooks/index.ts
+- src/modules/client_operational_admin/components/AuditabilityNotice.tsx
+- src/modules/client_operational_admin/components/BalanceSummaryCard.tsx
+- src/modules/client_operational_admin/components/UsageSummaryPanel.tsx
+- src/modules/client_operational_admin/components/ActivityLogPanel.tsx
+- src/modules/client_operational_admin/components/index.ts
+- src/modules/client_operational_admin/pages/BalanceViewPage.tsx
+- src/modules/client_operational_admin/pages/UsageViewPage.tsx
+- src/modules/client_operational_admin/pages/ActivityLogPage.tsx
+- src/modules/client_operational_admin/pages/SimulatedPaymentPage.tsx
+- src/modules/client_operational_admin/pages/SupportQueryPage.tsx
+- src/modules/client_operational_admin/pages/index.ts
+- api/operational_admin/routes.py
+- api/operational_admin/README.md

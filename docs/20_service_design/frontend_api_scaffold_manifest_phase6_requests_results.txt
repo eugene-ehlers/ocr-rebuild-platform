@@ -1,0 +1,19 @@
+Phase 6 requests and results scaffolding created:
+- src/modules/requests_and_results/types/index.ts
+- src/modules/requests_and_results/services/requestResultsService.ts
+- src/modules/requests_and_results/services/index.ts
+- src/modules/requests_and_results/hooks/useRequestResults.ts
+- src/modules/requests_and_results/hooks/index.ts
+- src/modules/requests_and_results/components/ServiceFamilyNotice.tsx
+- src/modules/requests_and_results/components/StatusTimeline.tsx
+- src/modules/requests_and_results/components/RemediationPromptPanel.tsx
+- src/modules/requests_and_results/components/index.ts
+- src/modules/requests_and_results/pages/ServiceCatalogPage.tsx
+- src/modules/requests_and_results/pages/RequestCreationPage.tsx
+- src/modules/requests_and_results/pages/RequestStatusPage.tsx
+- src/modules/requests_and_results/pages/RequestRemediationPage.tsx
+- src/modules/requests_and_results/pages/ResultRetrievalPage.tsx
+- src/modules/requests_and_results/pages/RerunRequestPage.tsx
+- src/modules/requests_and_results/pages/index.ts
+- api/requests_results/routes.py
+- api/requests_results/README.md

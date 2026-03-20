@@ -1,0 +1,18 @@
+Phase 7 annotation and correction scaffolding created:
+- src/modules/annotation_and_correction/types/index.ts
+- src/modules/annotation_and_correction/services/annotationService.ts
+- src/modules/annotation_and_correction/services/index.ts
+- src/modules/annotation_and_correction/hooks/useAnnotation.ts
+- src/modules/annotation_and_correction/hooks/index.ts
+- src/modules/annotation_and_correction/components/OriginalDataNotice.tsx
+- src/modules/annotation_and_correction/components/AnnotationStatusPanel.tsx
+- src/modules/annotation_and_correction/components/AnnotationHistoryList.tsx
+- src/modules/annotation_and_correction/components/index.ts
+- src/modules/annotation_and_correction/pages/OriginalResultViewPage.tsx
+- src/modules/annotation_and_correction/pages/AddAnnotationPage.tsx
+- src/modules/annotation_and_correction/pages/AnnotationHistoryPage.tsx
+- src/modules/annotation_and_correction/pages/AnnotationStatusPage.tsx
+- src/modules/annotation_and_correction/pages/ReprocessingTriggerPage.tsx
+- src/modules/annotation_and_correction/pages/index.ts
+- api/annotations/routes.py
+- api/annotations/README.md

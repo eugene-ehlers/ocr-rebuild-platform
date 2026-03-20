@@ -1,0 +1,18 @@
+Phase 4 consent scaffolding created:
+- src/modules/consent/types/index.ts
+- src/modules/consent/services/consentService.ts
+- src/modules/consent/services/index.ts
+- src/modules/consent/hooks/useConsentCapture.ts
+- src/modules/consent/hooks/useConsentValidation.ts
+- src/modules/consent/hooks/index.ts
+- src/modules/consent/components/ConsentTypeExplainer.tsx
+- src/modules/consent/components/ConsentStatusBadge.tsx
+- src/modules/consent/components/index.ts
+- src/modules/consent/pages/CaptureConsentPage.tsx
+- src/modules/consent/pages/ConsentValidationPage.tsx
+- src/modules/consent/pages/ConsentRetrievalPage.tsx
+- src/modules/consent/pages/RevokeConsentPage.tsx
+- src/modules/consent/pages/ConsentProofPage.tsx
+- src/modules/consent/pages/index.ts
+- api/consent/routes.py
+- api/consent/README.md
