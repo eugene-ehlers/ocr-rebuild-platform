@@ -1398,3 +1398,71 @@ Phase 19 does NOT yet provide:
 
 ---
 
+
+---
+
+## Phase 20 — AWS Invocation Bridge (COMPLETED)
+
+### Objective
+Introduce a controlled dual-mode execution bridge so orchestration can route through either:
+- local service stub execution
+- AWS bridge execution path
+
+without changing the orchestration or frontend contract.
+
+### Implementation Summary
+
+Updated:
+- `services/decision_engine/engine.py`
+
+Added behaviour:
+- `EXECUTION_MODE` switch introduced
+- supported execution modes:
+  - `local`
+  - `aws`
+
+#### Local mode
+- preserves current service stub invocation path
+- preserves current downstream execution contract
+
+#### AWS mode
+- routes execution through structured AWS bridge response
+- does not yet invoke live ECS/Lambda runtime
+- preserves orchestration contract and response shape
+
+### Verified Behaviour
+
+Validated in Python 3.11 container runtime:
+
+#### Local mode
+Observed:
+- request executed successfully
+- downstream status = `executed`
+- execution mode = `service_stub`
+
+#### AWS mode
+Observed:
+- request executed successfully through bridge path
+- downstream status = `aws_bridge_stubbed`
+- execution mode = `aws_bridge`
+- structured AWS bridge metadata returned
+
+### Gap Register Impact
+
+This phase materially reduces:
+- GAP-003 — Downstream execution
+
+It does NOT yet close GAP-003 because:
+- live AWS ECS/Lambda invocation is not yet wired
+- current AWS path is still bridge-stubbed
+
+### Scope Boundary
+
+Phase 20 does NOT yet provide:
+- live ECS task invocation
+- live Lambda invocation
+- AWS credential/runtime failure handling
+- cloud-native execution observability
+
+---
+

@@ -1,0 +1,8 @@
+Phase 20 AWS invocation bridge created:
+- services/decision_engine/engine.py updated with EXECUTION_MODE switch
+- supported execution modes:
+  - local
+  - aws
+- local mode preserves current service stub invocation
+- aws mode returns structured AWS bridge response without changing orchestration contract
+- no frontend or orchestrator contract changes introduced
