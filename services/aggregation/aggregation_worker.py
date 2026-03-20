@@ -1,184 +1,280 @@
-from __future__ import annotations
-
 import json
+import logging
 import os
+from datetime import datetime, timezone
 from typing import Any, Dict, List
 
 import boto3
 
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 s3 = boto3.client("s3")
+INPUT_S3_BUCKET = os.environ.get("INPUT_S3_BUCKET", "")
+INPUT_S3_KEY = os.environ.get("INPUT_S3_KEY", "")
+OUTPUT_S3_BUCKET = os.environ.get("OUTPUT_S3_BUCKET", "")
+OUTPUT_S3_KEY = os.environ.get("OUTPUT_S3_KEY", "")
 
-OUTPUT_BUCKET = os.environ.get("OUTPUT_BUCKET", "")
-EXPECTED_STAGE = "aggregation"
-SUPPORTED_PLAN_VERSIONS = {"execution_plan_v1"}
+
+def utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
 
 
-def _build_execution_plan_ack(payload: Dict[str, Any]) -> Dict[str, Any]:
-    execution_plan = payload.get("execution_plan") or {}
-    orchestration_context = payload.get("orchestration_context") or {}
+def empty_payload() -> Dict[str, Any]:
+    return {
+        "manifest_id": "UNKNOWN",
+        "document_id": "UNKNOWN",
+        "source_uri": "UNKNOWN",
+        "document_type": "UNKNOWN",
+        "ingestion_timestamp": utc_now_iso(),
+        "pages": [],
+        "manifest_update": {},
+        "execution_state": {},
+        "requested_services": {},
+        "service_status": {}
+    }
+
+
+def load_input(payload_path: str) -> Dict[str, Any]:
+    """
+    Load upstream payload from S3 when ECS handoff variables are present.
+    Fall back to local file input for controlled local testing.
+    """
+    if INPUT_S3_BUCKET and INPUT_S3_KEY:
+        logger.info(
+            "Loading aggregation input payload from s3://%s/%s",
+            INPUT_S3_BUCKET,
+            INPUT_S3_KEY
+        )
+        response = s3.get_object(Bucket=INPUT_S3_BUCKET, Key=INPUT_S3_KEY)
+        return json.loads(response["Body"].read().decode("utf-8"))
+
+    if not payload_path or not os.path.exists(payload_path):
+        logger.info("No payload supplied. Using placeholder aggregation input.")
+        return empty_payload()
+
+    with open(payload_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def write_output(result: Dict[str, Any], output_path: str) -> None:
+    """
+    Write full enriched payload to S3 when ECS handoff variables are present.
+    Fall back to local file output for controlled local testing.
+    """
+    if OUTPUT_S3_BUCKET and OUTPUT_S3_KEY:
+        logger.info(
+            "Writing aggregation output payload to s3://%s/%s",
+            OUTPUT_S3_BUCKET,
+            OUTPUT_S3_KEY
+        )
+        s3.put_object(
+            Bucket=OUTPUT_S3_BUCKET,
+            Key=OUTPUT_S3_KEY,
+            Body=json.dumps(result, indent=2).encode("utf-8"),
+            ContentType="application/json"
+        )
+        return
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(result, f, indent=2)
+
+
+def build_pages(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """
+    Preserve enriched page structures coming from upstream pipeline stages.
+    """
+    pages = payload.get("pages", [])
+    if not isinstance(pages, list):
+        return []
+
+    output_pages: List[Dict[str, Any]] = []
+
+    for index, page in enumerate(pages, start=1):
+        if isinstance(page, dict):
+            enriched_page = dict(page)
+            enriched_page["page_number"] = page.get("page_number", index)
+            output_pages.append(enriched_page)
+        else:
+            output_pages.append({
+                "page_number": index,
+                "extracted_text": "UNKNOWN",
+                "metadata": {
+                    "aggregation_note": "Non-dict page payload replaced with controlled placeholder."
+                }
+            })
+
+    return output_pages
+
+
+def summarize_pages(pages: List[Dict[str, Any]]) -> Dict[str, Any]:
+    table_count = 0
+    logo_count = 0
+    fraud_flag_count = 0
+    non_empty_pages = 0
+    total_extracted_characters = 0
+
+    for page in pages:
+        if not isinstance(page, dict):
+            continue
+
+        extracted_text = page.get("extracted_text", "") or ""
+        if extracted_text.strip():
+            non_empty_pages += 1
+            total_extracted_characters += len(extracted_text)
+
+        table_count += len(page.get("tables", []) or [])
+
+        metadata = page.get("metadata", {})
+        if isinstance(metadata, dict):
+            logo_count += len(metadata.get("logos", []) or [])
+            fraud_flag_count += len(metadata.get("fraud_flags", []) or [])
 
     return {
-        "present": bool(execution_plan),
-        "plan_id": execution_plan.get("plan_id"),
-        "plan_version": execution_plan.get("plan_version"),
-        "plan_status_seen": execution_plan.get("plan_status"),
-        "current_stage_seen": orchestration_context.get("current_stage"),
-        "service_stage_seen": EXPECTED_STAGE,
+        "page_count": len(pages),
+        "non_empty_pages": non_empty_pages,
+        "total_extracted_characters": total_extracted_characters,
+        "tables_detected": table_count,
+        "logos_detected": logo_count,
+        "fraud_flags_detected": fraud_flag_count
     }
 
 
-def _validate_execution_plan(payload: Any) -> Dict[str, Any]:
-    errors: List[str] = []
+def build_canonical_document(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Build canonical document aligned to docs/03_data_model/canonical_document_schema.json
+    and the hardened page-level contract.
+    """
+    canonical_pages = build_pages(payload)
+    summary = summarize_pages(canonical_pages)
 
-    if not isinstance(payload, dict):
-        return {"status": "fail", "errors": ["payload_not_dict"]}
-
-    execution_plan = payload.get("execution_plan")
-    if execution_plan is None:
-        return {"status": "fail", "errors": ["execution_plan_missing"]}
-    if not isinstance(execution_plan, dict):
-        return {"status": "fail", "errors": ["execution_plan_not_dict"]}
-
-    if not execution_plan.get("plan_id"):
-        errors.append("execution_plan_id_missing")
-
-    plan_version = execution_plan.get("plan_version")
-    if not plan_version:
-        errors.append("execution_plan_version_missing")
-    elif plan_version not in SUPPORTED_PLAN_VERSIONS:
-        errors.append("execution_plan_version_unsupported")
-
-    if not execution_plan.get("plan_status"):
-        errors.append("execution_plan_status_missing")
-
-    orchestration_context = payload.get("orchestration_context")
-    if orchestration_context is None:
-        return {"status": "fail", "errors": errors + ["orchestration_context_missing"]}
-    if not isinstance(orchestration_context, dict):
-        return {"status": "fail", "errors": errors + ["orchestration_context_not_dict"]}
-
-    current_stage = orchestration_context.get("current_stage")
-    if not current_stage:
-        errors.append("orchestration_stage_missing")
-    elif current_stage != EXPECTED_STAGE:
-        errors.append("orchestration_stage_invalid")
-
-    return {"status": "pass" if not errors else "fail", "errors": errors}
-
-
-def _rejection_response(payload: Dict[str, Any], ack: Dict[str, Any], validation: Dict[str, Any]) -> Dict[str, Any]:
     return {
-        "service": "aggregation",
-        "status": "rejected",
-        "execution_plan_ack": ack,
-        "execution_plan_validation": validation,
-        "received_payload": payload,
-        "result": {
-            "summary": "Aggregation rejected payload due to execution plan validation failure.",
-        },
-        "execution_plan": dict(payload.get("execution_plan", {})) if isinstance(payload, dict) else {},
-        "orchestration_context": dict(payload.get("orchestration_context", {})) if isinstance(payload, dict) else {},
-    }
-
-
-def _build_aggregated_result(payload: Dict[str, Any]) -> Dict[str, Any]:
-    result = {
-        "document_id": payload.get("document_id"),
-        "source_bucket": payload.get("bucket"),
-        "source_key": payload.get("key"),
-        "ocr_result": payload.get("ocr_result"),
-        "table_extraction_result": payload.get("table_extraction_result"),
-        "logo_recognition_result": payload.get("logo_recognition_result"),
-        "fraud_detection_result": payload.get("fraud_detection_result"),
-        "execution_plan": payload.get("execution_plan", {}),
-    }
-
-    present_sections = [
-        name for name in [
-            "ocr_result",
-            "table_extraction_result",
-            "logo_recognition_result",
-            "fraud_detection_result",
-        ]
-        if payload.get(name) is not None
-    ]
-
-    result["aggregation_summary"] = {
-        "present_sections": present_sections,
-        "present_section_count": len(present_sections),
-    }
-    return result
-
-
-def _persist_result(result: Dict[str, Any], output_bucket: str, output_key: str) -> Dict[str, Any]:
-    s3.put_object(
-        Bucket=output_bucket,
-        Key=output_key,
-        Body=json.dumps(result, indent=2).encode("utf-8"),
-        ContentType="application/json",
-    )
-    return {
-        "output_bucket": output_bucket,
-        "output_key": output_key,
-    }
-
-
-def main(payload: Dict[str, Any]) -> Dict[str, Any]:
-    ack = _build_execution_plan_ack(payload if isinstance(payload, dict) else {})
-    validation = _validate_execution_plan(payload)
-
-    if validation["status"] != "pass":
-        return _rejection_response(payload if isinstance(payload, dict) else {}, ack, validation)
-
-    output_bucket = payload.get("output_bucket") or OUTPUT_BUCKET or payload.get("bucket")
-    output_key = payload.get("output_key")
-    if not output_bucket or not output_key:
-        return {
-            "service": "aggregation",
-            "status": "failed",
-            "execution_plan_ack": ack,
-            "execution_plan_validation": validation,
-            "error": "Missing output_bucket/output_key and no fallback bucket available",
-            "execution_plan": dict(payload.get("execution_plan", {})),
-            "orchestration_context": dict(payload.get("orchestration_context", {})),
+        "document_id": payload.get("document_id", "UNKNOWN"),
+        "source_uri": payload.get("source_uri", "UNKNOWN"),
+        "document_type": payload.get("document_type", "UNKNOWN"),
+        "ingestion_timestamp": payload.get("ingestion_timestamp", utc_now_iso()),
+        "pages": canonical_pages,
+        "metadata": {
+            "aggregation_status": "completed_real_increment",
+            "aggregation_note": "Canonical document assembled from unified page payload with document-level summary metadata.",
+            "requested_services": payload.get("requested_services", {}),
+            "service_status": payload.get("service_status", {}),
+            **summary
         }
+    }
 
-    aggregated_result = _build_aggregated_result(payload)
-    persistence_result = _persist_result(aggregated_result, output_bucket, output_key)
 
-    response = dict(payload)
-    response.update({
-        "service": "aggregation",
-        "status": "executed",
-        "execution_plan_ack": ack,
-        "execution_plan_validation": validation,
-        "aggregation_result": {
-            "persistence": persistence_result,
-            "summary": aggregated_result.get("aggregation_summary", {}),
-        },
+def build_manifest_update(payload: Dict[str, Any], canonical_document: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Build manifest update aligned to docs/03_data_model/document_manifest_schema.json.
+    """
+    now = utc_now_iso()
+    manifest_update = dict(payload.get("manifest_update", {}))
+    pipeline_history = list(manifest_update.get("pipeline_history", []))
+    service_status = dict(payload.get("service_status", manifest_update.get("service_status", {})))
+
+    pipeline_history.append({
+        "stage": "aggregation",
+        "status": "completed_real_increment",
+        "timestamp": now,
+        "engine_name": "aggregation_worker",
+        "engine_version": "v0.3",
+        "notes": "Canonical document and manifest update assembled with document-level summary metadata."
     })
-    return response
+
+    manifest_update.update({
+        "manifest_id": payload.get("manifest_id", manifest_update.get("manifest_id", "UNKNOWN")),
+        "documents": [
+            {
+                "document_id": canonical_document.get("document_id", "UNKNOWN"),
+                "source_uri": canonical_document.get("source_uri", "UNKNOWN"),
+                "expected_document_type": canonical_document.get("document_type", "UNKNOWN")
+            }
+        ],
+        "processing_parameters": {
+            **dict(payload.get("processing_parameters", {})),
+            "aggregation_status": "completed_real_increment"
+        },
+        "pipeline_status": "completed",
+        "retry_count": payload.get("retry_count", manifest_update.get("retry_count", 0)),
+        "last_updated": now,
+        "partial_execution_flags": manifest_update.get("partial_execution_flags", {}),
+        "service_status": service_status,
+        "client_notification": manifest_update.get("client_notification", {
+            "required": False,
+            "status": "not_required",
+            "message": ""
+        }),
+        "pipeline_history": pipeline_history
+    })
+
+    return manifest_update
+
+
+def build_execution_state(payload: Dict[str, Any]) -> Dict[str, Any]:
+    execution_state = dict(payload.get("execution_state", {}))
+    completed_stages = list(execution_state.get("completed_stages", []))
+
+    if "aggregation" not in completed_stages:
+        completed_stages.append("aggregation")
+
+    return {
+        "current_stage": "aggregation",
+        "completed_stages": completed_stages,
+        "failed_stages": list(execution_state.get("failed_stages", [])),
+        "skipped_stages": list(execution_state.get("skipped_stages", []))
+    }
+
+
+def build_output(payload: Dict[str, Any]) -> Dict[str, Any]:
+    canonical_document = build_canonical_document(payload)
+    manifest_update = build_manifest_update(payload, canonical_document)
+    execution_state = build_execution_state(payload)
+
+    return {
+        "manifest_id": payload.get("manifest_id", "UNKNOWN"),
+        "document_id": payload.get("document_id", "UNKNOWN"),
+        "source_uri": payload.get("source_uri", "UNKNOWN"),
+        "source_bucket": payload.get("source_bucket", "UNKNOWN"),
+        "source_batch_uri": payload.get("source_batch_uri", payload.get("source_uri", "UNKNOWN")),
+        "document_type": payload.get("document_type", "UNKNOWN"),
+        "expected_document_type": payload.get("expected_document_type", "UNKNOWN"),
+        "ingestion_timestamp": payload.get("ingestion_timestamp", utc_now_iso()),
+        "creation_timestamp": payload.get("creation_timestamp", utc_now_iso()),
+        "processing_parameters": payload.get("processing_parameters", {}),
+        "requested_services": payload.get("requested_services", {}),
+        "service_status": manifest_update.get("service_status", payload.get("service_status", {})),
+        "execution_state": execution_state,
+        "documents": payload.get("documents", []),
+        "pages": payload.get("pages", []),
+        "metadata": {
+            "stage": "aggregation",
+            "partial_execution": False,
+            "notes": "Aggregation output mapped to hardened canonical and manifest schemas with summary metadata."
+        },
+        "canonical_document": canonical_document,
+        "manifest_update": manifest_update
+    }
+
+
+def main() -> None:
+    payload_path = os.environ.get("AGGREGATION_INPUT", "")
+    output_path = os.environ.get("AGGREGATION_OUTPUT", "/tmp/aggregation_output.json")
+
+    payload = load_input(payload_path)
+    result = build_output(payload)
+    write_output(result, output_path)
+
+    if OUTPUT_S3_BUCKET and OUTPUT_S3_KEY:
+        logger.info(
+            "Aggregation worker completed. Output written to s3://%s/%s",
+            OUTPUT_S3_BUCKET,
+            OUTPUT_S3_KEY
+        )
+    else:
+        logger.info("Aggregation worker completed. Output written to %s", output_path)
 
 
 if __name__ == "__main__":
-    raw_payload = os.environ.get("PAYLOAD", "")
-    if raw_payload:
-        print(json.dumps(main(json.loads(raw_payload)), indent=2))
-    else:
-        sample_payload = {
-            "bucket": "ocr-rebuild-program",
-            "key": "raw/sample.png",
-            "output_bucket": "ocr-rebuild-program",
-            "output_key": "aggregation/sample.json",
-            "document_id": "doc_local_agg_001",
-            "ocr_result": {"text_length": 123},
-            "execution_plan": {
-                "plan_id": "plan_local_agg_001",
-                "plan_version": "execution_plan_v1",
-                "plan_status": "running",
-            },
-            "orchestration_context": {
-                "current_stage": "aggregation",
-            },
-        }
-        print(json.dumps(main(sample_payload), indent=2))
+    main()
