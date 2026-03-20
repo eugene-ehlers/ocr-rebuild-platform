@@ -701,3 +701,96 @@ Required actions:
 - Local pipeline: **stable and contract-aligned**
 - AWS deployment: **infrastructure complete but orchestration not yet safe**
 - Production readiness: **BLOCKED until Step Functions alignment is completed**
+
+---
+
+## Phase 11 — Backend Orchestration for Requests/Results (COMPLETED)
+
+### Objective
+Introduce backend orchestration layer to handle:
+- Request intake
+- Service routing
+- Decision engine invocation (placeholder)
+- Request lifecycle endpoints (status, result, rerun)
+
+### Implementation Summary
+
+**API Layer**
+- `api/requests_results/routes.py`
+  - `catalog()`
+  - `create(payload)`
+  - `status(request_id)`
+  - `result(request_id)`
+  - `rerun(request_id)`
+
+**Decision Engine Layer**
+- `services/decision_engine/frontend_request_orchestrator.py`
+  - Handles service selection and orchestration routing
+- `services/decision_engine/engine.py`
+  - Placeholder execution for:
+    - financial_management
+    - fica_compliance
+    - credit_decision
+
+### Behaviour (Verified)
+
+- Service catalog returns 3 service families:
+  - financial_management
+  - fica
+  - credit_decision
+
+- Request creation:
+  - Generates request_id
+  - Resolves service_family
+  - Performs placeholder consent + document checks
+  - Routes via decision engine orchestrator
+  - Returns structured downstream execution response
+
+- Downstream execution (Phase 11 scope):
+  - Placeholder only
+  - Returns capability hints per service
+
+- Lifecycle endpoints:
+  - status → in_progress (placeholder)
+  - result → available (placeholder)
+  - rerun → accepted (placeholder)
+
+### Runtime Compliance
+
+- Verified under **Python 3.11 container runtime**
+- CloudShell Python 3.9 explicitly NOT used for validation
+- Docker-based execution used to align with:
+  - Lambda runtime (python3.11)
+  - ECS container base images (python:3.11-slim)
+
+### Key Constraint
+
+Phase 11 does NOT:
+- Execute real ECS tasks
+- Invoke Lambdas
+- Perform real data validation
+- Persist requests
+
+All logic is orchestration scaffolding only.
+
+### Output Contract
+
+All endpoints return:
+- `success`
+- `status`
+- `message`
+- `data` (structured payload)
+
+This contract is now fixed for downstream phases.
+
+### Next Phase Dependency
+
+Phase 12 must:
+- Replace placeholder execution with real service invocation
+- Integrate with:
+  - ECS tasks (financial_management, fica, credit_decision)
+  - or Lambda where defined
+- Introduce real request state persistence
+
+---
+
