@@ -1,12 +1,12 @@
 import json
 import os
 from datetime import datetime, timezone
-from io import BytesIO
 from typing import Any, Dict, List, Optional
 
 import boto3
-import pytesseract
-from PIL import Image
+
+from services.ocr.providers.base_provider import OCRProviderAdapter
+from services.ocr.providers.tesseract_provider import TesseractProviderAdapter
 
 
 s3 = boto3.client("s3")
@@ -32,6 +32,10 @@ SUPPORTED_PROVIDERS = {
         "provider_type": "open_source",
         "execution_modes": {"primary", "fallback", "recovery"},
     }
+}
+
+PROVIDER_ADAPTERS: Dict[str, OCRProviderAdapter] = {
+    "tesseract": TesseractProviderAdapter(),
 }
 
 
@@ -193,19 +197,13 @@ def validate_provider_support(provider_instruction: Dict[str, Any]) -> None:
         )
 
 
-def run_tesseract_on_image(image_bytes: bytes) -> Dict[str, Any]:
-    with Image.open(BytesIO(image_bytes)) as img:
-        text = pytesseract.image_to_string(img).strip()
-
-    confidence = 0.0 if not text else 0.75
-
-    return {
-        "status": "completed",
-        "text": text,
-        "confidence": confidence,
-        "engine_name": "tesseract",
-        "engine_version": "provider_contract_v1",
-    }
+def get_provider_adapter(provider_name: str) -> OCRProviderAdapter:
+    adapter = PROVIDER_ADAPTERS.get(provider_name)
+    if adapter is None:
+        raise OCRProviderExecutionError(
+            f"OCR provider '{provider_name}' reached execution unexpectedly without adapter support."
+        )
+    return adapter
 
 
 def execute_provider(
@@ -213,25 +211,8 @@ def execute_provider(
     provider_instruction: Dict[str, Any],
 ) -> Dict[str, Any]:
     provider = provider_instruction["provider"]
-
-    if provider == "tesseract":
-        provider_result = run_tesseract_on_image(image_bytes)
-        provider_result.update(
-            {
-                "provider": provider_instruction["provider"],
-                "provider_type": provider_instruction["provider_type"],
-                "provider_metadata": {
-                    "execution_mode": provider_instruction["execution_mode"],
-                    "decision_reason": provider_instruction["decision_reason"],
-                },
-                "error": None,
-            }
-        )
-        return provider_result
-
-    raise OCRProviderExecutionError(
-        f"OCR provider '{provider}' reached execution unexpectedly without runtime support."
-    )
+    adapter = get_provider_adapter(provider)
+    return adapter.execute(image_bytes, provider_instruction)
 
 
 def attempt_provider_chain(
