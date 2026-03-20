@@ -319,6 +319,51 @@ Controlled limitation:
 - execution plan enforcement is currently implemented for the frontend/API orchestration path only
 - broader OCR pipeline-wide execution-plan enforcement remains a separate governed scope
 
+### Resolution — execution plan propagation and worker enforcement
+Validated implementation:
+- frontend orchestration now propagates `execution_plan` into downstream ECS payloads
+- frontend orchestration now propagates `orchestration_context` into downstream ECS payloads
+- downstream frontend service-family workers now emit `execution_plan_ack`
+- downstream frontend service-family workers now enforce strict execution-plan validation
+- invalid payloads are rejected safely with structured validation errors
+- valid payloads continue to execute normally
+
+Validated scope:
+- `financial_management`
+- `fica`
+- `credit_decision`
+
+Validated worker enforcement rules:
+- `execution_plan` required
+- `execution_plan.plan_version` required
+- supported plan version enforced
+- `execution_plan.service_family` must match expected service family
+- `orchestration_context.current_stage` must equal `downstream_execution`
+
+Validated runtime outcomes:
+- local worker validation passed for valid and invalid payloads
+- AWS ECS validation confirmed successful execution for valid payloads
+- AWS ECS validation confirmed controlled rejection for invalid payloads missing `execution_plan`
+- CloudWatch logs confirmed `execution_plan_ack` and validation output
+
+### Resolution — finalization classification hardening
+Validated implementation:
+- frontend finalization now distinguishes:
+  - `blocked`
+  - `available`
+  - `rejected`
+  - `execution_failed`
+- `finalization_reason` is now persisted in orchestration records
+- `finalizationReason` is now surfaced through status/result responses
+- fallback worker `status=executed` is now classified as success
+- fallback worker `status=rejected` is now classified as governed rejection
+
+Validated finalization reasons:
+- `pre_execution_enforcement_failed`
+- `downstream_execution_succeeded`
+- `downstream_worker_rejected_payload`
+- `downstream_execution_failed`
+
 ### Remaining controlled note
 CloudShell host runtime remains:
 - Python 3.9
