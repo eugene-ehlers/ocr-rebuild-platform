@@ -98,3 +98,27 @@ The pipeline includes cross-service orchestration, S3 payload handoff, Step Func
 - Runtime handover documents must distinguish validated live behaviour from design intent.
 - Static code review remains supporting analysis, not integrated execution proof.
 
+### DEC-003 — OCR Must Be Provider-Abstraction Controlled, Not Provider-Owned
+
+- **Status:** ACTIVE
+- **Date:** 2026-03-20
+
+#### Decision
+
+The platform shall not be treated as owning a fixed OCR engine implementation.
+
+OCR is a governed capability invoked through a provider abstraction boundary. Current Tesseract-backed OCR is permitted only as a controlled bootstrap execution provider for runtime validation and must not be interpreted as the permanent architecture.
+
+Provider selection, fallback, and OCR routing must move under explicit governed execution-plan control and a normalized provider interface.
+
+#### Rationale
+
+The approved platform design is a modular document-intelligence orchestration system, not a single-engine OCR product. Without an explicit control decision, bootstrap OCR code can easily become mistaken for the target architecture, causing provider lock-in, hidden routing logic, and drift away from the intended decision-driven model.
+
+#### Consequences
+
+- Tesseract remains allowed only as a bootstrap/reference provider.
+- OCR provider choice must become execution-plan-driven.
+- Provider-specific logic must be isolated behind a governed abstraction boundary.
+- Future OCR integrations must conform to a normalized interface before being treated as valid runtime providers.
+

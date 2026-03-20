@@ -59,6 +59,12 @@ It is NOT:
 - All routing, fallback, and provider selection must be recorded there
 - No hidden decisions outside the plan are allowed
 
+### 3.5A OCR provider abstraction control
+- OCR is a provider-agnostic capability, not a hard-coded product implementation
+- OCR provider selection must occur through governed abstraction boundaries
+- Bootstrap OCR implementations may exist for controlled runtime validation, but they must not become design truth
+- No stage may hard-code provider-specific behavior as permanent architecture
+
 ### 3.6 Full traceability
 - routing_decision must summarise execution path
 - evaluation must capture quality and completeness
@@ -67,6 +73,18 @@ It is NOT:
 ---
 
 ## 4. Authoritative Document Set (Read Order)
+
+
+### OCR provider abstraction control
+`docs/05_ocr_engines/ocr_provider_abstraction_control.md`
+
+Defines:
+- provider abstraction boundary
+- bootstrap-vs-design distinction
+- control rules for OCR provider selection and fallback
+
+---
+
 
 All developers must read and adhere to the following in order:
 

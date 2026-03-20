@@ -95,3 +95,18 @@ Validated boundary:
 - this confirms successful baseline pipeline execution for a controlled image input
 - this does NOT change the governed interpretation that preprocessing, OCR, and aggregation are still not execution-plan-enforced in the same strict way as the frontend/API orchestration path and governed service-family workers
 
+### OCR Runtime Control Boundary
+
+Current live OCR pipeline validation includes a Tesseract-backed OCR execution path.
+
+This must be interpreted as:
+- a controlled bootstrap provider
+- a runtime validation baseline
+- not the final architectural ownership model for OCR
+
+Current governed boundary:
+- OCR runtime is operational in AWS for the validated baseline pipeline
+- OCR provider abstraction is not yet fully implemented as design-governed runtime control
+- execution-plan-driven provider selection for OCR remains incomplete
+- current Tesseract-backed OCR must not be treated as permanent design truth
+
