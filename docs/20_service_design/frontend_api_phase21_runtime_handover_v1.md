@@ -121,8 +121,8 @@ Current runtime interpretation remains strict:
 - OCR worker now rejects missing or unsupported OCR provider instructions safely
 - OCR worker now normalizes provider execution metadata into the governed OCR payload shape
 - OCR worker now records attempted provider-chain and fallback traceability in OCR payload structures
-- governed executable multi-provider fallback-chain execution is not yet governed runtime truth across the OCR stage
-- broader multi-provider adapter support is not yet governed runtime truth across the OCR stage
+- provider registry now includes a governed AWS Textract adapter baseline in addition to the Tesseract adapter
+- governed executable multi-provider fallback-chain runtime proof is not yet governed runtime truth across the OCR stage
 
 Current Tesseract-backed OCR runtime remains:
 - operational as bootstrap runtime

@@ -4,6 +4,9 @@ from typing import Dict, List
 
 from services.ocr.providers.base_provider import OCRProviderAdapter
 from services.ocr.providers.tesseract_provider import TesseractProviderAdapter
+from services.ocr.providers.aws_textract_provider import (
+    AwsTextractDetectDocumentTextProviderAdapter,
+)
 
 
 SUPPORTED_PROVIDERS: Dict[str, Dict[str, object]] = {
@@ -21,6 +24,7 @@ SUPPORTED_PROVIDERS: Dict[str, Dict[str, object]] = {
 
 PROVIDER_ADAPTERS: Dict[str, OCRProviderAdapter] = {
     "tesseract": TesseractProviderAdapter(),
+    "aws_textract_detect_document_text": AwsTextractDetectDocumentTextProviderAdapter(),
 }
 
 
