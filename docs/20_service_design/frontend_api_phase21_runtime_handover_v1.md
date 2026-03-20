@@ -116,13 +116,14 @@ The governed OCR provider interface and execution-plan contract now exists in de
 
 Current runtime interpretation remains strict:
 
-- OCR provider interface enforcement is not yet fully implemented end-to-end in runtime code
-- OCR instruction completeness validation is not yet governed runtime truth across the OCR stage
-- governed fallback-chain execution is not yet governed runtime truth across the OCR stage
-- normalized provider-interface control is a design requirement that still requires implementation completion
+- OCR worker now enforces explicit TEXT_OCR instruction presence and required-field validation
+- OCR worker now rejects missing or unsupported OCR provider instructions safely
+- OCR worker now normalizes provider execution metadata into the governed OCR payload shape
+- governed multi-provider fallback-chain execution is not yet governed runtime truth across the OCR stage
+- broader multi-provider adapter support is not yet governed runtime truth across the OCR stage
 
 Current Tesseract-backed OCR runtime remains:
 - operational as bootstrap runtime
-- valid for controlled baseline execution
-- not sufficient to claim full provider-interface contract enforcement
+- valid behind the governed provider-interface boundary
+- still not sufficient to claim complete multi-provider contract enforcement
 
