@@ -15,7 +15,8 @@
       "essential": true,
       "command": [
         "python",
-        "services/financial_management/worker.py"
+        "-m",
+        "services.financial_management.worker"
       ],
       "logConfiguration": {
         "logDriver": "awslogs",

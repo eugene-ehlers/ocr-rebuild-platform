@@ -15,7 +15,8 @@
       "essential": true,
       "command": [
         "python",
-        "services/credit_decision/worker.py"
+        "-m",
+        "services.credit_decision.worker"
       ],
       "logConfiguration": {
         "logDriver": "awslogs",

@@ -15,7 +15,8 @@
       "essential": true,
       "command": [
         "python",
-        "services/fica_compliance/worker.py"
+        "-m",
+        "services.fica_compliance.worker"
       ],
       "logConfiguration": {
         "logDriver": "awslogs",

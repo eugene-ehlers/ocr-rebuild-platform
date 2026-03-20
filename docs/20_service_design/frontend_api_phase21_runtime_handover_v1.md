@@ -124,12 +124,25 @@ Docker image build succeeded for:
 - `credit-decision-worker:phase5`
 
 ### Current blocker
-Container runtime execution still fails.
+The original container runtime packaging blocker has been resolved.
 
-Latest failure:
-- `ModuleNotFoundError: No module named 'services'`
+Validated outcome:
+- local Python 3.11 worker containers execute successfully
+- ECR images were pushed successfully
+- ECS task definitions were updated successfully
+- Fargate tasks executed successfully for:
+  - financial management
+  - fica compliance
+  - credit decision
+- ECS payload override injection was validated successfully
+- decision engine `EXECUTION_MODE=aws` routing was validated successfully
+- `create_request(...)` in AWS mode was validated successfully under Python 3.11 container runtime
+- SQLite persistence of AWS-mode orchestration records was validated successfully
 
-This occurred after fixing the earlier import issue.
+Resolved root cause:
+- worker execution by script path caused import resolution failure
+- governed fix was module execution:
+  - `python -m services.<service>.worker`
 
 ---
 
@@ -215,6 +228,71 @@ Conclusion:
 - task definition command alignment script was run twice
 - no drift introduced
 - final command values remained correct
+
+
+### Resolution — module execution alignment
+Validated fix:
+- Dockerfile and ECS command were changed from script-path execution to module execution
+
+Replaced pattern:
+- `python services/<service>/worker.py`
+
+Working pattern:
+- `python -m services.<service>.worker`
+
+Validated result:
+- local Python 3.11 container execution succeeded
+- ECS Fargate execution succeeded
+- CloudWatch logs confirmed successful payload processing
+
+### Resolution — ECS runtime alignment
+Validated AWS runtime values:
+- cluster:
+  - `ocr-rebuild-cluster`
+- task definitions:
+  - `financial-management-worker-task-prod`
+  - `fica-compliance-worker-task-prod`
+  - `credit-decision-worker-task-prod`
+- security group:
+  - `sg-0ad48d96d00af793f`
+- validated subnets:
+  - `subnet-08bb8a5fb305fb74a`
+  - `subnet-075eb014db65f8d57`
+
+Validated image/tag state:
+- ECR image tag `:phase5` exists for all three worker repos
+
+### Resolution — decision engine AWS bridge alignment
+Resolved drift in `services/decision_engine/engine.py`:
+- corrected cluster name
+- corrected task definition names
+- added security groups
+- replaced placeholder subnet config with validated subnet IDs
+- enforced JSON payload serialization for `PAYLOAD`
+- enforced explicit boto3 region usage
+- normalized AWS response excerpt to JSON-safe values for persistence
+
+Validated result:
+- `execute_service_family(...)` succeeded in `EXECUTION_MODE=aws` for:
+  - financial_management
+  - fica
+  - credit_decision
+
+### Resolution — orchestration persistence validation
+Validated under Python 3.11 container runtime:
+- `api.requests_results.routes.create(...)` executed successfully in `EXECUTION_MODE=aws`
+- request passed enforcement
+- downstream ECS execution launched successfully
+- orchestration record persisted successfully to SQLite
+- stored request was read back successfully with JSON-safe downstream execution state
+
+### Remaining controlled note
+CloudShell host runtime remains:
+- Python 3.9
+
+Governed implication:
+- host-side direct validation of Python 3.10+ syntax remains unreliable
+- Python 3.11 container validation remains mandatory for runtime-sensitive checks
 
 ---
 

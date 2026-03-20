@@ -7,4 +7,4 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 
 COPY . /app
 
-CMD ["python", "services/financial_management/worker.py"]
+CMD ["python", "-m", "services.financial_management.worker"]
