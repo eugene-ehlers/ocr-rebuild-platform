@@ -1,0 +1,47 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+STORE_PATH = Path("runtime_data/request_store.json")
+
+
+def _ensure_store() -> None:
+    STORE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    if not STORE_PATH.exists():
+        STORE_PATH.write_text(json.dumps({"requests": {}}, indent=2))
+
+
+def _read_store() -> Dict[str, Any]:
+    _ensure_store()
+    return json.loads(STORE_PATH.read_text())
+
+
+def _write_store(data: Dict[str, Any]) -> None:
+    _ensure_store()
+    STORE_PATH.write_text(json.dumps(data, indent=2, sort_keys=True))
+
+
+def save_request(record: Dict[str, Any]) -> None:
+    store = _read_store()
+    request_id = record["request"]["request_id"]
+    store["requests"][request_id] = record
+    _write_store(store)
+
+
+def get_request(request_id: str) -> Optional[Dict[str, Any]]:
+    store = _read_store()
+    return store["requests"].get(request_id)
+
+
+def update_request(request_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    store = _read_store()
+    existing = store["requests"].get(request_id)
+    if not existing:
+        return None
+
+    existing.update(updates)
+    store["requests"][request_id] = existing
+    _write_store(store)
+    return existing

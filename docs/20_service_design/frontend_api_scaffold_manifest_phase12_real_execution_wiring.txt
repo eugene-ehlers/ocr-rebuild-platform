@@ -1,0 +1,6 @@
+Phase 12 real execution wiring created:
+- services/decision_engine/request_store.py
+- services/decision_engine/engine.py updated for real service stub invocation
+- services/decision_engine/frontend_request_orchestrator.py updated for execution + persistence
+- requests_results create/status/result/rerun now use persisted request state
+- runtime_data/request_store.json used as file-based placeholder persistence

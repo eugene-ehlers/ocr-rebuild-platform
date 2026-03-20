@@ -5,6 +5,9 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List
 import uuid
 
+from services.decision_engine.engine import execute_service_family
+from services.decision_engine.request_store import get_request, save_request, update_request
+
 
 SUPPORTED_SERVICE_FAMILIES = {
     "financial_management": {
@@ -109,78 +112,17 @@ def _base_response(
     }
 
 
-def _placeholder_downstream_execution(context: OrchestrationContext) -> Dict[str, Any]:
-    family = context.service_family
-
-    family_outputs = {
-        "financial_management": {
-            "service_family": "financial_management",
-            "downstream_status": "placeholder_executed",
-            "summary": "Financial Management placeholder execution completed.",
-            "capabilities_hint": [
-                "transaction_parsing",
-                "category_classification",
-                "cash_flow_classification",
-                "debt_detection",
-                "behavioural_analysis",
-                "benchmarking",
-                "reporting_explanation",
-            ],
-        },
-        "fica": {
-            "service_family": "fica",
-            "downstream_status": "placeholder_executed",
-            "summary": "FICA placeholder execution completed.",
-            "capabilities_hint": [
-                "transaction_compliance_classification",
-                "document_validation",
-                "identity_owner_verification",
-            ],
-        },
-        "credit_decision": {
-            "service_family": "credit_decision",
-            "downstream_status": "placeholder_executed",
-            "summary": "Credit Decision placeholder execution completed.",
-            "capabilities_hint": [
-                "affordability",
-                "prevet",
-                "bureau_assessment",
-                "offer_generation",
-            ],
-        },
+def _execute(context: OrchestrationContext) -> Dict[str, Any]:
+    execution_payload = {
+        "request_id": context.request_id,
+        "customer_id": context.customer_id,
+        "service_code": context.service_code,
+        "service_family": context.service_family,
+        "document_ids": context.document_ids,
+        "disclose_to_third_party": context.disclose_to_third_party,
+        "timestamp": _utc_now(),
     }
-
-    return family_outputs[family]
-
-
-def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
-    context = _build_context(payload)
-
-    orchestration_record = {
-        "request": asdict(context),
-        "consent_check": {
-            "processing_consent_required": True,
-            "disclosure_consent_required": context.disclose_to_third_party,
-            "status": "placeholder_not_enforced_in_backend_phase11",
-        },
-        "document_check": {
-            "document_ids_received": context.document_ids,
-            "status": "placeholder_not_enforced_in_backend_phase11",
-        },
-        "routing": {
-            "selected_service_family": context.service_family,
-            "selected_service_code": context.service_code,
-            "orchestration_layer": "services.decision_engine.frontend_request_orchestrator",
-        },
-        "downstream_execution": _placeholder_downstream_execution(context),
-    }
-
-    return _base_response(
-        success=True,
-        status="orchestrated_placeholder",
-        message="Request created and routed through backend orchestration placeholder.",
-        data=orchestration_record,
-    )
+    return execute_service_family(context.service_family, execution_payload)
 
 
 def get_catalog() -> Dict[str, Any]:
@@ -210,65 +152,164 @@ def get_catalog() -> Dict[str, Any]:
 
     return _base_response(
         success=True,
-        status="placeholder",
+        status="ready",
         message="Service catalog retrieved.",
         data={"items": items},
     )
 
 
-def get_status(request_id: str) -> Dict[str, Any]:
+def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
+    context = _build_context(payload)
+    downstream_execution = _execute(context)
+
+    orchestration_record = {
+        "request": asdict(context),
+        "consent_check": {
+            "processing_consent_required": True,
+            "disclosure_consent_required": context.disclose_to_third_party,
+            "status": "placeholder_not_enforced_in_backend_phase12",
+        },
+        "document_check": {
+            "document_ids_received": context.document_ids,
+            "status": "placeholder_not_enforced_in_backend_phase12",
+        },
+        "routing": {
+            "selected_service_family": context.service_family,
+            "selected_service_code": context.service_code,
+            "orchestration_layer": "services.decision_engine.frontend_request_orchestrator",
+        },
+        "request_status": "completed",
+        "result_status": "available",
+        "downstream_execution": downstream_execution,
+        "last_updated": _utc_now(),
+    }
+
+    save_request(orchestration_record)
+
     return _base_response(
         success=True,
-        status="placeholder",
+        status="executed",
+        message="Request created, executed, and persisted through backend orchestration.",
+        data=orchestration_record,
+    )
+
+
+def get_status(request_id: str) -> Dict[str, Any]:
+    record = get_request(request_id)
+    if not record:
+        return _base_response(
+            success=False,
+            status="not_found",
+            message="Request status not found.",
+            data={"requestId": request_id},
+        )
+
+    return _base_response(
+        success=True,
+        status="ready",
         message="Request status retrieved.",
         data={
             "requestId": request_id,
-            "requestStatus": "in_progress",
-            "orchestrationStatus": "placeholder",
+            "requestStatus": record.get("request_status", "unknown"),
+            "resultStatus": record.get("result_status", "unknown"),
+            "serviceFamily": record["request"]["service_family"],
+            "lastUpdated": record.get("last_updated"),
         },
     )
 
 
 def get_remediation(request_id: str) -> Dict[str, Any]:
+    record = get_request(request_id)
+    if not record:
+        return _base_response(
+            success=False,
+            status="not_found",
+            message="Remediation prompts not found.",
+            data={"requestId": request_id},
+        )
+
+    prompts = []
+    if record["consent_check"]["status"] != "enforced":
+        prompts.append({
+            "reason": "consent_not_enforced_yet",
+            "suggestedAction": "Implement real consent validation in a later phase.",
+        })
+    if record["document_check"]["status"] != "enforced":
+        prompts.append({
+            "reason": "document_validation_not_enforced_yet",
+            "suggestedAction": "Implement real document readiness validation in a later phase.",
+        })
+
     return _base_response(
         success=True,
-        status="placeholder",
+        status="ready",
         message="Remediation prompts retrieved.",
         data={
             "requestId": request_id,
-            "prompts": [
-                {
-                    "reason": "placeholder_document_or_consent_gap",
-                    "suggestedAction": "Complete consent and document readiness wiring in later phases.",
-                }
-            ],
+            "prompts": prompts,
         },
     )
 
 
 def get_result(request_id: str) -> Dict[str, Any]:
+    record = get_request(request_id)
+    if not record:
+        return _base_response(
+            success=False,
+            status="not_found",
+            message="Result not found.",
+            data={"requestId": request_id},
+        )
+
     return _base_response(
         success=True,
-        status="placeholder",
+        status="ready",
         message="Result retrieved.",
         data={
             "requestId": request_id,
-            "resultStatus": "available",
-            "result": {
-                "summary": "Placeholder downstream result.",
-                "source": "backend_orchestration_phase11",
-            },
+            "resultStatus": record.get("result_status", "unknown"),
+            "result": record.get("downstream_execution"),
         },
     )
 
 
 def rerun_request(request_id: str) -> Dict[str, Any]:
+    record = get_request(request_id)
+    if not record:
+        return _base_response(
+            success=False,
+            status="not_found",
+            message="Rerun target not found.",
+            data={"requestId": request_id},
+        )
+
+    context = OrchestrationContext(
+        request_id=request_id,
+        customer_id=record["request"]["customer_id"],
+        service_code=record["request"]["service_code"],
+        service_family=record["request"]["service_family"],
+        document_ids=record["request"]["document_ids"],
+        disclose_to_third_party=record["request"]["disclose_to_third_party"],
+        created_at=record["request"]["created_at"],
+    )
+
+    downstream_execution = _execute(context)
+    updated = update_request(
+        request_id,
+        {
+            "downstream_execution": downstream_execution,
+            "request_status": "completed",
+            "result_status": "available",
+            "last_updated": _utc_now(),
+        },
+    )
+
     return _base_response(
         success=True,
-        status="placeholder",
-        message="Rerun trigger accepted as placeholder.",
+        status="executed",
+        message="Rerun executed and persisted.",
         data={
             "requestId": request_id,
-            "rerunAccepted": True,
+            "updatedRecord": updated,
         },
     )

@@ -1,0 +1,54 @@
+{
+  "requests": {
+    "req_0287ba419537": {
+      "consent_check": {
+        "disclosure_consent_required": false,
+        "processing_consent_required": true,
+        "status": "placeholder_not_enforced_in_backend_phase12"
+      },
+      "document_check": {
+        "document_ids_received": [
+          "doc_a",
+          "doc_b"
+        ],
+        "status": "placeholder_not_enforced_in_backend_phase12"
+      },
+      "downstream_execution": {
+        "downstream_status": "executed",
+        "execution": {
+          "callable": "main",
+          "execution_mode": "service_stub",
+          "invocation": {
+            "invocation_style": "no_args",
+            "result": {
+              "raw_result": null
+            }
+          },
+          "module": "infrastructure.ecs.financial_management.task"
+        },
+        "service_family": "financial_management",
+        "summary": "financial_management execution invoked via decision engine."
+      },
+      "last_updated": "2026-03-20T15:02:07.734046+00:00",
+      "request": {
+        "created_at": "2026-03-20T15:02:07.733010+00:00",
+        "customer_id": "cust_900",
+        "disclose_to_third_party": false,
+        "document_ids": [
+          "doc_a",
+          "doc_b"
+        ],
+        "request_id": "req_0287ba419537",
+        "service_code": "financial_management",
+        "service_family": "financial_management"
+      },
+      "request_status": "completed",
+      "result_status": "available",
+      "routing": {
+        "orchestration_layer": "services.decision_engine.frontend_request_orchestrator",
+        "selected_service_code": "financial_management",
+        "selected_service_family": "financial_management"
+      }
+    }
+  }
+}

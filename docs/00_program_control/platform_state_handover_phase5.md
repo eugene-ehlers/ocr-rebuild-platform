@@ -794,3 +794,91 @@ Phase 12 must:
 
 ---
 
+
+---
+
+## Phase 12 — Real Execution Wiring with Persisted Request State (COMPLETED)
+
+### Objective
+Replace Phase 11 placeholder-only orchestration with:
+- real service stub invocation through decision engine
+- persisted request state for create/status/result/rerun
+- Python 3.11-aligned validation path
+
+### Implementation Summary
+
+**Decision Engine**
+- `services/decision_engine/engine.py`
+  - invokes service-family task modules
+  - supports both payload-arg and no-arg callable styles
+- `services/decision_engine/frontend_request_orchestrator.py`
+  - executes routed service family
+  - persists request record
+  - supports create/status/remediation/result/rerun
+- `services/decision_engine/request_store.py`
+  - file-based persistence layer
+
+**Persistence**
+- `runtime_data/request_store.json`
+  - request state storage for current development phase
+  - placeholder persistence only, not production persistence
+
+### Verified Behaviour
+
+Validated in **Python 3.11 container runtime**:
+
+- `create()`:
+  - generates request id
+  - resolves service family
+  - invokes real service stub through decision engine
+  - persists request state
+
+- `status()`:
+  - reads persisted request state
+  - returns request and result status
+
+- `result()`:
+  - returns persisted downstream execution result
+
+- `rerun()`:
+  - re-executes downstream stub
+  - updates persisted request state
+
+- `catalog()`:
+  - unchanged and working
+
+### Runtime Compliance
+
+- Verified using `python:3.11-slim`
+- CloudShell Python 3.9 not used for runtime validation
+- aligns with approved Python 3.11 baseline
+
+### Known Limitation
+
+Current downstream ECS task stub behaviour is not yet fully payload-aligned.
+
+Observed during verification:
+- `financial_management` stub printed internal example payload rather than the real orchestration payload
+
+Implication:
+- Phase 12 proves execution wiring and persistence
+- but downstream task stub contract alignment is still incomplete
+
+### Phase Scope Boundary
+
+Phase 12 does NOT yet provide:
+- production persistence
+- real consent enforcement
+- real document validation enforcement
+- fully aligned downstream task payload contracts
+- live ECS/Lambda runtime execution
+
+### Next Phase Dependency
+
+Next implementation step must:
+- align service task stubs to the real orchestration payload
+- preserve Python 3.11 runtime standard
+- prepare for real ECS/Lambda invocation path if documented
+
+---
+
