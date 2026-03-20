@@ -70,6 +70,10 @@ def _new_request_id() -> str:
     return f"req_{uuid.uuid4().hex[:12]}"
 
 
+def _new_consent_id() -> str:
+    return f"consent_{uuid.uuid4().hex[:10]}"
+
+
 def _resolve_service_family(service_code: str) -> str:
     normalized = (service_code or "").strip().lower()
     for family, cfg in SUPPORTED_SERVICE_FAMILIES.items():
@@ -119,29 +123,62 @@ def _base_response(
     }
 
 
+def _build_consent_record(consent_type: str, provided: bool, payload: Dict[str, Any], required: bool) -> Dict[str, Any]:
+    source = str(payload.get(f"{consent_type}ConsentSource", "ui_checkbox"))
+    evidence_ref = str(payload.get(f"{consent_type}ConsentEvidenceRef", "")).strip()
+
+    if not required:
+        status = "not_required"
+    elif not provided:
+        status = "missing"
+    elif not evidence_ref:
+        status = "invalid"
+    else:
+        status = "valid"
+
+    return {
+        "consent_id": _new_consent_id(),
+        "consent_type": consent_type,
+        "required": required,
+        "provided": provided,
+        "status": status,
+        "captured_at": _utc_now() if provided else None,
+        "source": source if provided else None,
+        "evidence_ref": evidence_ref if provided else None,
+    }
+
+
 def _evaluate_consent(context: OrchestrationContext, payload: Dict[str, Any]) -> Dict[str, Any]:
-    processing_consent = bool(payload.get("processingConsent", False))
-    disclosure_consent = bool(payload.get("disclosureConsent", False))
+    processing_provided = bool(payload.get("processingConsent", False))
+    disclosure_provided = bool(payload.get("disclosureConsent", False))
 
-    disclosure_required = context.disclose_to_third_party
-    disclosure_ok = True if not disclosure_required else disclosure_consent
+    processing_record = _build_consent_record("processing", processing_provided, payload, True)
+    disclosure_record = _build_consent_record("disclosure", disclosure_provided, payload, context.disclose_to_third_party)
 
-    status = "pass" if processing_consent and disclosure_ok else "fail"
+    consent_records = [processing_record, disclosure_record]
+
+    invalid_required = [
+        record["consent_type"]
+        for record in consent_records
+        if record["required"] and record["status"] != "valid"
+    ]
+
+    status = "pass" if not invalid_required else "fail"
 
     reasons: List[str] = []
-    if not processing_consent:
-        reasons.append("processing_consent_missing")
-    if disclosure_required and not disclosure_consent:
-        reasons.append("disclosure_consent_missing")
+    for record in consent_records:
+        if record["required"] and record["status"] == "missing":
+            reasons.append(f"{record['consent_type']}_consent_missing")
+        elif record["required"] and record["status"] == "invalid":
+            reasons.append(f"{record['consent_type']}_consent_invalid")
 
     return {
         "processing_consent_required": True,
-        "processing_consent_present": processing_consent,
-        "disclosure_consent_required": disclosure_required,
-        "disclosure_consent_present": disclosure_consent if disclosure_required else None,
+        "disclosure_consent_required": context.disclose_to_third_party,
         "status": status,
         "reasons": reasons,
         "mode": "soft_enforcement",
+        "consent_records": consent_records,
     }
 
 
@@ -258,6 +295,16 @@ def _build_remediation_prompts(enforcement: Dict[str, Any]) -> List[Dict[str, st
                 "reason": reason,
                 "suggestedAction": "Capture valid disclosure consent before third-party sharing.",
             })
+        elif reason == "processing_consent_invalid":
+            prompts.append({
+                "reason": reason,
+                "suggestedAction": "Provide valid processing consent evidence reference and source.",
+            })
+        elif reason == "disclosure_consent_invalid":
+            prompts.append({
+                "reason": reason,
+                "suggestedAction": "Provide valid disclosure consent evidence reference and source.",
+            })
 
     for reason in enforcement["documents"]["reasons"]:
         if reason == "documents_missing":
@@ -359,6 +406,7 @@ def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
     orchestration_record = {
         "request": asdict(context),
         "consent_check": consent_check,
+        "consent_records": consent_check["consent_records"],
         "document_check": document_check,
         "enforcement": enforcement,
         "remediation_prompts": remediation_prompts,
@@ -378,7 +426,7 @@ def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
     return _base_response(
         success=True,
         status="executed_with_soft_enforcement",
-        message="Request evaluated, executed, and persisted under soft enforcement with deep document readiness.",
+        message="Request evaluated, executed, and persisted under soft enforcement with consent traceability.",
         data=orchestration_record,
     )
 
@@ -404,6 +452,7 @@ def get_status(request_id: str) -> Dict[str, Any]:
             "serviceFamily": record["request"]["service_family"],
             "enforcementOverallStatus": record.get("enforcement", {}).get("overall_status"),
             "documentReadinessScore": record.get("document_check", {}).get("average_readiness_score"),
+            "consentRecords": record.get("consent_records", []),
             "lastUpdated": record.get("last_updated"),
         },
     )
@@ -448,6 +497,7 @@ def get_result(request_id: str) -> Dict[str, Any]:
             "requestId": request_id,
             "resultStatus": record.get("result_status", "unknown"),
             "enforcement": record.get("enforcement"),
+            "consentRecords": record.get("consent_records", []),
             "documentCheck": record.get("document_check"),
             "result": record.get("downstream_execution"),
         },

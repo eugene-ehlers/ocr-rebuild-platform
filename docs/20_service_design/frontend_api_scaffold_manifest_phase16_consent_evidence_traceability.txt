@@ -1,0 +1,14 @@
+Phase 16 consent evidence and traceability created:
+- services/decision_engine/frontend_request_orchestrator.py updated with consent records
+- consent records now include:
+  - consent_id
+  - consent_type
+  - required
+  - provided
+  - status
+  - captured_at
+  - source
+  - evidence_ref
+- consent evaluation now validates evidence reference presence
+- consent records persisted in request state
+- status and result endpoints now expose consent records

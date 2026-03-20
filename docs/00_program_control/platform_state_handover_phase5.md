@@ -1102,3 +1102,75 @@ Next implementation step may choose one of:
 
 ---
 
+
+---
+
+## Phase 16 — Consent Evidence and Traceability Layer (COMPLETED)
+
+### Objective
+Upgrade consent handling from boolean flags to structured, persisted consent records with evidence metadata.
+
+### Implementation Summary
+
+Updated:
+- `services/decision_engine/frontend_request_orchestrator.py`
+
+Added behaviour:
+- creates structured consent records per request
+- records both:
+  - processing consent
+  - disclosure consent
+- each consent record now includes:
+  - `consent_id`
+  - `consent_type`
+  - `required`
+  - `provided`
+  - `status`
+  - `captured_at`
+  - `source`
+  - `evidence_ref`
+
+- consent validity now evaluates evidence reference presence
+- consent records persist in request state
+- status and result responses now expose consent records
+- remediation prompts now distinguish:
+  - missing consent
+  - invalid consent evidence
+
+### Verified Behaviour
+
+Validated in Python 3.11 container runtime:
+
+#### Valid consent evidence case
+Observed:
+- execution status = `executed_with_soft_enforcement`
+- enforcement overall status = `pass`
+- consent record count = `2`
+
+#### Invalid consent evidence case
+Observed:
+- execution status = `executed_with_soft_enforcement`
+- enforcement overall status = `fail`
+- remediation prompts generated
+- execution still proceeds under soft enforcement
+- persisted consent record statuses = `invalid`, `invalid`
+
+### Scope Boundary
+
+Phase 16 does NOT yet provide:
+- signed legal evidence verification
+- standing consent expiry calculation
+- revoked consent handling
+- hard blocking on invalid consent
+- integration with UI consent proof retrieval flow
+
+### Next Phase Dependency
+
+Next implementation step may now safely choose:
+- hard enforcement on failed consent/document checks
+- standing consent expiry handling
+- consent revocation handling
+- production persistence upgrade
+
+---
+

@@ -118,6 +118,232 @@
         "selected_service_family": "fica"
       }
     },
+    "req_1cf281c93ca0": {
+      "consent_check": {
+        "consent_records": [
+          {
+            "captured_at": "2026-03-20T15:22:10.912853+00:00",
+            "consent_id": "consent_d4ccd46110",
+            "consent_type": "processing",
+            "evidence_ref": "consent://processing/001",
+            "provided": true,
+            "required": true,
+            "source": "ui_checkbox",
+            "status": "valid"
+          },
+          {
+            "captured_at": "2026-03-20T15:22:10.912861+00:00",
+            "consent_id": "consent_b500569fd7",
+            "consent_type": "disclosure",
+            "evidence_ref": "consent://disclosure/001",
+            "provided": true,
+            "required": true,
+            "source": "ui_checkbox",
+            "status": "valid"
+          }
+        ],
+        "disclosure_consent_required": true,
+        "mode": "soft_enforcement",
+        "processing_consent_required": true,
+        "reasons": [],
+        "status": "pass"
+      },
+      "consent_records": [
+        {
+          "captured_at": "2026-03-20T15:22:10.912853+00:00",
+          "consent_id": "consent_d4ccd46110",
+          "consent_type": "processing",
+          "evidence_ref": "consent://processing/001",
+          "provided": true,
+          "required": true,
+          "source": "ui_checkbox",
+          "status": "valid"
+        },
+        {
+          "captured_at": "2026-03-20T15:22:10.912861+00:00",
+          "consent_id": "consent_b500569fd7",
+          "consent_type": "disclosure",
+          "evidence_ref": "consent://disclosure/001",
+          "provided": true,
+          "required": true,
+          "source": "ui_checkbox",
+          "status": "valid"
+        }
+      ],
+      "document_check": {
+        "assessments": [
+          {
+            "completeness_status": "assumed_present",
+            "document_id": "bank_statement_apr_001",
+            "expected_for_service": true,
+            "freshness_status": "unknown",
+            "inferred_type": "bank_statement",
+            "quality_status": "acceptable",
+            "readiness_score": 100,
+            "reasons": [],
+            "status": "pass"
+          },
+          {
+            "completeness_status": "assumed_present",
+            "document_id": "identity_document_user_001",
+            "expected_for_service": true,
+            "freshness_status": "unknown",
+            "inferred_type": "identity_document",
+            "quality_status": "acceptable",
+            "readiness_score": 100,
+            "reasons": [],
+            "status": "pass"
+          }
+        ],
+        "average_readiness_score": 100,
+        "document_count": 2,
+        "document_ids_received": [
+          "bank_statement_apr_001",
+          "identity_document_user_001"
+        ],
+        "expected_document_types": [
+          "bank_statement",
+          "identity_document"
+        ],
+        "missing_expected_document_types": [],
+        "mode": "soft_enforcement",
+        "reasons": [],
+        "status": "pass"
+      },
+      "downstream_execution": {
+        "downstream_status": "executed",
+        "execution": {
+          "callable": "run_task",
+          "execution_mode": "service_stub",
+          "invocation": {
+            "invocation_style": "payload_arg",
+            "result": {
+              "received_payload": {
+                "customer_id": "cust_consent_valid",
+                "disclose_to_third_party": true,
+                "document_ids": [
+                  "bank_statement_apr_001",
+                  "identity_document_user_001"
+                ],
+                "request_id": "req_1cf281c93ca0",
+                "service_code": "credit_decision",
+                "service_family": "credit_decision",
+                "timestamp": "2026-03-20T15:22:10.912886+00:00"
+              },
+              "result": {
+                "capabilities": [
+                  "affordability",
+                  "prevet",
+                  "bureau_assessment",
+                  "offer_generation"
+                ],
+                "summary": "Credit decision stub executed with real orchestration payload."
+              },
+              "service": "credit_decision",
+              "status": "executed"
+            }
+          },
+          "module": "infrastructure.ecs.credit_decision.task"
+        },
+        "service_family": "credit_decision",
+        "summary": "credit_decision execution invoked via decision engine."
+      },
+      "enforcement": {
+        "blocks_execution": false,
+        "consent": {
+          "consent_records": [
+            {
+              "captured_at": "2026-03-20T15:22:10.912853+00:00",
+              "consent_id": "consent_d4ccd46110",
+              "consent_type": "processing",
+              "evidence_ref": "consent://processing/001",
+              "provided": true,
+              "required": true,
+              "source": "ui_checkbox",
+              "status": "valid"
+            },
+            {
+              "captured_at": "2026-03-20T15:22:10.912861+00:00",
+              "consent_id": "consent_b500569fd7",
+              "consent_type": "disclosure",
+              "evidence_ref": "consent://disclosure/001",
+              "provided": true,
+              "required": true,
+              "source": "ui_checkbox",
+              "status": "valid"
+            }
+          ],
+          "disclosure_consent_required": true,
+          "mode": "soft_enforcement",
+          "processing_consent_required": true,
+          "reasons": [],
+          "status": "pass"
+        },
+        "documents": {
+          "assessments": [
+            {
+              "completeness_status": "assumed_present",
+              "document_id": "bank_statement_apr_001",
+              "expected_for_service": true,
+              "freshness_status": "unknown",
+              "inferred_type": "bank_statement",
+              "quality_status": "acceptable",
+              "readiness_score": 100,
+              "reasons": [],
+              "status": "pass"
+            },
+            {
+              "completeness_status": "assumed_present",
+              "document_id": "identity_document_user_001",
+              "expected_for_service": true,
+              "freshness_status": "unknown",
+              "inferred_type": "identity_document",
+              "quality_status": "acceptable",
+              "readiness_score": 100,
+              "reasons": [],
+              "status": "pass"
+            }
+          ],
+          "average_readiness_score": 100,
+          "document_count": 2,
+          "document_ids_received": [
+            "bank_statement_apr_001",
+            "identity_document_user_001"
+          ],
+          "expected_document_types": [
+            "bank_statement",
+            "identity_document"
+          ],
+          "missing_expected_document_types": [],
+          "mode": "soft_enforcement",
+          "reasons": [],
+          "status": "pass"
+        },
+        "enforcement_mode": "soft",
+        "overall_status": "pass"
+      },
+      "last_updated": "2026-03-20T15:22:10.913374+00:00",
+      "remediation_prompts": [],
+      "request": {
+        "created_at": "2026-03-20T15:22:10.912831+00:00",
+        "customer_id": "cust_consent_valid",
+        "disclose_to_third_party": true,
+        "document_ids": [
+          "bank_statement_apr_001",
+          "identity_document_user_001"
+        ],
+        "request_id": "req_1cf281c93ca0",
+        "service_code": "credit_decision",
+        "service_family": "credit_decision"
+      },
+      "request_status": "completed",
+      "result_status": "available",
+      "routing": {
+        "orchestration_layer": "services.decision_engine.frontend_request_orchestrator",
+        "selected_service_code": "credit_decision",
+        "selected_service_family": "credit_decision"
+      }
+    },
     "req_426b0b152394": {
       "consent_check": {
         "disclosure_consent_required": true,
@@ -475,6 +701,247 @@
         "orchestration_layer": "services.decision_engine.frontend_request_orchestrator",
         "selected_service_code": "financial_management",
         "selected_service_family": "financial_management"
+      }
+    },
+    "req_be4455b9e223": {
+      "consent_check": {
+        "consent_records": [
+          {
+            "captured_at": "2026-03-20T15:22:10.914607+00:00",
+            "consent_id": "consent_1b854e9b64",
+            "consent_type": "processing",
+            "evidence_ref": "",
+            "provided": true,
+            "required": true,
+            "source": "ui_checkbox",
+            "status": "invalid"
+          },
+          {
+            "captured_at": "2026-03-20T15:22:10.914615+00:00",
+            "consent_id": "consent_ea38f48cbe",
+            "consent_type": "disclosure",
+            "evidence_ref": "",
+            "provided": true,
+            "required": true,
+            "source": "ui_checkbox",
+            "status": "invalid"
+          }
+        ],
+        "disclosure_consent_required": true,
+        "mode": "soft_enforcement",
+        "processing_consent_required": true,
+        "reasons": [
+          "processing_consent_invalid",
+          "disclosure_consent_invalid"
+        ],
+        "status": "fail"
+      },
+      "consent_records": [
+        {
+          "captured_at": "2026-03-20T15:22:10.914607+00:00",
+          "consent_id": "consent_1b854e9b64",
+          "consent_type": "processing",
+          "evidence_ref": "",
+          "provided": true,
+          "required": true,
+          "source": "ui_checkbox",
+          "status": "invalid"
+        },
+        {
+          "captured_at": "2026-03-20T15:22:10.914615+00:00",
+          "consent_id": "consent_ea38f48cbe",
+          "consent_type": "disclosure",
+          "evidence_ref": "",
+          "provided": true,
+          "required": true,
+          "source": "ui_checkbox",
+          "status": "invalid"
+        }
+      ],
+      "document_check": {
+        "assessments": [
+          {
+            "completeness_status": "assumed_present",
+            "document_id": "bank_statement_apr_002",
+            "expected_for_service": true,
+            "freshness_status": "unknown",
+            "inferred_type": "bank_statement",
+            "quality_status": "acceptable",
+            "readiness_score": 100,
+            "reasons": [],
+            "status": "pass"
+          },
+          {
+            "completeness_status": "assumed_present",
+            "document_id": "identity_document_user_002",
+            "expected_for_service": true,
+            "freshness_status": "unknown",
+            "inferred_type": "identity_document",
+            "quality_status": "acceptable",
+            "readiness_score": 100,
+            "reasons": [],
+            "status": "pass"
+          }
+        ],
+        "average_readiness_score": 100,
+        "document_count": 2,
+        "document_ids_received": [
+          "bank_statement_apr_002",
+          "identity_document_user_002"
+        ],
+        "expected_document_types": [
+          "bank_statement",
+          "identity_document"
+        ],
+        "missing_expected_document_types": [],
+        "mode": "soft_enforcement",
+        "reasons": [],
+        "status": "pass"
+      },
+      "downstream_execution": {
+        "downstream_status": "executed",
+        "execution": {
+          "callable": "run_task",
+          "execution_mode": "service_stub",
+          "invocation": {
+            "invocation_style": "payload_arg",
+            "result": {
+              "received_payload": {
+                "customer_id": "cust_consent_invalid",
+                "disclose_to_third_party": true,
+                "document_ids": [
+                  "bank_statement_apr_002",
+                  "identity_document_user_002"
+                ],
+                "request_id": "req_be4455b9e223",
+                "service_code": "credit_decision",
+                "service_family": "credit_decision",
+                "timestamp": "2026-03-20T15:22:10.914636+00:00"
+              },
+              "result": {
+                "capabilities": [
+                  "affordability",
+                  "prevet",
+                  "bureau_assessment",
+                  "offer_generation"
+                ],
+                "summary": "Credit decision stub executed with real orchestration payload."
+              },
+              "service": "credit_decision",
+              "status": "executed"
+            }
+          },
+          "module": "infrastructure.ecs.credit_decision.task"
+        },
+        "service_family": "credit_decision",
+        "summary": "credit_decision execution invoked via decision engine."
+      },
+      "enforcement": {
+        "blocks_execution": false,
+        "consent": {
+          "consent_records": [
+            {
+              "captured_at": "2026-03-20T15:22:10.914607+00:00",
+              "consent_id": "consent_1b854e9b64",
+              "consent_type": "processing",
+              "evidence_ref": "",
+              "provided": true,
+              "required": true,
+              "source": "ui_checkbox",
+              "status": "invalid"
+            },
+            {
+              "captured_at": "2026-03-20T15:22:10.914615+00:00",
+              "consent_id": "consent_ea38f48cbe",
+              "consent_type": "disclosure",
+              "evidence_ref": "",
+              "provided": true,
+              "required": true,
+              "source": "ui_checkbox",
+              "status": "invalid"
+            }
+          ],
+          "disclosure_consent_required": true,
+          "mode": "soft_enforcement",
+          "processing_consent_required": true,
+          "reasons": [
+            "processing_consent_invalid",
+            "disclosure_consent_invalid"
+          ],
+          "status": "fail"
+        },
+        "documents": {
+          "assessments": [
+            {
+              "completeness_status": "assumed_present",
+              "document_id": "bank_statement_apr_002",
+              "expected_for_service": true,
+              "freshness_status": "unknown",
+              "inferred_type": "bank_statement",
+              "quality_status": "acceptable",
+              "readiness_score": 100,
+              "reasons": [],
+              "status": "pass"
+            },
+            {
+              "completeness_status": "assumed_present",
+              "document_id": "identity_document_user_002",
+              "expected_for_service": true,
+              "freshness_status": "unknown",
+              "inferred_type": "identity_document",
+              "quality_status": "acceptable",
+              "readiness_score": 100,
+              "reasons": [],
+              "status": "pass"
+            }
+          ],
+          "average_readiness_score": 100,
+          "document_count": 2,
+          "document_ids_received": [
+            "bank_statement_apr_002",
+            "identity_document_user_002"
+          ],
+          "expected_document_types": [
+            "bank_statement",
+            "identity_document"
+          ],
+          "missing_expected_document_types": [],
+          "mode": "soft_enforcement",
+          "reasons": [],
+          "status": "pass"
+        },
+        "enforcement_mode": "soft",
+        "overall_status": "fail"
+      },
+      "last_updated": "2026-03-20T15:22:10.914686+00:00",
+      "remediation_prompts": [
+        {
+          "reason": "processing_consent_invalid",
+          "suggestedAction": "Provide valid processing consent evidence reference and source."
+        },
+        {
+          "reason": "disclosure_consent_invalid",
+          "suggestedAction": "Provide valid disclosure consent evidence reference and source."
+        }
+      ],
+      "request": {
+        "created_at": "2026-03-20T15:22:10.914594+00:00",
+        "customer_id": "cust_consent_invalid",
+        "disclose_to_third_party": true,
+        "document_ids": [
+          "bank_statement_apr_002",
+          "identity_document_user_002"
+        ],
+        "request_id": "req_be4455b9e223",
+        "service_code": "credit_decision",
+        "service_family": "credit_decision"
+      },
+      "request_status": "completed",
+      "result_status": "available",
+      "routing": {
+        "orchestration_layer": "services.decision_engine.frontend_request_orchestrator",
+        "selected_service_code": "credit_decision",
+        "selected_service_family": "credit_decision"
       }
     },
     "req_c9100a32e955": {
