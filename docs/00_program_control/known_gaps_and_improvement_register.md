@@ -1,0 +1,80 @@
+# Known Gaps and Improvement Register
+
+## Purpose
+
+Maintain an explicit governed register of:
+- known gaps
+- limitations
+- deferred controls
+- improvement opportunities
+- interpretation risks
+
+This register exists to prevent:
+- silent assumptions
+- undocumented omissions
+- ambiguous handovers
+- incorrect future interpretation of missing behaviour
+
+---
+
+## Status Values
+
+- `OPEN` — known gap not yet addressed
+- `PARTIAL` — partially addressed but still incomplete
+- `CLOSED` — addressed and no longer a live gap
+- `SUPERSEDED` — replaced by a later design decision
+
+---
+
+## Register
+
+| Gap ID | Area | Description | Current State | Impact | Interpretation Risk | Current Workaround | Target / Next Step | Status |
+|---|---|---|---|---|---|---|---|---|
+| GAP-001 | Runtime validation | CloudShell local `python3` is 3.9, while governed runtime baseline is Python 3.11. | Python 3.11 container validation adopted. | Local validation can be misleading if run with system python. | High | Validate runtime-sensitive behaviour in Python 3.11 container. | Keep all runtime validation aligned to Python 3.11 or governed AWS runtime. | PARTIAL |
+| GAP-002 | Telemetry module scaffold | Phase 1 originally omitted `components` and `pages` under telemetry module. | Fixed during Phase 10. | Replay from bad scaffold can fail. | Medium | Corrected scaffold script exists. | Ensure scaffold baseline script remains the source of truth. | CLOSED |
+| GAP-003 | Downstream execution | Real AWS ECS/Lambda invocation is not yet wired; current execution uses local service stubs. | Service stubs invoked through decision engine. | No real infrastructure execution yet. | Low | Use stub execution and document clearly. | Real AWS invocation phase. | OPEN |
+| GAP-004 | Persistence | Request and consent persistence uses local file store `runtime_data/request_store.json`, not production persistence. | File-based persistence active. | Not durable/scalable/transactional. | Medium | Use as controlled dev persistence only. | Replace with governed production persistence layer. | OPEN |
+| GAP-005 | Consent enforcement mode | Consent checks are still soft enforcement only. Failed consent does not block execution. | Soft enforcement active. | Non-compliant requests can still execute in dev flow. | High | Persist failure state and remediation prompts. | Hard enforcement phase. | OPEN |
+| GAP-006 | Document enforcement mode | Document readiness checks are still soft enforcement only. Failed readiness does not block execution. | Soft enforcement active. | Incomplete or unsuitable documents can still execute in dev flow. | High | Persist readiness status and remediation prompts. | Hard enforcement or richer readiness controls. | OPEN |
+| GAP-007 | Document classification | Document type inference is heuristic from document ID strings, not OCR/content-backed. | Heuristic inference active. | Misclassification possible. | High | Use naming convention heuristics and surface readiness failures. | OCR/content-backed classification phase. | OPEN |
+| GAP-008 | Document completeness | Completeness is not truly validated; currently inferred / assumed from simple rules. | Placeholder completeness. | Missing pages or incomplete documents may be undetected. | High | Use expected-type checks and remediation prompts. | Real completeness validation phase. | OPEN |
+| GAP-009 | Document freshness | Freshness is not truly validated; currently marked `unknown`. | No real freshness logic. | Expired/stale documents may not be detected. | High | Persist freshness as unknown. | Add real freshness rules and evidence-based validation. | OPEN |
+| GAP-010 | Document quality | Quality scoring is not OCR/image based; still placeholder-level. | No true quality scoring. | Poor quality inputs may pass into execution. | Medium | Surface only basic readiness outcomes. | Introduce real quality scoring / preprocessing checks. | OPEN |
+| GAP-011 | Consent evidence validation | Consent evidence is checked only for presence of evidence reference, not authenticity/signature/legal proof. | Evidence metadata persisted. | False positives for “valid” evidence possible. | High | Treat evidence reference as dev placeholder only. | Signed/legal evidence validation phase. | OPEN |
+| GAP-012 | Standing consent expiry testing | Lifecycle model supports expiry fields, but expiry has not been verified via time-shifted scenario tests. | Expiry fields implemented. | Expiry logic may be unproven in practice. | Medium | Persist expiry fields and evaluate current timestamps. | Add explicit expiry test scenarios. | OPEN |
+| GAP-013 | Revoked consent surfaced state | After revocation, later request correctly fails but newly evaluated consent may surface as unavailable/missing rather than explicitly revoked. | Operationally correct, semantically improvable. | Revocation semantics may be under-expressed. | Medium | Note behaviour in program-state docs. | Refine surfaced-state handling for revoked consent. | OPEN |
+| GAP-014 | Consent registry scope | Consent registry is local and request-store based, not cross-system or enterprise-governed. | Local JSON-based registry active. | Cannot support multi-channel or external system consent reuse. | High | Use local registry only for dev/testing. | Introduce centralised consent service / datastore. | OPEN |
+| GAP-015 | Orchestration persistence model | Request lifecycle persistence is not event-driven and lacks audit-grade immutability. | Mutable JSON store. | Loss of audit trail fidelity and replay capability. | High | Store latest state only. | Introduce append-only/event-sourced persistence. | OPEN |
+| GAP-016 | Idempotency | Request creation and execution are not idempotent; duplicate submissions may create duplicate executions. | No idempotency keys. | Duplicate processing and inconsistent state possible. | High | None. | Introduce idempotency keys and request deduplication. | OPEN |
+| GAP-017 | Error handling model | No structured error taxonomy or failure classification across orchestration and services. | Generic success/failure only. | Poor diagnosability and inconsistent handling. | Medium | Basic status fields. | Introduce error model (codes, categories, retry flags). | OPEN |
+| GAP-018 | Retry / resilience | No retry strategy, backoff, or failure recovery logic implemented. | Single-pass execution. | Transient failures will cause hard failures. | High | Manual rerun endpoint only. | Introduce controlled retry and resilience policies. | OPEN |
+| GAP-019 | Observability | No metrics, tracing, or structured logging aligned to runtime stages. | Basic print/log outputs. | Limited visibility into system behaviour. | High | Manual inspection. | Add CloudWatch metrics, structured logs, tracing. | OPEN |
+| GAP-020 | Security / access control | No authentication, authorization, or request-level security enforcement. | Open internal execution model. | Unauthorized access risk. | High | None (dev mode). | Introduce authN/authZ layer and request validation. | OPEN |
+| GAP-021 | Data validation | Input payload validation is minimal and not schema-enforced. | Basic field checks only. | Invalid payloads may propagate downstream. | Medium | Manual validation in code. | Introduce schema validation (e.g. JSON schema). | OPEN |
+| GAP-022 | API contract governance | API responses are not versioned or contract-governed. | Implicit contract via code. | Breaking changes risk for consumers. | Medium | None. | Introduce versioned API contract and schema governance. | OPEN |
+| GAP-023 | Service routing governance | Service routing is code-based and static, not externally governed/configurable. | Hardcoded mapping. | Reduced flexibility and control. | Medium | Code updates. | Externalise routing configuration. | OPEN |
+| GAP-024 | Execution plan integration | Execution plan is not yet fully enforced as authoritative runtime instruction object. | Partial alignment. | Risk of drift between design and runtime. | High | Follow documented structure manually. | Enforce execution_plan-driven orchestration. | OPEN |
+
+---
+
+## Governance Rule
+
+This register is **mandatory maintenance**:
+
+- Every phase MUST:
+  - update existing gaps (status change if applicable)
+  - add newly discovered gaps
+- No gap may remain undocumented if identified
+- No feature may be treated as "complete" if related gaps remain OPEN without explicit acceptance
+
+---
+
+## Usage in Handover
+
+All future developer handovers MUST:
+- reference this register
+- not assume missing behaviour is intentional
+- treat OPEN gaps as **known incomplete system areas**
+
+---
+
