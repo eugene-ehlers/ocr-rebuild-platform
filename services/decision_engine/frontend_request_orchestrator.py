@@ -640,23 +640,53 @@ def _finalize_result_record(
             "request_status": "blocked",
             "result_status": "blocked",
             "plan_status": "blocked",
+            "finalization_reason": "pre_execution_enforcement_failed",
         }
 
     execution_mode = None
+    worker_status = None
+
     if downstream_execution:
         execution_mode = downstream_execution.get("execution", {}).get("execution_mode")
+
+        invocation_result = (
+            downstream_execution.get("execution", {})
+            .get("fallback", {})
+            .get("invocation", {})
+            .get("result")
+        )
+        if isinstance(invocation_result, dict):
+            worker_status = invocation_result.get("status")
+
+    if worker_status == "executed":
+        return {
+            "request_status": "completed",
+            "result_status": "available",
+            "plan_status": "completed",
+            "finalization_reason": "downstream_execution_succeeded",
+        }
+
+    if worker_status == "rejected":
+        return {
+            "request_status": "completed",
+            "result_status": "rejected",
+            "plan_status": "failed",
+            "finalization_reason": "downstream_worker_rejected_payload",
+        }
 
     if execution_mode in {"aws_live", "service_stub"}:
         return {
             "request_status": "completed",
             "result_status": "available",
             "plan_status": "completed",
+            "finalization_reason": "downstream_execution_succeeded",
         }
 
     return {
         "request_status": "completed",
         "result_status": "execution_failed",
         "plan_status": "failed",
+        "finalization_reason": "downstream_execution_failed",
     }
 
 
@@ -767,6 +797,7 @@ def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
         },
         "request_status": finalization["request_status"],
         "result_status": finalization["result_status"],
+        "finalization_reason": finalization["finalization_reason"],
         "downstream_execution": downstream_execution,
         "last_updated": _utc_now(),
     }
@@ -802,6 +833,7 @@ def get_status(request_id: str) -> Dict[str, Any]:
             "requestId": request_id,
             "requestStatus": record.get("request_status", "unknown"),
             "resultStatus": record.get("result_status", "unknown"),
+            "finalizationReason": record.get("finalization_reason"),
             "serviceFamily": record["request"]["service_family"],
             "enforcementOverallStatus": record.get("enforcement", {}).get("overall_status"),
             "documentReadinessScore": record.get("document_check", {}).get("average_readiness_score"),
@@ -837,6 +869,7 @@ def get_result(request_id: str) -> Dict[str, Any]:
             "requestId": request_id,
             "requestStatus": record.get("request_status", "unknown"),
             "resultStatus": record.get("result_status", "unknown"),
+            "finalizationReason": record.get("finalization_reason"),
             "result": record.get("downstream_execution"),
             "enforcement": record.get("enforcement"),
         },
