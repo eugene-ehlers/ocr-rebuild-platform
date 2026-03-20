@@ -610,7 +610,7 @@ def _mark_remaining_stages(plan: Dict[str, Any], after_stage_id: str, status: st
             seen = True
 
 
-def _execute(context: OrchestrationContext) -> Dict[str, Any]:
+def _execute(context: OrchestrationContext, execution_plan: Dict[str, Any]) -> Dict[str, Any]:
     execution_payload = {
         "request_id": context.request_id,
         "customer_id": context.customer_id,
@@ -619,6 +619,13 @@ def _execute(context: OrchestrationContext) -> Dict[str, Any]:
         "document_ids": context.document_ids,
         "disclose_to_third_party": context.disclose_to_third_party,
         "timestamp": _utc_now(),
+        "execution_plan": execution_plan,
+        "orchestration_context": {
+            "plan_id": execution_plan.get("plan_id"),
+            "plan_version": execution_plan.get("plan_version"),
+            "current_stage": "downstream_execution",
+            "plan_status": execution_plan.get("plan_status"),
+        },
     }
     return execute_service_family(context.service_family, execution_payload)
 
@@ -694,7 +701,7 @@ def _execute_plan(
     _set_stage_status(plan, "enforcement_decision", "passed")
 
     _set_stage_status(plan, "downstream_execution", "running")
-    downstream_execution = _execute(context)
+    downstream_execution = _execute(context, plan)
     stage_results["downstream_execution"] = downstream_execution
 
     execution_mode = downstream_execution.get("execution", {}).get("execution_mode")
