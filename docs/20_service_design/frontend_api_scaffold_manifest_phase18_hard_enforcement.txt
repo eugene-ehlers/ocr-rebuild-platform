@@ -1,0 +1,13 @@
+Phase 18 hard enforcement created:
+- services/decision_engine/frontend_request_orchestrator.py updated to hard enforcement mode
+- execution blocked when consent or document checks fail
+- blocked requests still persist:
+  - request
+  - consent records
+  - document readiness
+  - enforcement
+  - remediation prompts
+- blocked requests return:
+  - status=blocked_by_enforcement
+  - downstream_execution=null
+- rerun now also respects hard enforcement

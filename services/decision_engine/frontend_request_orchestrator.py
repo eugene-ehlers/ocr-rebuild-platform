@@ -62,6 +62,8 @@ DEFAULT_VALIDITY_SECONDS = {
     "disclosure": 60 * 60 * 24 * 7,
 }
 
+ENFORCEMENT_MODE = "hard"
+
 
 @dataclass
 class OrchestrationContext:
@@ -143,10 +145,7 @@ def _base_response(
 
 def _find_reusable_consent(customer_id: str, consent_type: str) -> Optional[Dict[str, Any]]:
     records = get_customer_consent_records(customer_id)
-    candidates = [
-        r for r in records
-        if r.get("consent_type") == consent_type
-    ]
+    candidates = [r for r in records if r.get("consent_type") == consent_type]
     if not candidates:
         return None
 
@@ -222,27 +221,19 @@ def _get_or_create_consent_record(customer_id: str, consent_type: str, provided:
         reused["is_expired"] = reused["status"] == "expired"
         return reused
 
-    record = _build_new_consent_record(consent_type, False, payload, required)
-    return record
+    return _build_new_consent_record(consent_type, False, payload, required)
 
 
 def _evaluate_consent(context: OrchestrationContext, payload: Dict[str, Any]) -> Dict[str, Any]:
     processing_provided = bool(payload.get("processingConsent", False))
     disclosure_provided = bool(payload.get("disclosureConsent", False))
 
-    processing_record = _get_or_create_consent_record(
-        context.customer_id, "processing", processing_provided, payload, True
-    )
-    disclosure_record = _get_or_create_consent_record(
-        context.customer_id, "disclosure", disclosure_provided, payload, context.disclose_to_third_party
-    )
+    processing_record = _get_or_create_consent_record(context.customer_id, "processing", processing_provided, payload, True)
+    disclosure_record = _get_or_create_consent_record(context.customer_id, "disclosure", disclosure_provided, payload, context.disclose_to_third_party)
 
     consent_records = [processing_record, disclosure_record]
 
-    status = "pass" if all(
-        (not r["required"]) or r["status"] == "valid"
-        for r in consent_records
-    ) else "fail"
+    status = "pass" if all((not r["required"]) or r["status"] == "valid" for r in consent_records) else "fail"
 
     reasons: List[str] = []
     for record in consent_records:
@@ -262,7 +253,7 @@ def _evaluate_consent(context: OrchestrationContext, payload: Dict[str, Any]) ->
         "disclosure_consent_required": context.disclose_to_third_party,
         "status": status,
         "reasons": reasons,
-        "mode": "soft_enforcement",
+        "mode": ENFORCEMENT_MODE,
         "consent_records": consent_records,
     }
 
@@ -305,10 +296,7 @@ def _assess_document(document_id: str, expected_types: set[str]) -> Dict[str, An
         completeness_status = "unknown"
 
     readiness_score = max(0, readiness_score)
-
-    status = "pass" if readiness_score >= 70 and not any(
-        reason in {"document_type_not_expected_for_service"} for reason in reasons
-    ) else "fail"
+    status = "pass" if readiness_score >= 70 and "document_type_not_expected_for_service" not in reasons else "fail"
 
     return {
         "document_id": document_id,
@@ -333,13 +321,11 @@ def _evaluate_documents(context: OrchestrationContext) -> Dict[str, Any]:
 
     supplied_types = {a["inferred_type"] for a in assessments if a["inferred_type"] != "unknown"}
     missing_expected_types = sorted(list(expected_types - supplied_types))
-
     if missing_expected_types:
         reasons.append("required_document_types_missing")
 
     failing_docs = [a for a in assessments if a["status"] == "fail"]
     avg_score = int(sum(a["readiness_score"] for a in assessments) / len(assessments)) if assessments else 0
-
     overall_status = "pass" if not reasons and not failing_docs and avg_score >= 70 else "fail"
 
     return {
@@ -351,7 +337,7 @@ def _evaluate_documents(context: OrchestrationContext) -> Dict[str, Any]:
         "average_readiness_score": avg_score,
         "status": overall_status,
         "reasons": reasons,
-        "mode": "soft_enforcement",
+        "mode": ENFORCEMENT_MODE,
     }
 
 
@@ -361,8 +347,8 @@ def _build_enforcement(consent_check: Dict[str, Any], document_check: Dict[str, 
         "consent": consent_check,
         "documents": document_check,
         "overall_status": overall,
-        "enforcement_mode": "soft",
-        "blocks_execution": False,
+        "enforcement_mode": ENFORCEMENT_MODE,
+        "blocks_execution": ENFORCEMENT_MODE == "hard",
     }
 
 
@@ -370,53 +356,22 @@ def _build_remediation_prompts(enforcement: Dict[str, Any]) -> List[Dict[str, st
     prompts: List[Dict[str, str]] = []
 
     for reason in enforcement["consent"]["reasons"]:
-        if reason == "processing_consent_missing":
-            prompts.append({
-                "reason": reason,
-                "suggestedAction": "Capture valid processing consent before production execution.",
-            })
-        elif reason == "disclosure_consent_missing":
-            prompts.append({
-                "reason": reason,
-                "suggestedAction": "Capture valid disclosure consent before third-party sharing.",
-            })
-        elif reason == "processing_consent_invalid":
-            prompts.append({
-                "reason": reason,
-                "suggestedAction": "Provide valid processing consent evidence reference and source.",
-            })
-        elif reason == "disclosure_consent_invalid":
-            prompts.append({
-                "reason": reason,
-                "suggestedAction": "Provide valid disclosure consent evidence reference and source.",
-            })
-        elif reason == "processing_consent_expired":
-            prompts.append({
-                "reason": reason,
-                "suggestedAction": "Refresh expired processing consent before execution.",
-            })
-        elif reason == "disclosure_consent_expired":
-            prompts.append({
-                "reason": reason,
-                "suggestedAction": "Refresh expired disclosure consent before sharing.",
-            })
-        elif reason == "processing_consent_revoked":
-            prompts.append({
-                "reason": reason,
-                "suggestedAction": "Capture a new processing consent because the previous one was revoked.",
-            })
-        elif reason == "disclosure_consent_revoked":
-            prompts.append({
-                "reason": reason,
-                "suggestedAction": "Capture a new disclosure consent because the previous one was revoked.",
-            })
+        mapping = {
+            "processing_consent_missing": "Capture valid processing consent before execution.",
+            "disclosure_consent_missing": "Capture valid disclosure consent before third-party sharing.",
+            "processing_consent_invalid": "Provide valid processing consent evidence reference and source.",
+            "disclosure_consent_invalid": "Provide valid disclosure consent evidence reference and source.",
+            "processing_consent_expired": "Refresh expired processing consent before execution.",
+            "disclosure_consent_expired": "Refresh expired disclosure consent before sharing.",
+            "processing_consent_revoked": "Capture a new processing consent because the previous one was revoked.",
+            "disclosure_consent_revoked": "Capture a new disclosure consent because the previous one was revoked.",
+        }
+        if reason in mapping:
+            prompts.append({"reason": reason, "suggestedAction": mapping[reason]})
 
     for reason in enforcement["documents"]["reasons"]:
         if reason == "documents_missing":
-            prompts.append({
-                "reason": reason,
-                "suggestedAction": "Upload the required documents before execution.",
-            })
+            prompts.append({"reason": reason, "suggestedAction": "Upload the required documents before execution."})
         elif reason == "required_document_types_missing":
             missing = enforcement["documents"].get("missing_expected_document_types", [])
             prompts.append({
@@ -467,35 +422,11 @@ def _execute(context: OrchestrationContext) -> Dict[str, Any]:
 
 def get_catalog() -> Dict[str, Any]:
     items = [
-        {
-            "serviceCode": "financial_management",
-            "serviceName": "Financial Management",
-            "serviceFamily": "financial_management",
-            "requiresProcessingConsent": True,
-            "requiresDisclosureConsent": False,
-        },
-        {
-            "serviceCode": "fica",
-            "serviceName": "FICA Compliance",
-            "serviceFamily": "fica",
-            "requiresProcessingConsent": True,
-            "requiresDisclosureConsent": False,
-        },
-        {
-            "serviceCode": "credit_decision",
-            "serviceName": "Credit Decision",
-            "serviceFamily": "credit_decision",
-            "requiresProcessingConsent": True,
-            "requiresDisclosureConsent": True,
-        },
+        {"serviceCode": "financial_management", "serviceName": "Financial Management", "serviceFamily": "financial_management", "requiresProcessingConsent": True, "requiresDisclosureConsent": False},
+        {"serviceCode": "fica", "serviceName": "FICA Compliance", "serviceFamily": "fica", "requiresProcessingConsent": True, "requiresDisclosureConsent": False},
+        {"serviceCode": "credit_decision", "serviceName": "Credit Decision", "serviceFamily": "credit_decision", "requiresProcessingConsent": True, "requiresDisclosureConsent": True},
     ]
-
-    return _base_response(
-        success=True,
-        status="ready",
-        message="Service catalog retrieved.",
-        data={"items": items},
-    )
+    return _base_response(success=True, status="ready", message="Service catalog retrieved.", data={"items": items})
 
 
 def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -506,7 +437,7 @@ def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
     enforcement = _build_enforcement(consent_check, document_check)
     remediation_prompts = _build_remediation_prompts(enforcement)
 
-    downstream_execution = _execute(context)
+    blocked = enforcement["overall_status"] == "fail" and ENFORCEMENT_MODE == "hard"
 
     orchestration_record = {
         "request": asdict(context),
@@ -520,18 +451,29 @@ def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
             "selected_service_code": context.service_code,
             "orchestration_layer": "services.decision_engine.frontend_request_orchestrator",
         },
-        "request_status": "completed",
-        "result_status": "available",
-        "downstream_execution": downstream_execution,
+        "request_status": "blocked" if blocked else "completed",
+        "result_status": "blocked" if blocked else "available",
+        "downstream_execution": None,
         "last_updated": _utc_now(),
     }
 
+    if not blocked:
+        orchestration_record["downstream_execution"] = _execute(context)
+
     save_request(orchestration_record)
+
+    if blocked:
+        return _base_response(
+            success=False,
+            status="blocked_by_enforcement",
+            message="Request blocked due to failed pre-execution checks.",
+            data=orchestration_record,
+        )
 
     return _base_response(
         success=True,
-        status="executed_with_soft_enforcement",
-        message="Request evaluated, executed, and persisted under soft enforcement with standing consent handling.",
+        status="executed",
+        message="Request evaluated, executed, and persisted under hard enforcement.",
         data=orchestration_record,
     )
 
@@ -539,12 +481,7 @@ def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
 def get_status(request_id: str) -> Dict[str, Any]:
     record = get_request(request_id)
     if not record:
-        return _base_response(
-            success=False,
-            status="not_found",
-            message="Request status not found.",
-            data={"requestId": request_id},
-        )
+        return _base_response(success=False, status="not_found", message="Request status not found.", data={"requestId": request_id})
 
     return _base_response(
         success=True,
@@ -566,33 +503,20 @@ def get_status(request_id: str) -> Dict[str, Any]:
 def get_remediation(request_id: str) -> Dict[str, Any]:
     record = get_request(request_id)
     if not record:
-        return _base_response(
-            success=False,
-            status="not_found",
-            message="Remediation prompts not found.",
-            data={"requestId": request_id},
-        )
+        return _base_response(success=False, status="not_found", message="Remediation prompts not found.", data={"requestId": request_id})
 
     return _base_response(
         success=True,
         status="ready",
         message="Remediation prompts retrieved.",
-        data={
-            "requestId": request_id,
-            "prompts": record.get("remediation_prompts", []),
-        },
+        data={"requestId": request_id, "prompts": record.get("remediation_prompts", [])},
     )
 
 
 def get_result(request_id: str) -> Dict[str, Any]:
     record = get_request(request_id)
     if not record:
-        return _base_response(
-            success=False,
-            status="not_found",
-            message="Result not found.",
-            data={"requestId": request_id},
-        )
+        return _base_response(success=False, status="not_found", message="Result not found.", data={"requestId": request_id})
 
     return _base_response(
         success=True,
@@ -612,11 +536,14 @@ def get_result(request_id: str) -> Dict[str, Any]:
 def rerun_request(request_id: str) -> Dict[str, Any]:
     record = get_request(request_id)
     if not record:
+        return _base_response(success=False, status="not_found", message="Rerun target not found.", data={"requestId": request_id})
+
+    if record.get("enforcement", {}).get("overall_status") == "fail":
         return _base_response(
             success=False,
-            status="not_found",
-            message="Rerun target not found.",
-            data={"requestId": request_id},
+            status="blocked_by_enforcement",
+            message="Rerun blocked due to failed pre-execution checks.",
+            data={"requestId": request_id, "enforcement": record.get("enforcement"), "remediation_prompts": record.get("remediation_prompts", [])},
         )
 
     context = OrchestrationContext(
@@ -640,30 +567,11 @@ def rerun_request(request_id: str) -> Dict[str, Any]:
         },
     )
 
-    return _base_response(
-        success=True,
-        status="executed",
-        message="Rerun executed and persisted.",
-        data={
-            "requestId": request_id,
-            "updatedRecord": updated,
-        },
-    )
+    return _base_response(success=True, status="executed", message="Rerun executed and persisted.", data={"requestId": request_id, "updatedRecord": updated})
 
 
 def revoke_consent(consent_id: str) -> Dict[str, Any]:
     revoked = revoke_customer_consent(consent_id, _utc_now())
     if not revoked:
-        return _base_response(
-            success=False,
-            status="not_found",
-            message="Consent record not found for revocation.",
-            data={"consentId": consent_id},
-        )
-
-    return _base_response(
-        success=True,
-        status="revoked",
-        message="Consent record revoked.",
-        data={"consentId": consent_id},
-    )
+        return _base_response(success=False, status="not_found", message="Consent record not found for revocation.", data={"consentId": consent_id})
+    return _base_response(success=True, status="revoked", message="Consent record revoked.", data={"consentId": consent_id})

@@ -1250,3 +1250,82 @@ Next implementation step may now safely choose:
 
 ---
 
+
+---
+
+## Phase 18 — Hard Enforcement Layer (COMPLETED)
+
+### Objective
+Move from soft pre-execution enforcement to hard blocking enforcement.
+
+### Implementation Summary
+
+Updated:
+- `services/decision_engine/frontend_request_orchestrator.py`
+
+Added behaviour:
+- enforcement mode changed to `hard`
+- execution is now blocked when:
+  - consent checks fail
+  - document readiness checks fail
+
+Blocked requests still persist:
+- request
+- consent records
+- document readiness state
+- enforcement result
+- remediation prompts
+
+Blocked requests now return:
+- `success = False`
+- `status = blocked_by_enforcement`
+- `downstream_execution = null`
+
+Rerun behaviour also respects hard enforcement and does not execute when checks remain failed.
+
+### Verified Behaviour
+
+Validated in Python 3.11 container runtime:
+
+#### Valid request
+Observed:
+- `success = True`
+- `status = executed`
+- downstream execution present
+
+#### Invalid consent
+Observed:
+- `success = False`
+- `status = blocked_by_enforcement`
+- downstream execution absent
+- remediation prompts generated
+
+#### Invalid documents
+Observed:
+- `success = False`
+- `status = blocked_by_enforcement`
+- downstream execution absent
+- remediation prompts generated
+
+#### Stored blocked request
+Observed:
+- `resultStatus = blocked`
+- `result = None`
+
+### Scope Boundary
+
+Phase 18 does NOT yet provide:
+- production persistence
+- real AWS ECS/Lambda invocation
+- OCR-backed document classification
+- signed legal consent evidence validation
+- full retry/resilience model
+
+### Gap Register Impact
+
+This phase closes:
+- GAP-005 — Consent enforcement mode
+- GAP-006 — Document enforcement mode
+
+---
+

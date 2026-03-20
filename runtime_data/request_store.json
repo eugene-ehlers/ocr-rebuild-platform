@@ -1,5 +1,101 @@
 {
   "consents": {
+    "cust_hard_consent_fail": [
+      {
+        "captured_at": "2026-03-20T15:48:33.547862+00:00",
+        "consent_id": "consent_c95c813795",
+        "consent_type": "processing",
+        "evidence_ref": "",
+        "is_expired": false,
+        "provided": true,
+        "required": true,
+        "reused": false,
+        "revoked": false,
+        "revoked_at": null,
+        "source": "ui_checkbox",
+        "standing": true,
+        "status": "invalid",
+        "valid_from": "2026-03-20T15:48:33.547862+00:00",
+        "valid_until": "2026-04-19T15:48:33.547862+00:00",
+        "validity_window_seconds": 2592000
+      },
+      {
+        "captured_at": "2026-03-20T15:48:33.550278+00:00",
+        "consent_id": "consent_cf92dd5d5a",
+        "consent_type": "disclosure",
+        "evidence_ref": "",
+        "is_expired": false,
+        "provided": true,
+        "required": true,
+        "reused": false,
+        "revoked": false,
+        "revoked_at": null,
+        "source": "ui_checkbox",
+        "standing": true,
+        "status": "invalid",
+        "valid_from": "2026-03-20T15:48:33.550278+00:00",
+        "valid_until": "2026-03-27T15:48:33.550278+00:00",
+        "validity_window_seconds": 604800
+      }
+    ],
+    "cust_hard_doc_fail": [
+      {
+        "captured_at": "2026-03-20T15:48:33.555402+00:00",
+        "consent_id": "consent_a45df39dd7",
+        "consent_type": "processing",
+        "evidence_ref": "consent://processing/hard002",
+        "is_expired": false,
+        "provided": true,
+        "required": true,
+        "reused": false,
+        "revoked": false,
+        "revoked_at": null,
+        "source": "ui_checkbox",
+        "standing": true,
+        "status": "valid",
+        "valid_from": "2026-03-20T15:48:33.555402+00:00",
+        "valid_until": "2026-04-19T15:48:33.555402+00:00",
+        "validity_window_seconds": 2592000
+      }
+    ],
+    "cust_hard_valid": [
+      {
+        "captured_at": "2026-03-20T15:48:33.540670+00:00",
+        "consent_id": "consent_42570a6d30",
+        "consent_type": "processing",
+        "evidence_ref": "consent://processing/hard001",
+        "is_expired": false,
+        "provided": true,
+        "required": true,
+        "reused": false,
+        "revoked": false,
+        "revoked_at": null,
+        "source": "ui_checkbox",
+        "standing": true,
+        "status": "valid",
+        "valid_from": "2026-03-20T15:48:33.540670+00:00",
+        "valid_until": "2026-04-19T15:48:33.540670+00:00",
+        "validity_window_seconds": 2592000
+      },
+      {
+        "captured_at": "2026-03-20T15:48:33.542854+00:00",
+        "consent_id": "consent_4c5b6b7f50",
+        "consent_type": "disclosure",
+        "evidence_ref": "consent://disclosure/hard001",
+        "is_expired": false,
+        "provided": true,
+        "required": true,
+        "reused": false,
+        "revoked": false,
+        "revoked_at": null,
+        "source": "ui_checkbox",
+        "standing": true,
+        "status": "valid",
+        "valid_from": "2026-03-20T15:48:33.542854+00:00",
+        "valid_until": "2026-03-27T15:48:33.542854+00:00",
+        "validity_window_seconds": 604800
+      }
+    ],
     "cust_standing_001": [
       {
         "captured_at": "2026-03-20T15:30:59.998008+00:00",
@@ -387,6 +483,241 @@
         "orchestration_layer": "services.decision_engine.frontend_request_orchestrator",
         "selected_service_code": "financial_management",
         "selected_service_family": "financial_management"
+      }
+    },
+    "req_1b869b3efbef": {
+      "consent_check": {
+        "consent_records": [
+          {
+            "captured_at": "2026-03-20T15:48:33.555402+00:00",
+            "consent_id": "consent_a45df39dd7",
+            "consent_type": "processing",
+            "evidence_ref": "consent://processing/hard002",
+            "is_expired": false,
+            "provided": true,
+            "required": true,
+            "reused": false,
+            "revoked": false,
+            "revoked_at": null,
+            "source": "ui_checkbox",
+            "standing": true,
+            "status": "valid",
+            "valid_from": "2026-03-20T15:48:33.555402+00:00",
+            "valid_until": "2026-04-19T15:48:33.555402+00:00",
+            "validity_window_seconds": 2592000
+          },
+          {
+            "captured_at": null,
+            "consent_id": "consent_5bbbff777b",
+            "consent_type": "disclosure",
+            "evidence_ref": null,
+            "is_expired": false,
+            "provided": false,
+            "required": false,
+            "reused": false,
+            "revoked": false,
+            "revoked_at": null,
+            "source": null,
+            "standing": false,
+            "status": "not_required",
+            "valid_from": null,
+            "valid_until": null,
+            "validity_window_seconds": null
+          }
+        ],
+        "disclosure_consent_required": false,
+        "mode": "hard",
+        "processing_consent_required": true,
+        "reasons": [],
+        "status": "pass"
+      },
+      "consent_records": [
+        {
+          "captured_at": "2026-03-20T15:48:33.555402+00:00",
+          "consent_id": "consent_a45df39dd7",
+          "consent_type": "processing",
+          "evidence_ref": "consent://processing/hard002",
+          "is_expired": false,
+          "provided": true,
+          "required": true,
+          "reused": false,
+          "revoked": false,
+          "revoked_at": null,
+          "source": "ui_checkbox",
+          "standing": true,
+          "status": "valid",
+          "valid_from": "2026-03-20T15:48:33.555402+00:00",
+          "valid_until": "2026-04-19T15:48:33.555402+00:00",
+          "validity_window_seconds": 2592000
+        },
+        {
+          "captured_at": null,
+          "consent_id": "consent_5bbbff777b",
+          "consent_type": "disclosure",
+          "evidence_ref": null,
+          "is_expired": false,
+          "provided": false,
+          "required": false,
+          "reused": false,
+          "revoked": false,
+          "revoked_at": null,
+          "source": null,
+          "standing": false,
+          "status": "not_required",
+          "valid_from": null,
+          "valid_until": null,
+          "validity_window_seconds": null
+        }
+      ],
+      "document_check": {
+        "assessments": [
+          {
+            "completeness_status": "unknown",
+            "document_id": "mystery_file_x",
+            "expected_for_service": false,
+            "freshness_status": "unknown",
+            "inferred_type": "unknown",
+            "quality_status": "acceptable",
+            "readiness_score": 70,
+            "reasons": [
+              "document_type_unknown"
+            ],
+            "status": "pass"
+          }
+        ],
+        "average_readiness_score": 70,
+        "document_count": 1,
+        "document_ids_received": [
+          "mystery_file_x"
+        ],
+        "expected_document_types": [
+          "identity_document",
+          "proof_of_address"
+        ],
+        "missing_expected_document_types": [
+          "identity_document",
+          "proof_of_address"
+        ],
+        "mode": "hard",
+        "reasons": [
+          "required_document_types_missing"
+        ],
+        "status": "fail"
+      },
+      "downstream_execution": null,
+      "enforcement": {
+        "blocks_execution": true,
+        "consent": {
+          "consent_records": [
+            {
+              "captured_at": "2026-03-20T15:48:33.555402+00:00",
+              "consent_id": "consent_a45df39dd7",
+              "consent_type": "processing",
+              "evidence_ref": "consent://processing/hard002",
+              "is_expired": false,
+              "provided": true,
+              "required": true,
+              "reused": false,
+              "revoked": false,
+              "revoked_at": null,
+              "source": "ui_checkbox",
+              "standing": true,
+              "status": "valid",
+              "valid_from": "2026-03-20T15:48:33.555402+00:00",
+              "valid_until": "2026-04-19T15:48:33.555402+00:00",
+              "validity_window_seconds": 2592000
+            },
+            {
+              "captured_at": null,
+              "consent_id": "consent_5bbbff777b",
+              "consent_type": "disclosure",
+              "evidence_ref": null,
+              "is_expired": false,
+              "provided": false,
+              "required": false,
+              "reused": false,
+              "revoked": false,
+              "revoked_at": null,
+              "source": null,
+              "standing": false,
+              "status": "not_required",
+              "valid_from": null,
+              "valid_until": null,
+              "validity_window_seconds": null
+            }
+          ],
+          "disclosure_consent_required": false,
+          "mode": "hard",
+          "processing_consent_required": true,
+          "reasons": [],
+          "status": "pass"
+        },
+        "documents": {
+          "assessments": [
+            {
+              "completeness_status": "unknown",
+              "document_id": "mystery_file_x",
+              "expected_for_service": false,
+              "freshness_status": "unknown",
+              "inferred_type": "unknown",
+              "quality_status": "acceptable",
+              "readiness_score": 70,
+              "reasons": [
+                "document_type_unknown"
+              ],
+              "status": "pass"
+            }
+          ],
+          "average_readiness_score": 70,
+          "document_count": 1,
+          "document_ids_received": [
+            "mystery_file_x"
+          ],
+          "expected_document_types": [
+            "identity_document",
+            "proof_of_address"
+          ],
+          "missing_expected_document_types": [
+            "identity_document",
+            "proof_of_address"
+          ],
+          "mode": "hard",
+          "reasons": [
+            "required_document_types_missing"
+          ],
+          "status": "fail"
+        },
+        "enforcement_mode": "hard",
+        "overall_status": "fail"
+      },
+      "last_updated": "2026-03-20T15:48:33.558507+00:00",
+      "remediation_prompts": [
+        {
+          "reason": "required_document_types_missing",
+          "suggestedAction": "Provide missing document types required for this service: identity_document, proof_of_address."
+        },
+        {
+          "reason": "document_type_unknown",
+          "suggestedAction": "Clarify or relabel document mystery_file_x so its type can be identified."
+        }
+      ],
+      "request": {
+        "created_at": "2026-03-20T15:48:33.555394+00:00",
+        "customer_id": "cust_hard_doc_fail",
+        "disclose_to_third_party": false,
+        "document_ids": [
+          "mystery_file_x"
+        ],
+        "request_id": "req_1b869b3efbef",
+        "service_code": "fica",
+        "service_family": "fica"
+      },
+      "request_status": "blocked",
+      "result_status": "blocked",
+      "routing": {
+        "orchestration_layer": "services.decision_engine.frontend_request_orchestrator",
+        "selected_service_code": "fica",
+        "selected_service_family": "fica"
       }
     },
     "req_1cf281c93ca0": {
@@ -1481,6 +1812,258 @@
         "selected_service_family": "financial_management"
       }
     },
+    "req_bde3334169f7": {
+      "consent_check": {
+        "consent_records": [
+          {
+            "captured_at": "2026-03-20T15:48:33.547862+00:00",
+            "consent_id": "consent_c95c813795",
+            "consent_type": "processing",
+            "evidence_ref": "",
+            "is_expired": false,
+            "provided": true,
+            "required": true,
+            "reused": false,
+            "revoked": false,
+            "revoked_at": null,
+            "source": "ui_checkbox",
+            "standing": true,
+            "status": "invalid",
+            "valid_from": "2026-03-20T15:48:33.547862+00:00",
+            "valid_until": "2026-04-19T15:48:33.547862+00:00",
+            "validity_window_seconds": 2592000
+          },
+          {
+            "captured_at": "2026-03-20T15:48:33.550278+00:00",
+            "consent_id": "consent_cf92dd5d5a",
+            "consent_type": "disclosure",
+            "evidence_ref": "",
+            "is_expired": false,
+            "provided": true,
+            "required": true,
+            "reused": false,
+            "revoked": false,
+            "revoked_at": null,
+            "source": "ui_checkbox",
+            "standing": true,
+            "status": "invalid",
+            "valid_from": "2026-03-20T15:48:33.550278+00:00",
+            "valid_until": "2026-03-27T15:48:33.550278+00:00",
+            "validity_window_seconds": 604800
+          }
+        ],
+        "disclosure_consent_required": true,
+        "mode": "hard",
+        "processing_consent_required": true,
+        "reasons": [
+          "processing_consent_invalid",
+          "disclosure_consent_invalid"
+        ],
+        "status": "fail"
+      },
+      "consent_records": [
+        {
+          "captured_at": "2026-03-20T15:48:33.547862+00:00",
+          "consent_id": "consent_c95c813795",
+          "consent_type": "processing",
+          "evidence_ref": "",
+          "is_expired": false,
+          "provided": true,
+          "required": true,
+          "reused": false,
+          "revoked": false,
+          "revoked_at": null,
+          "source": "ui_checkbox",
+          "standing": true,
+          "status": "invalid",
+          "valid_from": "2026-03-20T15:48:33.547862+00:00",
+          "valid_until": "2026-04-19T15:48:33.547862+00:00",
+          "validity_window_seconds": 2592000
+        },
+        {
+          "captured_at": "2026-03-20T15:48:33.550278+00:00",
+          "consent_id": "consent_cf92dd5d5a",
+          "consent_type": "disclosure",
+          "evidence_ref": "",
+          "is_expired": false,
+          "provided": true,
+          "required": true,
+          "reused": false,
+          "revoked": false,
+          "revoked_at": null,
+          "source": "ui_checkbox",
+          "standing": true,
+          "status": "invalid",
+          "valid_from": "2026-03-20T15:48:33.550278+00:00",
+          "valid_until": "2026-03-27T15:48:33.550278+00:00",
+          "validity_window_seconds": 604800
+        }
+      ],
+      "document_check": {
+        "assessments": [
+          {
+            "completeness_status": "assumed_present",
+            "document_id": "bank_statement_may_002",
+            "expected_for_service": true,
+            "freshness_status": "unknown",
+            "inferred_type": "bank_statement",
+            "quality_status": "acceptable",
+            "readiness_score": 100,
+            "reasons": [],
+            "status": "pass"
+          },
+          {
+            "completeness_status": "assumed_present",
+            "document_id": "identity_document_user_011",
+            "expected_for_service": true,
+            "freshness_status": "unknown",
+            "inferred_type": "identity_document",
+            "quality_status": "acceptable",
+            "readiness_score": 100,
+            "reasons": [],
+            "status": "pass"
+          }
+        ],
+        "average_readiness_score": 100,
+        "document_count": 2,
+        "document_ids_received": [
+          "bank_statement_may_002",
+          "identity_document_user_011"
+        ],
+        "expected_document_types": [
+          "bank_statement",
+          "identity_document"
+        ],
+        "missing_expected_document_types": [],
+        "mode": "hard",
+        "reasons": [],
+        "status": "pass"
+      },
+      "downstream_execution": null,
+      "enforcement": {
+        "blocks_execution": true,
+        "consent": {
+          "consent_records": [
+            {
+              "captured_at": "2026-03-20T15:48:33.547862+00:00",
+              "consent_id": "consent_c95c813795",
+              "consent_type": "processing",
+              "evidence_ref": "",
+              "is_expired": false,
+              "provided": true,
+              "required": true,
+              "reused": false,
+              "revoked": false,
+              "revoked_at": null,
+              "source": "ui_checkbox",
+              "standing": true,
+              "status": "invalid",
+              "valid_from": "2026-03-20T15:48:33.547862+00:00",
+              "valid_until": "2026-04-19T15:48:33.547862+00:00",
+              "validity_window_seconds": 2592000
+            },
+            {
+              "captured_at": "2026-03-20T15:48:33.550278+00:00",
+              "consent_id": "consent_cf92dd5d5a",
+              "consent_type": "disclosure",
+              "evidence_ref": "",
+              "is_expired": false,
+              "provided": true,
+              "required": true,
+              "reused": false,
+              "revoked": false,
+              "revoked_at": null,
+              "source": "ui_checkbox",
+              "standing": true,
+              "status": "invalid",
+              "valid_from": "2026-03-20T15:48:33.550278+00:00",
+              "valid_until": "2026-03-27T15:48:33.550278+00:00",
+              "validity_window_seconds": 604800
+            }
+          ],
+          "disclosure_consent_required": true,
+          "mode": "hard",
+          "processing_consent_required": true,
+          "reasons": [
+            "processing_consent_invalid",
+            "disclosure_consent_invalid"
+          ],
+          "status": "fail"
+        },
+        "documents": {
+          "assessments": [
+            {
+              "completeness_status": "assumed_present",
+              "document_id": "bank_statement_may_002",
+              "expected_for_service": true,
+              "freshness_status": "unknown",
+              "inferred_type": "bank_statement",
+              "quality_status": "acceptable",
+              "readiness_score": 100,
+              "reasons": [],
+              "status": "pass"
+            },
+            {
+              "completeness_status": "assumed_present",
+              "document_id": "identity_document_user_011",
+              "expected_for_service": true,
+              "freshness_status": "unknown",
+              "inferred_type": "identity_document",
+              "quality_status": "acceptable",
+              "readiness_score": 100,
+              "reasons": [],
+              "status": "pass"
+            }
+          ],
+          "average_readiness_score": 100,
+          "document_count": 2,
+          "document_ids_received": [
+            "bank_statement_may_002",
+            "identity_document_user_011"
+          ],
+          "expected_document_types": [
+            "bank_statement",
+            "identity_document"
+          ],
+          "missing_expected_document_types": [],
+          "mode": "hard",
+          "reasons": [],
+          "status": "pass"
+        },
+        "enforcement_mode": "hard",
+        "overall_status": "fail"
+      },
+      "last_updated": "2026-03-20T15:48:33.552713+00:00",
+      "remediation_prompts": [
+        {
+          "reason": "processing_consent_invalid",
+          "suggestedAction": "Provide valid processing consent evidence reference and source."
+        },
+        {
+          "reason": "disclosure_consent_invalid",
+          "suggestedAction": "Provide valid disclosure consent evidence reference and source."
+        }
+      ],
+      "request": {
+        "created_at": "2026-03-20T15:48:33.547853+00:00",
+        "customer_id": "cust_hard_consent_fail",
+        "disclose_to_third_party": true,
+        "document_ids": [
+          "bank_statement_may_002",
+          "identity_document_user_011"
+        ],
+        "request_id": "req_bde3334169f7",
+        "service_code": "credit_decision",
+        "service_family": "credit_decision"
+      },
+      "request_status": "blocked",
+      "result_status": "blocked",
+      "routing": {
+        "orchestration_layer": "services.decision_engine.frontend_request_orchestrator",
+        "selected_service_code": "credit_decision",
+        "selected_service_family": "credit_decision"
+      }
+    },
     "req_be4455b9e223": {
       "consent_check": {
         "consent_records": [
@@ -1904,6 +2487,280 @@
         "orchestration_layer": "services.decision_engine.frontend_request_orchestrator",
         "selected_service_code": "fica",
         "selected_service_family": "fica"
+      }
+    },
+    "req_f91aa27d4cbd": {
+      "consent_check": {
+        "consent_records": [
+          {
+            "captured_at": "2026-03-20T15:48:33.540670+00:00",
+            "consent_id": "consent_42570a6d30",
+            "consent_type": "processing",
+            "evidence_ref": "consent://processing/hard001",
+            "is_expired": false,
+            "provided": true,
+            "required": true,
+            "reused": false,
+            "revoked": false,
+            "revoked_at": null,
+            "source": "ui_checkbox",
+            "standing": true,
+            "status": "valid",
+            "valid_from": "2026-03-20T15:48:33.540670+00:00",
+            "valid_until": "2026-04-19T15:48:33.540670+00:00",
+            "validity_window_seconds": 2592000
+          },
+          {
+            "captured_at": "2026-03-20T15:48:33.542854+00:00",
+            "consent_id": "consent_4c5b6b7f50",
+            "consent_type": "disclosure",
+            "evidence_ref": "consent://disclosure/hard001",
+            "is_expired": false,
+            "provided": true,
+            "required": true,
+            "reused": false,
+            "revoked": false,
+            "revoked_at": null,
+            "source": "ui_checkbox",
+            "standing": true,
+            "status": "valid",
+            "valid_from": "2026-03-20T15:48:33.542854+00:00",
+            "valid_until": "2026-03-27T15:48:33.542854+00:00",
+            "validity_window_seconds": 604800
+          }
+        ],
+        "disclosure_consent_required": true,
+        "mode": "hard",
+        "processing_consent_required": true,
+        "reasons": [],
+        "status": "pass"
+      },
+      "consent_records": [
+        {
+          "captured_at": "2026-03-20T15:48:33.540670+00:00",
+          "consent_id": "consent_42570a6d30",
+          "consent_type": "processing",
+          "evidence_ref": "consent://processing/hard001",
+          "is_expired": false,
+          "provided": true,
+          "required": true,
+          "reused": false,
+          "revoked": false,
+          "revoked_at": null,
+          "source": "ui_checkbox",
+          "standing": true,
+          "status": "valid",
+          "valid_from": "2026-03-20T15:48:33.540670+00:00",
+          "valid_until": "2026-04-19T15:48:33.540670+00:00",
+          "validity_window_seconds": 2592000
+        },
+        {
+          "captured_at": "2026-03-20T15:48:33.542854+00:00",
+          "consent_id": "consent_4c5b6b7f50",
+          "consent_type": "disclosure",
+          "evidence_ref": "consent://disclosure/hard001",
+          "is_expired": false,
+          "provided": true,
+          "required": true,
+          "reused": false,
+          "revoked": false,
+          "revoked_at": null,
+          "source": "ui_checkbox",
+          "standing": true,
+          "status": "valid",
+          "valid_from": "2026-03-20T15:48:33.542854+00:00",
+          "valid_until": "2026-03-27T15:48:33.542854+00:00",
+          "validity_window_seconds": 604800
+        }
+      ],
+      "document_check": {
+        "assessments": [
+          {
+            "completeness_status": "assumed_present",
+            "document_id": "bank_statement_may_001",
+            "expected_for_service": true,
+            "freshness_status": "unknown",
+            "inferred_type": "bank_statement",
+            "quality_status": "acceptable",
+            "readiness_score": 100,
+            "reasons": [],
+            "status": "pass"
+          },
+          {
+            "completeness_status": "assumed_present",
+            "document_id": "identity_document_user_010",
+            "expected_for_service": true,
+            "freshness_status": "unknown",
+            "inferred_type": "identity_document",
+            "quality_status": "acceptable",
+            "readiness_score": 100,
+            "reasons": [],
+            "status": "pass"
+          }
+        ],
+        "average_readiness_score": 100,
+        "document_count": 2,
+        "document_ids_received": [
+          "bank_statement_may_001",
+          "identity_document_user_010"
+        ],
+        "expected_document_types": [
+          "bank_statement",
+          "identity_document"
+        ],
+        "missing_expected_document_types": [],
+        "mode": "hard",
+        "reasons": [],
+        "status": "pass"
+      },
+      "downstream_execution": {
+        "downstream_status": "executed",
+        "execution": {
+          "callable": "run_task",
+          "execution_mode": "service_stub",
+          "invocation": {
+            "invocation_style": "payload_arg",
+            "result": {
+              "received_payload": {
+                "customer_id": "cust_hard_valid",
+                "disclose_to_third_party": true,
+                "document_ids": [
+                  "bank_statement_may_001",
+                  "identity_document_user_010"
+                ],
+                "request_id": "req_f91aa27d4cbd",
+                "service_code": "credit_decision",
+                "service_family": "credit_decision",
+                "timestamp": "2026-03-20T15:48:33.544990+00:00"
+              },
+              "result": {
+                "capabilities": [
+                  "affordability",
+                  "prevet",
+                  "bureau_assessment",
+                  "offer_generation"
+                ],
+                "summary": "Credit decision stub executed with real orchestration payload."
+              },
+              "service": "credit_decision",
+              "status": "executed"
+            }
+          },
+          "module": "infrastructure.ecs.credit_decision.task"
+        },
+        "service_family": "credit_decision",
+        "summary": "credit_decision execution invoked via decision engine."
+      },
+      "enforcement": {
+        "blocks_execution": true,
+        "consent": {
+          "consent_records": [
+            {
+              "captured_at": "2026-03-20T15:48:33.540670+00:00",
+              "consent_id": "consent_42570a6d30",
+              "consent_type": "processing",
+              "evidence_ref": "consent://processing/hard001",
+              "is_expired": false,
+              "provided": true,
+              "required": true,
+              "reused": false,
+              "revoked": false,
+              "revoked_at": null,
+              "source": "ui_checkbox",
+              "standing": true,
+              "status": "valid",
+              "valid_from": "2026-03-20T15:48:33.540670+00:00",
+              "valid_until": "2026-04-19T15:48:33.540670+00:00",
+              "validity_window_seconds": 2592000
+            },
+            {
+              "captured_at": "2026-03-20T15:48:33.542854+00:00",
+              "consent_id": "consent_4c5b6b7f50",
+              "consent_type": "disclosure",
+              "evidence_ref": "consent://disclosure/hard001",
+              "is_expired": false,
+              "provided": true,
+              "required": true,
+              "reused": false,
+              "revoked": false,
+              "revoked_at": null,
+              "source": "ui_checkbox",
+              "standing": true,
+              "status": "valid",
+              "valid_from": "2026-03-20T15:48:33.542854+00:00",
+              "valid_until": "2026-03-27T15:48:33.542854+00:00",
+              "validity_window_seconds": 604800
+            }
+          ],
+          "disclosure_consent_required": true,
+          "mode": "hard",
+          "processing_consent_required": true,
+          "reasons": [],
+          "status": "pass"
+        },
+        "documents": {
+          "assessments": [
+            {
+              "completeness_status": "assumed_present",
+              "document_id": "bank_statement_may_001",
+              "expected_for_service": true,
+              "freshness_status": "unknown",
+              "inferred_type": "bank_statement",
+              "quality_status": "acceptable",
+              "readiness_score": 100,
+              "reasons": [],
+              "status": "pass"
+            },
+            {
+              "completeness_status": "assumed_present",
+              "document_id": "identity_document_user_010",
+              "expected_for_service": true,
+              "freshness_status": "unknown",
+              "inferred_type": "identity_document",
+              "quality_status": "acceptable",
+              "readiness_score": 100,
+              "reasons": [],
+              "status": "pass"
+            }
+          ],
+          "average_readiness_score": 100,
+          "document_count": 2,
+          "document_ids_received": [
+            "bank_statement_may_001",
+            "identity_document_user_010"
+          ],
+          "expected_document_types": [
+            "bank_statement",
+            "identity_document"
+          ],
+          "missing_expected_document_types": [],
+          "mode": "hard",
+          "reasons": [],
+          "status": "pass"
+        },
+        "enforcement_mode": "hard",
+        "overall_status": "pass"
+      },
+      "last_updated": "2026-03-20T15:48:33.544984+00:00",
+      "remediation_prompts": [],
+      "request": {
+        "created_at": "2026-03-20T15:48:33.540653+00:00",
+        "customer_id": "cust_hard_valid",
+        "disclose_to_third_party": true,
+        "document_ids": [
+          "bank_statement_may_001",
+          "identity_document_user_010"
+        ],
+        "request_id": "req_f91aa27d4cbd",
+        "service_code": "credit_decision",
+        "service_family": "credit_decision"
+      },
+      "request_status": "completed",
+      "result_status": "available",
+      "routing": {
+        "orchestration_layer": "services.decision_engine.frontend_request_orchestrator",
+        "selected_service_code": "credit_decision",
+        "selected_service_family": "credit_decision"
       }
     },
     "req_feae25e75183": {
