@@ -779,3 +779,178 @@ Tokens in this table must be interpreted according to governance strength.
 ---
 
 ## End of Document
+
+---
+
+### FM-CPM-021
+
+- capability_id: trend_analysis
+- provider_id: future_trend_analysis_engine_v1
+- provider_type: internal
+
+- supported_outcome_intents: analyse_cash_flow|analyse_spending_patterns|assess_financial_obligation_pressure|detect_financial_risk
+- coverage_level: specialised
+- strengths: placeholder_for_trend_computation_capability
+- limitations: not_implemented
+
+- supported_ocr_feature_classes: none
+- required_input_conditions: historical_period_data_required
+
+- confidence_profile: context_sensitive
+- latency_profile: medium
+- cost_profile: medium
+
+- fallback_eligible: false
+- fallback_restrictions: no_runtime_available
+- parallelizable: true
+
+- determinism_level: deterministic
+- explainability_level: high
+- auditability_support: true
+
+- provider_governance_classification: governed_future_placeholder
+- provider_runtime_status: not_runtime_enabled
+- version: v1
+
+- notes: placeholder for governed trend analysis capability
+
+---
+
+### FM-CPM-022
+
+- capability_id: counterparty_classification
+- provider_id: future_counterparty_classifier_v1
+- provider_type: internal
+
+- supported_outcome_intents: assess_financial_obligation_pressure
+- coverage_level: specialised
+- strengths: placeholder_for_counterparty_resolution
+- limitations: not_implemented
+
+- supported_ocr_feature_classes: text|metadata
+- required_input_conditions: parsed_transactions_required
+
+- confidence_profile: context_sensitive
+- latency_profile: medium
+- cost_profile: medium
+
+- fallback_eligible: false
+- fallback_restrictions: no_runtime_available
+- parallelizable: true
+
+- determinism_level: semi_deterministic
+- explainability_level: medium
+- auditability_support: true
+
+- provider_governance_classification: governed_future_placeholder
+- provider_runtime_status: not_runtime_enabled
+- version: v1
+
+- notes: placeholder for counterparty classification capability
+
+---
+
+### FM-CPM-023
+
+- capability_id: timing_analysis
+- provider_id: future_timing_analysis_engine_v1
+- provider_type: internal
+
+- supported_outcome_intents: detect_financial_risk
+- coverage_level: specialised
+- strengths: placeholder_for_temporal_pattern_analysis
+- limitations: not_implemented
+
+- supported_ocr_feature_classes: none
+- required_input_conditions: historical_period_data_required
+
+- confidence_profile: context_sensitive
+- latency_profile: medium
+- cost_profile: medium
+
+- fallback_eligible: false
+- fallback_restrictions: no_runtime_available
+- parallelizable: true
+
+- determinism_level: semi_deterministic
+- explainability_level: medium
+- auditability_support: true
+
+- provider_governance_classification: governed_future_placeholder
+- provider_runtime_status: not_runtime_enabled
+- version: v1
+
+- notes: placeholder for timing analysis capability
+
+---
+
+### FM-CPM-024
+
+- capability_id: anomaly_detection
+- provider_id: future_anomaly_detection_engine_v1
+- provider_type: internal
+
+- supported_outcome_intents: detect_financial_risk
+- coverage_level: specialised
+- strengths: placeholder_for_anomaly_detection
+- limitations: not_implemented
+
+- supported_ocr_feature_classes: none
+- required_input_conditions: historical_period_data_required
+
+- confidence_profile: context_sensitive
+- latency_profile: medium
+- cost_profile: medium
+
+- fallback_eligible: false
+- fallback_restrictions: no_runtime_available
+- parallelizable: true
+
+- determinism_level: semi_deterministic
+- explainability_level: medium
+- auditability_support: true
+
+- provider_governance_classification: governed_future_placeholder
+- provider_runtime_status: not_runtime_enabled
+- version: v1
+
+- notes: placeholder for anomaly detection capability
+
+---
+
+### FM-CPM-025
+
+- capability_id: external_pricing_enrichment
+- provider_id: future_external_pricing_service_v1
+- provider_type: external_api
+
+- supported_outcome_intents: compare_against_reference
+- coverage_level: specialised
+- strengths: placeholder_for_external_pricing_data
+- limitations: not_implemented
+
+- supported_ocr_feature_classes: none
+- required_input_conditions: external_reference_contract_required
+
+- confidence_profile: variable
+- latency_profile: medium
+- cost_profile: high
+
+- fallback_eligible: false
+- fallback_restrictions: no_runtime_available
+- parallelizable: true
+
+- determinism_level: probabilistic
+- explainability_level: medium
+- auditability_support: true
+
+- provider_governance_classification: governed_future_placeholder
+- provider_runtime_status: not_runtime_enabled
+- version: v1
+
+- notes: placeholder for external pricing enrichment capability
+
+---
+
+
+## End of Document
