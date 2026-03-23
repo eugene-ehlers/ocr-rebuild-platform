@@ -6,9 +6,9 @@ Describe the end-to-end OCR rebuild system at a controlled high level.
 
 ## 2 System Objective
 
-Provide a controlled AWS-based document ingestion, preprocessing, OCR, fraud detection, template recognition, review, and output pipeline.
+Provide a controlled AWS-based document intelligence platform that ingests documents, preprocesses them, executes OCR and supporting analysis, composes governed service flows, and validates outcomes against authoritative contracts.
 
-Legacy system details: UNKNOWN
+The platform is not a simple linear OCR pipeline. It is a governed runtime in which execution, transformation, and validation are controlled explicitly.
 
 ## 3 High-Level Functional Areas
 
@@ -16,9 +16,12 @@ Legacy system details: UNKNOWN
 - document manifest handling
 - preprocessing
 - OCR execution
-- fraud detection
+- fraud detection and document integrity analysis
 - logo and template recognition
 - orchestration
+- governed service execution
+- transformation of runtime output into governed validation payloads
+- validation and sufficiency assessment
 - review and QA
 - benchmark testing
 - operational monitoring
@@ -28,22 +31,28 @@ Legacy system details: UNKNOWN
 - source documents
 - document metadata
 - processing manifests
+- execution plans
+- governed rulesets and service contracts
 
-Input formats: UNKNOWN
+Input formats are defined in governed contract and schema documents.
 
 ## 5 Core Outputs
 
 - extracted text
 - document classification and metadata
-- fraud signals
+- fraud and integrity signals
+- service runtime outputs
+- transformed governed validation payloads
+- validation and sufficiency findings
 - review outcomes
 - benchmark results
+- audit evidence and runtime notes
 
-Output formats: UNKNOWN
+Output formats are defined in governed contract and schema documents.
 
 ## 6 Main Components
 
-Main components are expected to include:
+Main components include:
 
 - storage layer
 - orchestration layer
@@ -51,22 +60,50 @@ Main components are expected to include:
 - OCR engine layer
 - fraud detection layer
 - template recognition layer
+- execution engine layer
+- transformation layer
+- validation and sufficiency engine layer
 - review layer
 - operations and monitoring layer
 
-Actual deployed components: UNKNOWN
+## 7 Runtime Control Model
 
-## 7 AWS Boundary
+The governed runtime operates as:
 
-The rebuild is intended to operate in AWS.
+Execution Engine
+-> Transformation Layer
+-> Validation & Sufficiency Engine
 
-Specific services and deployment boundaries: UNKNOWN
+This means raw execution output is not automatically assumed to satisfy authoritative outcome contracts.
 
-## 8 Dependencies
+Where execution output and governed validation requirements differ, an explicit transformation layer may be used for:
+- structural mapping
+- field alignment
+- explicit pass-through normalization
 
-Dependencies on external systems: UNKNOWN
+The transformation layer must not:
+- infer decisions
+- fabricate missing values
+- silently complete required contract fields
 
-## 9 Non-Functional Considerations
+A governed validation fail after transformation is a valid system outcome.
+
+## 8 AWS Boundary
+
+The rebuild is intended to operate in AWS, with governed runtime control and contract enforcement applied across execution and validation stages.
+
+Specific deployment details are defined in environment and orchestration documents.
+
+## 9 Dependencies
+
+Dependencies include:
+- OCR providers and related provider abstractions
+- governed rule tables and capability mappings
+- execution plan contracts
+- validation rulesets
+- runtime payload contracts
+
+## 10 Non-Functional Considerations
 
 - controlled change management
 - traceability
@@ -74,10 +111,21 @@ Dependencies on external systems: UNKNOWN
 - operational stability
 - security
 - cost control
+- explicit contract enforcement
+- governed failure handling
 
-Defined performance targets: UNKNOWN
+## 11 Current Status
 
-## 10 Current Status
+This document now reflects the controlled high-level architecture currently established in the project.
 
-This document is a Phase 1 controlled placeholder.
-Detailed architecture remains UNKNOWN until verified from live state and approved documentation.
+The runtime path has been proven to support:
+- execution
+- transformation
+- validation
+
+Current governed sample status for affordability:
+- execution: successful
+- transformation: successful
+- validation: fail
+
+This fail is a legitimate governed outcome caused by contract incompleteness relative to the authoritative OTC requirement, not by uncontrolled runtime error.

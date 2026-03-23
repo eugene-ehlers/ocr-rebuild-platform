@@ -146,3 +146,44 @@ Provider abstraction control is not sufficient unless the runtime control object
 - Fallback behavior must be explicit, traceable, and plan-driven.
 - OCR provider adapters must normalize output into the governed page-level payload model.
 
+### DEC-005 — Runtime-to-Contract Transformation Must Be Explicit, Governed, and Non-Inferential
+
+- **Status:** ACTIVE
+- **Date:** 2026-03-23
+
+#### Decision
+
+Where execution runtime output is not structurally sufficient to satisfy authoritative validation or sufficiency contracts, the system may use an explicit governed transformation layer between execution and validation.
+
+This transformation layer is permitted only under the following rules:
+
+- it must be explicitly documented
+- it must be versioned and reviewable
+- it may perform structural mapping, field alignment, and pass-through normalization only
+- it must not infer missing values
+- it must not fabricate contract outputs
+- it must not hide business logic or silently complete validation requirements
+
+Validation and sufficiency assessment may operate on the transformed governed payload rather than raw runtime output where this has been approved in design authority.
+
+A governed FAIL after transformation and validation is a valid system outcome and must be preserved explicitly. It must not be treated automatically as an infrastructure defect, runtime instability, or something to be bypassed through hidden mapping logic.
+
+#### Rationale
+
+Controlled runtime evidence now shows that execution can succeed, transformation can succeed, and validation can still fail legitimately because the authoritative service contract is not yet fully satisfied by the available runtime outputs.
+
+Without an explicit governing decision, future implementers may:
+- assume raw runtime output is automatically contract-ready
+- bury mapping logic inside runtime workers
+- introduce inference/fabrication to force successful validation
+- misclassify governed contract failure as infrastructure failure
+
+This decision prevents those failure modes and preserves audit integrity.
+
+#### Consequences
+
+- Execution, transformation, and validation remain distinct governed concerns.
+- Transformation logic must remain explicit and auditable.
+- Governed validation failures must be surfaced as real outcomes.
+- Remediation must occur through approved design change, not hidden runtime shortcuts.
+

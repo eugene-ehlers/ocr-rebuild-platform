@@ -59,6 +59,23 @@ It is NOT:
 - All routing, fallback, and provider selection must be recorded there
 - No hidden decisions outside the plan are allowed
 
+### 3.5T Governed transformation layer
+- Runtime execution output is not automatically assumed to satisfy governed validation contracts
+- Where execution output and governed outcome contracts differ, an explicit transformation layer may be used
+- The transformation layer is a governed control component, not hidden business logic
+- The transformation layer may perform:
+  - structural mapping
+  - field alignment
+  - explicit pass-through normalization
+- The transformation layer must not perform:
+  - inference
+  - fabrication
+  - implicit decisioning
+  - synthetic completion of missing required contract values
+- Validation and sufficiency assessment must run against the transformed governed payload, not raw execution output, where such a layer is approved
+- Any transformation layer must remain explicitly documented, versioned, reviewable, and auditable
+- A governed validation failure after transformation is a valid system outcome and must not be overridden by ad hoc runtime logic
+
 ### 3.5A OCR provider abstraction control
 - OCR is a provider-agnostic capability, not a hard-coded product implementation
 - OCR provider selection must occur through governed abstraction boundaries

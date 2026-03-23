@@ -14,6 +14,14 @@ All backend/control-plane execution must align to:
 - boto3 for AWS service invocation
 - no dependency on system AWS CLI for governed runtime execution
 
+In the governed decision runtime, backend execution is not considered complete merely because orchestration and provider invocation succeed.
+
+Where execution output does not structurally satisfy governed service contracts, the governed runtime may require:
+- an explicit transformation layer
+- validation and sufficiency assessment against authoritative rulesets
+
+These are governed runtime components, not optional post-processing conveniences.
+
 ---
 
 ## Execution Mode Standard
@@ -58,7 +66,33 @@ Backend AWS invocation dependencies must use:
 The following is not the governed runtime dependency standard:
 - shelling out to `aws` CLI from Python execution paths
 
+## Governed Transformation and Validation Standard
+
+Where approved by architecture and service design:
+- transformation logic must be explicit, versioned, and auditable
+- transformation may perform structural mapping, field alignment, and pass-through normalization only
+- transformation must not infer or fabricate missing contract values
+- validation and sufficiency assessment must operate against authoritative governed rulesets
+- governed fail outcomes must be preserved explicitly where contract requirements are unmet
+
+A runtime outcome of FAIL after transformation and validation is a valid governed result and must not be treated automatically as an infrastructure/runtime defect.
+
 ---
+
+## Runtime Outcome Interpretation Standard
+
+The governed runtime must distinguish clearly between:
+- infrastructure/runtime failure
+- execution failure
+- governed contract failure
+- degraded but accepted outcome
+- escalated outcome
+
+This distinction must remain explicit in:
+- runtime result artifacts
+- audit notes
+- validation outputs
+- service-level reporting
 
 ## Current Controlled State
 

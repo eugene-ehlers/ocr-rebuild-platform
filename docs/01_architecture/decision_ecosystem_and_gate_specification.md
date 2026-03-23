@@ -71,6 +71,18 @@ Carries out the plan through:
 - internal modules
 - external providers
 
+### 4.4 Governed transformation and validation preparation layer
+Where runtime execution output is not structurally sufficient to satisfy governed validation or sufficiency contracts, an explicit transformation layer may be applied.
+
+This layer:
+- prepares a governed validation payload from runtime output
+- performs only structural mapping, field alignment, and pass-through normalization
+- must not perform inference, fabrication, or hidden decisioning
+- must remain explicitly versioned, reviewable, and auditable
+
+This layer does not replace gate decisions.
+It supports them by making runtime output structurally suitable for governed assessment where approved.
+
 ## 5. Fixed Gate Model
 
 ## 5.1 Gate 0 — Request Interpretation and Service Assembly (Decision Engine 0)
@@ -198,6 +210,7 @@ Determine whether the available outputs are sufficient to fulfill the requested 
 - minimum output requirements from Gate 0
 - capability completion status
 - service-specific rules
+- transformed governed payload where runtime-to-contract transformation is required
 
 ### Outputs
 - sufficiency decision
@@ -222,6 +235,7 @@ Determine whether the available outputs are sufficient to fulfill the requested 
 
 ### Notes
 This gate is outcome-oriented, not extraction-oriented.
+Gate 3 may operate on a transformed governed payload rather than raw runtime output where an approved transformation layer is in use.
 
 ## 5.5 Gate 4 — Final Validation and Delivery Decision (Decision Engine 4)
 
@@ -235,6 +249,7 @@ Make the final decision about whether the service output can be delivered, must 
 - authenticity/fraud summaries where relevant
 - client constraints
 - delivery rules
+- transformed governed payload where runtime-to-contract transformation is required
 
 ### Outputs
 - final accepted output package
@@ -260,6 +275,8 @@ Make the final decision about whether the service output can be delivered, must 
 
 ### Notes
 This gate produces the final governed delivery state.
+Gate 4 may validate against a transformed governed payload rather than raw runtime output where an approved transformation layer is in use.
+A governed fail at this stage is a valid outcome when authoritative contract requirements remain unmet.
 
 ## 6. Execution Plan Evolution
 

@@ -50,6 +50,8 @@ The integrated runtime model is:
 - embedded `evaluation`
 - embedded `manifest_update`
 - page/document content and enrichment outputs
+- transformed governed payload where runtime-to-contract transformation is required
+- validation and sufficiency results where governed assessment has been executed
 
 ## 5. Required Top-Level Payload Shape
 
@@ -115,6 +117,25 @@ Carries:
 - pipeline history
 - client notification state
 - manifest-level summaries
+
+## 6.5 transformed governed payload
+Carries:
+- structurally mapped runtime output prepared for governed validation
+- explicit field alignment outputs
+- pass-through normalized values approved for validation use
+
+The transformed governed payload:
+- is not a replacement for raw runtime evidence
+- must remain traceable back to runtime sources
+- must not contain inferred or fabricated values
+- exists only where approved transformation is required
+
+## 6.6 validation and sufficiency result
+Carries:
+- validation outcome
+- sufficiency outcome
+- missing contract requirements
+- explicit governed fail / escalate / degrade state where applicable
 
 ## 7. Runtime Stage Rules
 
@@ -201,6 +222,13 @@ Must:
 - preserve routing/evaluation summaries
 - produce final document-level and manifest-level outputs consistent with the plan actually executed
 - not erase provider or gate history
+- preserve transformed governed payload where present
+- preserve validation and sufficiency results where present
+
+Aggregation must not collapse or hide the distinction between:
+- raw runtime execution output
+- transformed validation-ready payload
+- final governed validation outcome
 
 Aggregation is where the final executed path becomes part of the durable result lineage.
 
@@ -328,6 +356,17 @@ These are acceptable only if:
 - the integrated payload shape is preserved
 - future refinement does not require redesign
 - developers do not bypass the embedded execution plan pattern
+
+## 16A. Relationship to Transformation and Validation
+
+This integration specification governs how execution-plan-driven runtime state is preserved through pipeline execution.
+
+Where approved transformation is required:
+- raw runtime output may be mapped into a transformed governed payload
+- validation and sufficiency assessment may operate on that transformed payload
+- the original runtime evidence must still remain preserved
+
+A governed fail after transformation and validation is a valid integrated runtime outcome and must be retained explicitly in runtime artifacts.
 
 ## 17. Relationship to Existing Contracts
 

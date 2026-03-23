@@ -41,9 +41,21 @@ The end-to-end relationship is:
 - decision ecosystem
 - execution plan
 - runtime execution
+- governed transformation (where required)
+- validation and sufficiency assessment
 - aggregation and delivery
 
 The execution plan is therefore the bridge between design-time service logic and run-time execution behaviour.
+
+Where execution runtime output is not structurally sufficient to satisfy governed validation contracts, an explicit governed transformation layer may be applied after runtime execution and before validation and sufficiency assessment.
+
+This transformation layer:
+- is an explicit governed control component
+- may perform structural mapping, field alignment, and pass-through normalization
+- must not perform inference, fabrication, or hidden business logic
+- must remain versioned, auditable, and reviewable
+
+A governed validation fail after transformation is a valid system outcome and does not by itself indicate runtime instability or execution error.
 
 ## 4. Required Design Characteristics
 
@@ -362,6 +374,21 @@ The plan could not be completed successfully.
 
 ## 13.7 cancelled
 The plan was intentionally stopped or superseded.
+
+## 13.8 Relationship to Transformation and Validation
+
+The execution plan contract governs runtime execution instructions.
+
+It does not by itself guarantee that raw execution output is validation-ready.
+
+Where approved by architecture and runtime control:
+- execution output may be transformed into a governed validation payload
+- validation and sufficiency assessment may operate on the transformed payload rather than raw runtime output
+
+This separation preserves:
+- execution/runtime control integrity
+- validation contract integrity
+- explicit auditability of any structural mapping between the two
 
 ## 14. Relationship to Other Contracts
 
