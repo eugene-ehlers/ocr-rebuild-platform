@@ -59,6 +59,25 @@ It is NOT:
 - All routing, fallback, and provider selection must be recorded there
 - No hidden decisions outside the plan are allowed
 
+### 3.5S Shared analytical substrate (execution-layer)
+- Where governed service designs require reusable analytical dependencies derived from document/OCR content, the execution_plan may include an explicit intermediate analytical substrate layer.
+- This substrate produces governed artifacts such as:
+  - parsed_transactions
+  - classified_transactions
+  - cash_flow_summary
+  - debt_positions
+- These artifacts are execution outputs, not transformation-layer constructs, and must be produced through explicit capability execution defined in the execution_plan.
+- The substrate must not perform:
+  - service-level decisioning
+  - affordability determination
+  - risk scoring
+  - customer-facing guidance generation
+- The substrate exists to provide reusable, governed analytical inputs to downstream decision capabilities.
+- Any such substrate must remain:
+  - explicitly represented in execution_plan
+  - dependency-ordered
+  - traceable and auditable
+
 ### 3.5T Governed transformation layer
 - Runtime execution output is not automatically assumed to satisfy governed validation contracts
 - Where execution output and governed outcome contracts differ, an explicit transformation layer may be used

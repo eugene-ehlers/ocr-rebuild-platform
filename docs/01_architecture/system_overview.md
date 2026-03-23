@@ -74,6 +74,12 @@ Execution Engine
 -> Transformation Layer
 -> Validation & Sufficiency Engine
 
+In cases where governed outcomes require reusable analytical dependencies derived from document or transaction evidence, the execution layer may include an intermediate shared analytical substrate within the execution plan.
+
+This substrate operates within execution (not transformation) and produces structured analytical artifacts required by downstream decisioning, such as transaction parsing, classification, cash-flow summarization, and debt detection outputs.
+
+This does not alter the transformation or validation model; it refines the internal structure of execution to support governed dependency production.
+
 This means raw execution output is not automatically assumed to satisfy authoritative outcome contracts.
 
 Where execution output and governed validation requirements differ, an explicit transformation layer may be used for:
@@ -129,3 +135,5 @@ Current governed sample status for affordability:
 - validation: fail
 
 This fail is a legitimate governed outcome caused by contract incompleteness relative to the authoritative OTC requirement, not by uncontrolled runtime error.
+
+Controlled candidate execution-plan work now demonstrates a structurally correct insertion point for a shared financial analysis substrate prior to affordability-specific processing. This structural alignment does not yet constitute full remediation, as downstream consumption of substrate outputs and complete contract satisfaction remain to be proven.
