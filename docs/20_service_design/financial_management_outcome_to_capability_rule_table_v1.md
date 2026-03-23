@@ -381,6 +381,101 @@ Allowed values include:
 
 ---
 
+### FM-OTC-008
+
+- outcome_intent: analyse_income_patterns
+- degradation_policy: degrade_with_caveat
+
+- required_determinations: none
+- required_scores: income_stability_score
+- required_flags: income_variability_flags|ambiguity_flags|missing_history_flags
+- required_metrics: income_frequency_metrics|income_variability_metrics|source_concentration_metrics
+- required_summaries: income_analysis_summary
+- required_recommendations: none
+- required_traceability: none
+- required_confidence_outputs: overall_confidence|income_classification_confidence
+
+- mandatory_capabilities: transaction_parsing|category_classification|income_stability_assessment|reporting_explanation
+- optional_capabilities: trend_analysis|counterparty_classification
+- enrichment_capabilities: none
+
+- prohibited_shortcuts: income_analysis_without_identified_income_basis|income_stability_score_without_frequency_basis
+
+- required_data_dependencies: parsed_transactions|classified_transactions|income_source_summary|income_frequency_metrics
+- required_ocr_feature_classes: text|tables|layout
+- required_internal_data_dependencies: none|historical_period_data
+- required_external_data_dependencies: none
+
+- confidence_requirement: baseline_overall_confidence_required
+- sufficiency_rule: income_analysis_invalid_without_identified_income_basis_and_frequency_metrics
+- cost_sensitivity: medium
+
+- notes: governed income-source, regularity, and stability analysis outcome
+
+---
+### FM-OTC-009
+
+- outcome_intent: analyse_financial_behaviour
+- degradation_policy: degrade_with_caveat
+
+- required_determinations: none
+- required_scores: behaviour_pressure_score
+- required_flags: overspending_flags|habit_risk_flags|caveat_flags
+- required_metrics: behavioural_pattern_metrics|discretionary_spend_metrics|recurrence_metrics|period_change_metrics
+- required_summaries: behavioural_insight_summary
+- required_recommendations: improvement_guidance
+- required_traceability: none
+- required_confidence_outputs: overall_confidence|behaviour_classification_confidence
+
+- mandatory_capabilities: transaction_parsing|category_classification|behavioural_analysis|reporting_explanation
+- optional_capabilities: cash_flow_classification|trend_analysis|merchant_enrichment
+- enrichment_capabilities: none
+
+- prohibited_shortcuts: behavioural_insight_without_pattern_metrics|improvement_guidance_without_behaviour_basis
+
+- required_data_dependencies: parsed_transactions|classified_transactions|behavioural_pattern_metrics|category_spend_summary
+- required_ocr_feature_classes: text|tables|layout
+- required_internal_data_dependencies: none|historical_period_data
+- required_external_data_dependencies: none
+
+- confidence_requirement: baseline_overall_confidence_required
+- sufficiency_rule: behavioural_insight_invalid_without_pattern_metrics_and_category_basis
+- cost_sensitivity: medium
+
+- notes: governed behavioural pattern and overspending insight outcome
+
+---
+### FM-OTC-010
+
+- outcome_intent: optimise_financial_timing
+- degradation_policy: degrade_with_caveat
+
+- required_determinations: none
+- required_scores: timing_optimization_score
+- required_flags: timing_risk_flags|sensitivity_flags|assumption_caveat_flags
+- required_metrics: timing_optimization_metrics|cash_pressure_projection_metrics|scenario_comparison_metrics
+- required_summaries: timing_optimization_summary
+- required_recommendations: timing_recommendations
+- required_traceability: none
+- required_confidence_outputs: overall_confidence|scenario_confidence
+
+- mandatory_capabilities: transaction_parsing|cash_flow_classification|timing_analysis|reporting_explanation
+- optional_capabilities: debt_detection|trend_analysis|timing_optimization_projection
+- enrichment_capabilities: none
+
+- prohibited_shortcuts: timing_guidance_without_timing_features|scenario_comparison_without_projection_basis
+
+- required_data_dependencies: parsed_transactions|cash_flow_summary|timing_features|period_groupings
+- required_ocr_feature_classes: text|tables|layout
+- required_internal_data_dependencies: none|historical_period_data
+- required_external_data_dependencies: none
+
+- confidence_requirement: baseline_overall_confidence_required
+- sufficiency_rule: timing_guidance_invalid_without_timing_features_and_projection_basis
+- cost_sensitivity: medium
+
+- notes: governed customer-facing timing and payment optimization outcome
+
 ## End of Rule Table v1
 
 ## End of Document
