@@ -153,7 +153,7 @@
         "output_s3_key.$": "States.Format('payloads/{}/gate2_quality/payload.json', $.manifest_id)"
       },
       "ResultPath": "$",
-      "Next": "Gate3AfterGate2",
+      "Next": "Gate2DecisionChoice",
       "Retry": [
         {
           "ErrorEquals": [
@@ -672,6 +672,21 @@
     },
     "Complete": {
       "Type": "Succeed"
+    },
+    "Gate2DecisionChoice": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.evaluation.gate2_overall_decision",
+          "StringEquals": "FAIL_QUALITY_GATE",
+          "Next": "Gate2QualityRejected"
+        }
+      ],
+      "Default": "Gate3AfterGate2"
+    },
+    "Gate2QualityRejected": {
+      "Type": "Fail",
+      "Cause": "OCR rebuild pipeline rejected by Gate 2 quality gate"
     }
   }
 }

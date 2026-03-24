@@ -74,17 +74,19 @@ def evaluate_page(page: Dict[str, Any], text_ocr_plan: Dict[str, Any]) -> Dict[s
         else 0.0
     )
 
+    fallback_allowed = bool(text_ocr_plan.get("fallback_allowed", False))
+
     page_decision = "ACCEPT"
     page_reason = "ocr_quality_acceptable_v1"
 
     if not text:
-        page_decision = "ESCALATE_EXTERNAL" if text_ocr_plan.get("fallback_allowed", False) else "PARTIAL_ACCEPT"
+        page_decision = "ESCALATE_EXTERNAL" if fallback_allowed else "FAIL_QUALITY_GATE"
         page_reason = "no_text_extracted_v1"
     elif len(text) < 10:
-        page_decision = "ESCALATE_EXTERNAL" if text_ocr_plan.get("fallback_allowed", False) else "PARTIAL_ACCEPT"
+        page_decision = "ESCALATE_EXTERNAL" if fallback_allowed else "FAIL_QUALITY_GATE"
         page_reason = "text_length_below_threshold_v1"
     elif confidence < 0.7:
-        page_decision = "ESCALATE_EXTERNAL" if text_ocr_plan.get("fallback_allowed", False) else "PARTIAL_ACCEPT"
+        page_decision = "ESCALATE_EXTERNAL" if fallback_allowed else "FAIL_QUALITY_GATE"
         page_reason = "ocr_confidence_below_threshold_v1"
 
     page_evaluation = dict(page.get("evaluation", {}))
@@ -120,8 +122,15 @@ def update_execution_plan(payload: Dict[str, Any], overall_decision: str, overal
         "timestamp": utc_now_iso()
     })
 
+    if overall_decision == "ESCALATE_EXTERNAL":
+        plan_status = "adjusted"
+    elif overall_decision == "FAIL_QUALITY_GATE":
+        plan_status = "failed"
+    else:
+        plan_status = execution_plan.get("plan_status", "in_progress")
+
     execution_plan.update({
-        "plan_status": "adjusted" if overall_decision == "ESCALATE_EXTERNAL" else execution_plan.get("plan_status", "in_progress"),
+        "plan_status": plan_status,
         "decision_gate_history": decision_gate_history
     })
     return execution_plan
@@ -143,6 +152,7 @@ def build_manifest_update(payload: Dict[str, Any], overall_decision: str, overal
 
     manifest_update.update({
         "last_updated": now,
+        "pipeline_status": "failed" if overall_decision == "FAIL_QUALITY_GATE" else manifest_update.get("pipeline_status", "processing"),
         "pipeline_history": pipeline_history
     })
     return manifest_update
@@ -152,7 +162,7 @@ def build_routing_decision(payload: Dict[str, Any], overall_decision: str, overa
     routing_decision = dict(payload.get("routing_decision", {}))
     routing_decision.update({
         "last_gate_applied": "2",
-        "current_route_state": "gate2_completed",
+        "current_route_state": "gate2_failed" if overall_decision == "FAIL_QUALITY_GATE" else "gate2_completed",
         "fallback_used": False,
         "fallback_provider": text_ocr_plan.get("fallback_provider", ""),
         "decision_basis": overall_reason,
@@ -172,6 +182,7 @@ def build_evaluation(payload: Dict[str, Any], pages: List[Dict[str, Any]], overa
         "gate2_completed": True,
         "gate2_overall_decision": overall_decision,
         "gate2_overall_reason": overall_reason,
+        "gate2_fail_closed": overall_decision == "FAIL_QUALITY_GATE",
         "average_page_confidence": (sum(quality_scores) / len(quality_scores)) if quality_scores else 0.0
     })
     return evaluation
@@ -207,7 +218,10 @@ def evaluate_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
     overall_decision = "ACCEPT_PRIMARY_RESULT"
     overall_reason = "all_pages_acceptable_v1"
 
-    if "ESCALATE_EXTERNAL" in decisions:
+    if "FAIL_QUALITY_GATE" in decisions:
+        overall_decision = "FAIL_QUALITY_GATE"
+        overall_reason = "one_or_more_pages_failed_quality_gate_without_governed_fallback_v1"
+    elif "ESCALATE_EXTERNAL" in decisions:
         overall_decision = "ESCALATE_EXTERNAL"
         overall_reason = "one_or_more_pages_require_external_fallback_v1"
     elif "PARTIAL_ACCEPT" in decisions:

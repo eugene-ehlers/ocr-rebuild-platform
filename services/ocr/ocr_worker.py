@@ -382,6 +382,8 @@ def process_page(page: Dict[str, Any], text_ocr_plan: Dict[str, Any]) -> Dict[st
             "execution_mode": ocr_result["provider_metadata"]["execution_mode"],
             "decision_reason": ocr_result["provider_metadata"]["decision_reason"],
             "attempted_providers": ocr_result.get("attempted_providers", []),
+            "attempted_provider_chain": ocr_result.get("attempted_providers", []),
+            "fallback_used": bool(ocr_result.get("fallback_used", False)),
         }
     )
     enriched_page["metadata"] = metadata
@@ -468,6 +470,17 @@ def build_routing_decision(
         if isinstance(page, dict)
     )
 
+    attempted_provider_chain: List[Dict[str, Any]] = []
+    for page in ocr_pages:
+        if not isinstance(page, dict):
+            continue
+        metadata = page.get("metadata", {})
+        if not isinstance(metadata, dict):
+            continue
+        for attempt in metadata.get("attempted_provider_chain", []):
+            if attempt not in attempted_provider_chain:
+                attempted_provider_chain.append(attempt)
+
     routing_decision.update(
         {
             "selected_strategy": routing_decision.get("selected_strategy", "baseline_v1"),
@@ -475,7 +488,7 @@ def build_routing_decision(
             "fallback_used": fallback_used,
             "selected_capability_path": "TEXT_OCR",
             "decision_basis": text_ocr_plan["decision_reason"],
-            "attempted_provider_chain": list(ocr_result.get("attempted_providers", [])),
+            "attempted_provider_chain": attempted_provider_chain,
             "current_route_state": "ocr_completed",
             "last_gate_applied": routing_decision.get("last_gate_applied", "2"),
             "ocr_pages_processed": len(ocr_pages),
