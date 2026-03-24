@@ -152,9 +152,17 @@ def build_execution_plan(event: Dict[str, Any], requested_services: Dict[str, bo
                 "provider": "tesseract",
                 "provider_type": "open_source",
                 "execution_mode": "primary",
-                "fallback_allowed": False,
-                "fallback_chain": [],
+                "fallback_allowed": True,
+                "fallback_chain": [
+                    {
+                        "provider": "aws_textract_detect_document_text",
+                        "provider_type": "managed_service",
+                        "execution_mode": "fallback",
+                        "fallback_reason": "governed_managed_fallback_path_v1"
+                    }
+                ],
                 "decision_reason": "bootstrap_primary_provider_for_controlled_runtime_v1",
+                "proof_force_primary_failure": bool(event.get("proof_force_primary_failure", False)),
                 "minimum_output_requirements": {
                     "text_required": True,
                     "page_confidence_required": False,

@@ -229,12 +229,27 @@ def attempt_provider_chain(
         "provider_type": text_ocr_plan["provider_type"],
         "execution_mode": text_ocr_plan["execution_mode"],
         "decision_reason": text_ocr_plan["decision_reason"],
+        "proof_force_primary_failure": bool(
+            text_ocr_plan.get("proof_force_primary_failure", False)
+        ),
     }
 
     provider_candidates = [primary_instruction]
 
     if text_ocr_plan.get("fallback_allowed"):
-        provider_candidates.extend(list(text_ocr_plan.get("fallback_chain", [])))
+        for fallback_item in list(text_ocr_plan.get("fallback_chain", [])):
+            normalized_fallback_item = dict(fallback_item)
+            normalized_fallback_item.setdefault(
+                "decision_reason",
+                str(
+                    fallback_item.get(
+                        "fallback_reason",
+                        text_ocr_plan.get("decision_reason", ""),
+                    )
+                ).strip()
+                or str(text_ocr_plan.get("decision_reason", "")).strip(),
+            )
+            provider_candidates.append(normalized_fallback_item)
 
     last_error: Optional[Dict[str, Any]] = None
 
@@ -481,18 +496,40 @@ def build_routing_decision(
             if attempt not in attempted_provider_chain:
                 attempted_provider_chain.append(attempt)
 
+    selected_provider_summary = text_ocr_plan["provider"]
+    aggregate_execution_mode = text_ocr_plan["execution_mode"]
+
+    for page in ocr_pages:
+        if not isinstance(page, dict):
+            continue
+        page_routing = page.get("routing_decision", {})
+        if not isinstance(page_routing, dict):
+            continue
+        if bool(page_routing.get("fallback_used", False)):
+            fallback_used = True
+            selected_provider_summary = str(
+                page_routing.get("selected_provider_summary")
+                or page_routing.get("executed_provider")
+                or selected_provider_summary
+            )
+            aggregate_execution_mode = str(
+                page_routing.get("execution_mode") or aggregate_execution_mode
+            )
+            break
+
     routing_decision.update(
         {
             "selected_strategy": routing_decision.get("selected_strategy", "baseline_v1"),
             "primary_provider_summary": text_ocr_plan["provider"],
             "fallback_used": fallback_used,
+            "selected_provider_summary": selected_provider_summary,
             "selected_capability_path": "TEXT_OCR",
             "decision_basis": text_ocr_plan["decision_reason"],
             "attempted_provider_chain": attempted_provider_chain,
             "current_route_state": "ocr_completed",
             "last_gate_applied": routing_decision.get("last_gate_applied", "2"),
             "ocr_pages_processed": len(ocr_pages),
-            "ocr_execution_mode": text_ocr_plan["execution_mode"],
+            "ocr_execution_mode": aggregate_execution_mode,
         }
     )
     return routing_decision
@@ -626,7 +663,8 @@ def run(event: Dict[str, Any]) -> Dict[str, Any]:
                 "provider_type": text_ocr_plan["provider_type"],
                 "execution_mode": text_ocr_plan["execution_mode"],
                 "decision_reason": text_ocr_plan["decision_reason"],
-            }
+            },
+            require_runtime_enabled=True,
         )
     except OCRInstructionValidationError as exc:
         return build_failure_result(

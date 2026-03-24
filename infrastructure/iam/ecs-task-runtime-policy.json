@@ -55,6 +55,14 @@
         "kms:DescribeKey"
       ],
       "Resource": "arn:aws:kms:us-east-1:026465780614:key/7ab34738-aeec-499a-bc62-796d8aeae28a"
+    },
+    {
+      "Sid": "TextractDetectDocumentTextAccess",
+      "Effect": "Allow",
+      "Action": [
+        "textract:DetectDocumentText"
+      ],
+      "Resource": "*"
     }
   ]
 }

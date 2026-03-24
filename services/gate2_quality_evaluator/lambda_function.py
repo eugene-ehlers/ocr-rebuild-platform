@@ -160,11 +160,17 @@ def build_manifest_update(payload: Dict[str, Any], overall_decision: str, overal
 
 def build_routing_decision(payload: Dict[str, Any], overall_decision: str, overall_reason: str, text_ocr_plan: Dict[str, Any]) -> Dict[str, Any]:
     routing_decision = dict(payload.get("routing_decision", {}))
+    fallback_used = bool(routing_decision.get("fallback_used", False))
+
+    fallback_provider = str(routing_decision.get("selected_provider_summary", "")).strip()
+    if not fallback_used:
+        fallback_provider = ""
+
     routing_decision.update({
         "last_gate_applied": "2",
         "current_route_state": "gate2_failed" if overall_decision == "FAIL_QUALITY_GATE" else "gate2_completed",
-        "fallback_used": False,
-        "fallback_provider": text_ocr_plan.get("fallback_provider", ""),
+        "fallback_used": fallback_used,
+        "fallback_provider": fallback_provider,
         "decision_basis": overall_reason,
         "gate2_overall_decision": overall_decision
     })

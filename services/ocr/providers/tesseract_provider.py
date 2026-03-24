@@ -14,6 +14,9 @@ class TesseractProviderAdapter(OCRProviderAdapter):
     provider_type = "open_source"
 
     def execute(self, image_bytes: bytes, provider_instruction: Dict[str, Any]) -> Dict[str, Any]:
+        if bool(provider_instruction.get("proof_force_primary_failure", False)):
+            raise RuntimeError("controlled_primary_failure_for_governed_live_fallback_proof_v1")
+
         with Image.open(BytesIO(image_bytes)) as img:
             text = pytesseract.image_to_string(img).strip()
 

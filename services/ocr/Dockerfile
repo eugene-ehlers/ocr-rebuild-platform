@@ -9,6 +9,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY ocr_worker.py .
+RUN mkdir -p /app/services/ocr
+COPY . /app/services/ocr/
 
-CMD ["python", "ocr_worker.py"]
+ENV PYTHONPATH=/app
+
+CMD ["python", "-m", "services.ocr.ocr_worker"]

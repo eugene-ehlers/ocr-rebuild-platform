@@ -610,7 +610,11 @@ def _mark_remaining_stages(plan: Dict[str, Any], after_stage_id: str, status: st
             seen = True
 
 
-def _execute(context: OrchestrationContext, execution_plan: Dict[str, Any]) -> Dict[str, Any]:
+def _execute(
+    context: OrchestrationContext,
+    execution_plan: Dict[str, Any],
+    payload: Dict[str, Any],
+) -> Dict[str, Any]:
     execution_payload = {
         "request_id": context.request_id,
         "customer_id": context.customer_id,
@@ -619,6 +623,8 @@ def _execute(context: OrchestrationContext, execution_plan: Dict[str, Any]) -> D
         "document_ids": context.document_ids,
         "disclose_to_third_party": context.disclose_to_third_party,
         "timestamp": _utc_now(),
+        "transactions": payload.get("transactions"),
+        "document_metadata": payload.get("document_metadata"),
         "execution_plan": execution_plan,
         "orchestration_context": {
             "plan_id": execution_plan.get("plan_id"),
@@ -643,18 +649,19 @@ def _finalize_result_record(
             "finalization_reason": "pre_execution_enforcement_failed",
         }
 
-    execution_mode = None
     worker_status = None
 
     if downstream_execution:
-        execution_mode = downstream_execution.get("execution", {}).get("execution_mode")
+        execution = downstream_execution.get("execution", {}) or {}
+        invocation_result = execution.get("invocation", {}).get("result")
 
-        invocation_result = (
-            downstream_execution.get("execution", {})
-            .get("fallback", {})
-            .get("invocation", {})
-            .get("result")
-        )
+        if not isinstance(invocation_result, dict):
+            invocation_result = (
+                execution.get("fallback", {})
+                .get("invocation", {})
+                .get("result")
+            )
+
         if isinstance(invocation_result, dict):
             worker_status = invocation_result.get("status")
 
@@ -672,14 +679,6 @@ def _finalize_result_record(
             "result_status": "rejected",
             "plan_status": "failed",
             "finalization_reason": "downstream_worker_rejected_payload",
-        }
-
-    if execution_mode in {"aws_live", "service_stub"}:
-        return {
-            "request_status": "completed",
-            "result_status": "available",
-            "plan_status": "completed",
-            "finalization_reason": "downstream_execution_succeeded",
         }
 
     return {
@@ -731,11 +730,22 @@ def _execute_plan(
     _set_stage_status(plan, "enforcement_decision", "passed")
 
     _set_stage_status(plan, "downstream_execution", "running")
-    downstream_execution = _execute(context, plan)
+    downstream_execution = _execute(context, plan, payload)
     stage_results["downstream_execution"] = downstream_execution
 
-    execution_mode = downstream_execution.get("execution", {}).get("execution_mode")
-    if execution_mode in {"aws_live", "service_stub"}:
+    execution = downstream_execution.get("execution", {}) or {}
+    invocation_result = execution.get("invocation", {}).get("result")
+
+    if not isinstance(invocation_result, dict):
+        invocation_result = (
+            execution.get("fallback", {})
+            .get("invocation", {})
+            .get("result")
+        )
+
+    worker_status = invocation_result.get("status") if isinstance(invocation_result, dict) else None
+
+    if worker_status == "executed":
         _set_stage_status(plan, "downstream_execution", "completed")
     else:
         _set_stage_status(plan, "downstream_execution", "failed")
