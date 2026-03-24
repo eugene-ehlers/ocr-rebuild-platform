@@ -66,6 +66,14 @@ DEFAULT_VALIDITY_SECONDS = {
 ENFORCEMENT_MODE = "hard"
 
 
+FM_BASELINE_RUNTIME_LOCK = {
+    "service_code": "financial_management",
+    "service_family": "financial_management",
+    "governed_outcome_code": "FM-OTC-001",
+    "outcome_intent": "explain_document",
+}
+
+
 @dataclass
 class OrchestrationContext:
     request_id: str
@@ -121,6 +129,12 @@ def _build_context(payload: Dict[str, Any]) -> OrchestrationContext:
         raise ValueError("documentIds must be a non-empty list")
 
     service_family = _resolve_service_family(service_code)
+
+    if (
+        service_code == FM_BASELINE_RUNTIME_LOCK["service_code"]
+        and service_family != FM_BASELINE_RUNTIME_LOCK["service_family"]
+    ):
+        raise ValueError("financial_management runtime lock service_family mismatch")
 
     return OrchestrationContext(
         request_id=_new_request_id(),
@@ -570,12 +584,17 @@ def _build_execution_plan(context: OrchestrationContext, execution_mode: str) ->
         },
     ]
 
+    plan_runtime_lock = None
+    if context.service_code == FM_BASELINE_RUNTIME_LOCK["service_code"]:
+        plan_runtime_lock = dict(FM_BASELINE_RUNTIME_LOCK)
+
     return {
         "plan_id": _new_plan_id(context.request_id),
         "request_id": context.request_id,
         "service_family": context.service_family,
         "service_code": context.service_code,
         "plan_version": "execution_plan_v1",
+        "governed_runtime_lock": plan_runtime_lock,
         "execution_mode": execution_mode,
         "created_at": _utc_now(),
         "plan_status": "pending",
@@ -625,6 +644,7 @@ def _execute(
         "timestamp": _utc_now(),
         "transactions": payload.get("transactions"),
         "document_metadata": payload.get("document_metadata"),
+        "governed_runtime_lock": execution_plan.get("governed_runtime_lock"),
         "execution_plan": execution_plan,
         "orchestration_context": {
             "plan_id": execution_plan.get("plan_id"),
@@ -650,6 +670,8 @@ def _finalize_result_record(
         }
 
     worker_status = None
+    invocation_result = None
+    runtime_lock = plan.get("governed_runtime_lock")
 
     if downstream_execution:
         execution = downstream_execution.get("execution", {}) or {}
@@ -666,6 +688,67 @@ def _finalize_result_record(
             worker_status = invocation_result.get("status")
 
     if worker_status == "executed":
+        if runtime_lock:
+            result_payload = invocation_result.get("result") if isinstance(invocation_result, dict) else None
+            outcome_block = result_payload.get("fm_otc_001") if isinstance(result_payload, dict) else None
+
+            if plan.get("service_code") != runtime_lock.get("service_code"):
+                return {
+                    "request_status": "completed",
+                    "result_status": "execution_failed",
+                    "plan_status": "failed",
+                    "finalization_reason": "runtime_lock_service_code_mismatch",
+                }
+
+            if plan.get("service_family") != runtime_lock.get("service_family"):
+                return {
+                    "request_status": "completed",
+                    "result_status": "execution_failed",
+                    "plan_status": "failed",
+                    "finalization_reason": "runtime_lock_service_family_mismatch",
+                }
+
+            if not isinstance(result_payload, dict):
+                return {
+                    "request_status": "completed",
+                    "result_status": "execution_failed",
+                    "plan_status": "failed",
+                    "finalization_reason": "runtime_lock_result_missing",
+                }
+
+            outcome_keys = sorted([k for k in result_payload.keys() if k.startswith("fm_otc_")])
+            if outcome_keys != ["fm_otc_001"]:
+                return {
+                    "request_status": "completed",
+                    "result_status": "execution_failed",
+                    "plan_status": "failed",
+                    "finalization_reason": "runtime_lock_governed_outcome_mismatch",
+                }
+
+            if runtime_lock.get("governed_outcome_code") != "FM-OTC-001":
+                return {
+                    "request_status": "completed",
+                    "result_status": "execution_failed",
+                    "plan_status": "failed",
+                    "finalization_reason": "runtime_lock_governed_outcome_code_invalid",
+                }
+
+            if not isinstance(outcome_block, dict):
+                return {
+                    "request_status": "completed",
+                    "result_status": "execution_failed",
+                    "plan_status": "failed",
+                    "finalization_reason": "runtime_lock_outcome_block_missing",
+                }
+
+            if outcome_block.get("outcome_intent") != runtime_lock.get("outcome_intent"):
+                return {
+                    "request_status": "completed",
+                    "result_status": "execution_failed",
+                    "plan_status": "failed",
+                    "finalization_reason": "runtime_lock_outcome_intent_mismatch",
+                }
+
         return {
             "request_status": "completed",
             "result_status": "available",
