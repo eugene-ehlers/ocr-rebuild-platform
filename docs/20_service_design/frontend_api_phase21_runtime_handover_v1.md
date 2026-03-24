@@ -131,3 +131,9 @@ Current Tesseract-backed OCR runtime remains:
 - valid behind the governed provider-interface boundary
 - still not sufficient to claim complete multi-provider contract enforcement
 
+
+### OCR Fallback Runtime Status
+- governed fallback execution proven in live AWS
+- primary failure → fallback → successful completion path validated
+- execution truth fields (fallback_used, fallback_provider, attempted_provider_chain) now preserved end to end
+- no contract redesign required; alignment to existing governed semantics
