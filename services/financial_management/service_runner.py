@@ -1,12 +1,41 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 
 EXPECTED_SERVICE_FAMILY = "financial_management"
 EXPECTED_STAGE = "downstream_execution"
 SUPPORTED_PLAN_VERSIONS = {"execution_plan_v1"}
+
+
+ALLOWED_MULTI_PERIOD_SCOPES = {
+    "single_period_only",
+    "multi_period_required",
+    "comparative_required",
+    "advanced_obligation_context_required",
+}
+
+ALLOWED_MULTI_PERIOD_REASON_CODES = {
+    "over_multiple_statements",
+    "rolling_period_view",
+    "compare_prior_period",
+    "stability_over_time",
+    "health_tracking_over_time",
+}
+
+ALLOWED_MISSING_PERIOD_FLAGS = {
+    "PRIOR_STATEMENT_HISTORY_MISSING",
+    "PRIOR_PERIOD_COMPARISON_UNAVAILABLE",
+    "PERIOD_GROUPING_INCOMPLETE",
+    "NON_CONTIGUOUS_PERIOD_SEQUENCE",
+}
+
+ALLOWED_EXCLUSION_FLAGS = {
+    "EXCLUDED_INCOMPLETE_PERIOD",
+    "EXCLUDED_UNCOMPARABLE_PERIOD",
+    "EXCLUDED_MISSING_SUBSTRATE",
+}
 
 
 def _utc_now_iso() -> str:
@@ -192,7 +221,16 @@ def _classify_cash_flow(
     }
 
 
-def _build_substrate(payload: Dict[str, Any]) -> Tuple[List[Dict[str, Any]], Dict[str, Any], List[Dict[str, Any]], Dict[str, Any], Dict[str, float]]:
+def _build_substrate(
+    payload: Dict[str, Any]
+) -> Tuple[
+    List[Dict[str, Any]],
+    Dict[str, Any],
+    List[Dict[str, Any]],
+    Dict[str, Any],
+    Dict[str, float],
+    Dict[str, Any],
+]:
     raw_transactions = payload.get("transactions")
     if not isinstance(raw_transactions, list):
         raw_transactions = []
@@ -250,13 +288,288 @@ def _build_substrate(payload: Dict[str, Any]) -> Tuple[List[Dict[str, Any]], Dic
         ),
     }
 
+    multi_period_substrate = _build_multi_period_substrate(payload, cash_flow_summary)
+
     return (
         parsed_transactions,
         parsed_metadata,
         classified_transactions,
         classification_metadata,
         cash_flow_summary,
+        multi_period_substrate,
     )
+
+
+
+def _dedupe_flags(values: List[str], allowed: set[str]) -> List[str]:
+    result: List[str] = []
+    for value in values:
+        if value in allowed and value not in result:
+            result.append(value)
+    return result
+
+
+def _normalize_multi_period_requirement_signal(payload: Dict[str, Any]) -> Dict[str, Any]:
+    raw = payload.get("multi_period_requirement_signal")
+    if not isinstance(raw, dict):
+        return {
+            "scope": "single_period_only",
+            "reason_codes": [],
+            "fail_closed": False,
+        }
+
+    scope = str(raw.get("scope") or "single_period_only").strip()
+    if scope not in ALLOWED_MULTI_PERIOD_SCOPES:
+        scope = "single_period_only"
+
+    reason_codes: List[str] = []
+    raw_reason_codes = raw.get("reason_codes")
+    if isinstance(raw_reason_codes, list):
+        for item in raw_reason_codes:
+            code = str(item or "").strip()
+            if code in ALLOWED_MULTI_PERIOD_REASON_CODES and code not in reason_codes:
+                reason_codes.append(code)
+
+    fail_closed = bool(raw.get("fail_closed", False))
+    if scope == "single_period_only":
+        fail_closed = False
+    else:
+        fail_closed = True
+
+    return {
+        "scope": scope,
+        "reason_codes": reason_codes,
+        "fail_closed": fail_closed,
+    }
+
+
+def _normalize_prior_statement_history(payload: Dict[str, Any]) -> Dict[str, Any]:
+    raw = payload.get("prior_statement_history")
+    if not isinstance(raw, dict):
+        return {"periods": []}
+
+    periods: List[Dict[str, Any]] = []
+    raw_periods = raw.get("periods")
+    if isinstance(raw_periods, list):
+        for item in raw_periods:
+            if not isinstance(item, dict):
+                continue
+            periods.append(
+                {
+                    "period_id": str(item.get("period_id") or "").strip(),
+                    "period_start_date": str(item.get("period_start_date") or "").strip(),
+                    "period_end_date": str(item.get("period_end_date") or "").strip(),
+                    "statement_reference": str(item.get("statement_reference") or "").strip(),
+                    "parsed_transactions": item.get("parsed_transactions") if isinstance(item.get("parsed_transactions"), list) else None,
+                    "classified_transactions": item.get("classified_transactions") if isinstance(item.get("classified_transactions"), list) else None,
+                    "cash_flow_summary": item.get("cash_flow_summary") if isinstance(item.get("cash_flow_summary"), dict) else None,
+                    "debt_positions": item.get("debt_positions") if isinstance(item.get("debt_positions"), list) else None,
+                    "account_context": item.get("account_context") if isinstance(item.get("account_context"), dict) else None,
+                }
+            )
+
+    return {"periods": periods}
+
+
+def _is_complete_current_period(period: Dict[str, Any]) -> bool:
+    return bool(
+        str(period.get("period_start_date") or "").strip()
+        and str(period.get("period_end_date") or "").strip()
+        and str(period.get("statement_reference") or "").strip()
+    )
+
+
+def _build_period_groupings(
+    payload: Dict[str, Any],
+    prior_statement_history: Dict[str, Any],
+    missing_period_flags: List[str],
+    exclusion_flags: List[str],
+) -> Dict[str, Any]:
+    document_metadata = payload.get("document_metadata")
+    if not isinstance(document_metadata, dict):
+        document_metadata = {}
+
+    document_ids = payload.get("document_ids")
+    current_statement_reference = str(
+        document_metadata.get("statement_reference")
+        or (document_ids[0] if isinstance(document_ids, list) and document_ids else "")
+        or ""
+    ).strip()
+
+    current_period = {
+        "period_start_date": str(document_metadata.get("period_start_date") or "").strip(),
+        "period_end_date": str(document_metadata.get("period_end_date") or "").strip(),
+        "statement_reference": current_statement_reference,
+    }
+
+    if not _is_complete_current_period(current_period):
+        missing_period_flags.append("PERIOD_GROUPING_INCOMPLETE")
+
+    prior_periods: List[Dict[str, str]] = []
+    for item in prior_statement_history.get("periods", []):
+        period_block = {
+            "period_id": str(item.get("period_id") or "").strip(),
+            "period_start_date": str(item.get("period_start_date") or "").strip(),
+            "period_end_date": str(item.get("period_end_date") or "").strip(),
+            "statement_reference": str(item.get("statement_reference") or "").strip(),
+        }
+        if not all(period_block.values()):
+            exclusion_flags.append("EXCLUDED_INCOMPLETE_PERIOD")
+            continue
+        prior_periods.append(period_block)
+
+    return {
+        "grouping_basis": "statement_period",
+        "current_period": current_period,
+        "prior_periods": prior_periods,
+    }
+
+
+def _build_metric_value_map(cash_flow_summary: Dict[str, float]) -> Dict[str, float]:
+    return {
+        "income_total": round(_safe_float(cash_flow_summary.get("income_total")), 2),
+        "fixed_expense_total": round(_safe_float(cash_flow_summary.get("fixed_expense_total")), 2),
+        "variable_expense_total": round(_safe_float(cash_flow_summary.get("variable_expense_total")), 2),
+        "discretionary_total": round(_safe_float(cash_flow_summary.get("discretionary_total")), 2),
+        "net_cash_flow": round(_safe_float(cash_flow_summary.get("net_cash_flow")), 2),
+    }
+
+
+def _select_usable_prior_period(
+    prior_statement_history: Dict[str, Any],
+    exclusion_flags: List[str],
+) -> Optional[Dict[str, Any]]:
+    usable_periods: List[Dict[str, Any]] = []
+
+    for item in prior_statement_history.get("periods", []):
+        if not (
+            str(item.get("period_id") or "").strip()
+            and str(item.get("period_start_date") or "").strip()
+            and str(item.get("period_end_date") or "").strip()
+            and str(item.get("statement_reference") or "").strip()
+        ):
+            continue
+
+        if not isinstance(item.get("cash_flow_summary"), dict):
+            exclusion_flags.append("EXCLUDED_MISSING_SUBSTRATE")
+            continue
+
+        usable_periods.append(item)
+
+    if not usable_periods:
+        return None
+
+    return usable_periods[0]
+
+
+def _build_trend_metrics(
+    cash_flow_summary: Dict[str, float],
+    prior_statement_history: Dict[str, Any],
+    exclusion_flags: List[str],
+) -> List[Dict[str, Any]]:
+    prior_period = _select_usable_prior_period(prior_statement_history, exclusion_flags)
+    if not prior_period:
+        return []
+
+    usable_period_count = 0
+    for item in prior_statement_history.get("periods", []):
+        if (
+            isinstance(item, dict)
+            and isinstance(item.get("cash_flow_summary"), dict)
+            and str(item.get("period_id") or "").strip()
+            and str(item.get("period_start_date") or "").strip()
+            and str(item.get("period_end_date") or "").strip()
+            and str(item.get("statement_reference") or "").strip()
+        ):
+            usable_period_count += 1
+
+    comparison_basis = "rolling_multi_period" if usable_period_count > 1 else "current_vs_prior"
+    current_values = _build_metric_value_map(cash_flow_summary)
+    prior_values = _build_metric_value_map(prior_period.get("cash_flow_summary") or {})
+
+    trend_metrics: List[Dict[str, Any]] = []
+    for metric_name, current_value in current_values.items():
+        prior_value = prior_values.get(metric_name)
+        absolute_change = round(current_value - prior_value, 2)
+        percent_change = None
+        if prior_value not in (None, 0):
+            percent_change = round((absolute_change / prior_value) * 100.0, 2)
+
+        direction = "flat"
+        if current_value > prior_value:
+            direction = "increase"
+        elif current_value < prior_value:
+            direction = "decrease"
+
+        trend_metrics.append(
+            {
+                "metric_name": metric_name,
+                "comparison_basis": comparison_basis,
+                "current_value": current_value,
+                "prior_value": prior_value,
+                "absolute_change": absolute_change,
+                "percent_change": percent_change,
+                "direction": direction if prior_value is not None else "unknown",
+            }
+        )
+
+    return trend_metrics
+
+
+def _build_multi_period_substrate(
+    payload: Dict[str, Any],
+    cash_flow_summary: Dict[str, float],
+) -> Dict[str, Any]:
+    multi_period_requirement_signal = _normalize_multi_period_requirement_signal(payload)
+    prior_statement_history = _normalize_prior_statement_history(payload)
+
+    missing_period_flags: List[str] = []
+    exclusion_flags: List[str] = []
+
+    period_groupings = _build_period_groupings(
+        payload,
+        prior_statement_history,
+        missing_period_flags,
+        exclusion_flags,
+    )
+    trend_metrics = _build_trend_metrics(
+        cash_flow_summary,
+        prior_statement_history,
+        exclusion_flags,
+    )
+
+    scope = multi_period_requirement_signal["scope"]
+    periods = prior_statement_history.get("periods", [])
+
+    if scope in {"multi_period_required", "advanced_obligation_context_required"} and not periods:
+        missing_period_flags.append("PRIOR_STATEMENT_HISTORY_MISSING")
+
+    if scope == "comparative_required" and not trend_metrics:
+        missing_period_flags.append("PRIOR_PERIOD_COMPARISON_UNAVAILABLE")
+
+    missing_period_flags = _dedupe_flags(missing_period_flags, ALLOWED_MISSING_PERIOD_FLAGS)
+    exclusion_flags = _dedupe_flags(exclusion_flags, ALLOWED_EXCLUSION_FLAGS)
+
+    substrate_fail_closed = False
+    if multi_period_requirement_signal["fail_closed"]:
+        if "PERIOD_GROUPING_INCOMPLETE" in missing_period_flags:
+            substrate_fail_closed = True
+        elif scope in {"multi_period_required", "advanced_obligation_context_required"} and "PRIOR_STATEMENT_HISTORY_MISSING" in missing_period_flags:
+            substrate_fail_closed = True
+        elif scope == "comparative_required" and "PRIOR_PERIOD_COMPARISON_UNAVAILABLE" in missing_period_flags:
+            substrate_fail_closed = True
+        elif scope != "single_period_only" and not trend_metrics:
+            substrate_fail_closed = True
+
+    return {
+        "multi_period_requirement_signal": multi_period_requirement_signal,
+        "prior_statement_history": prior_statement_history,
+        "period_groupings": period_groupings,
+        "trend_metrics": trend_metrics,
+        "missing_period_flags": missing_period_flags,
+        "exclusion_flags": exclusion_flags,
+        "substrate_fail_closed": substrate_fail_closed,
+    }
 
 
 def _build_statement_outcome(
@@ -406,6 +719,7 @@ def run(payload: Dict[str, Any]) -> Dict[str, Any]:
         classified_transactions,
         classification_metadata,
         cash_flow_summary,
+        multi_period_substrate,
     ) = _build_substrate(payload)
 
     fm_otc_001 = _build_statement_outcome(

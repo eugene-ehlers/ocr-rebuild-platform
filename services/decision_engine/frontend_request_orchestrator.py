@@ -644,6 +644,8 @@ def _execute(
         "timestamp": _utc_now(),
         "transactions": payload.get("transactions"),
         "document_metadata": payload.get("document_metadata"),
+        "multi_period_requirement_signal": payload.get("multi_period_requirement_signal"),
+        "prior_statement_history": payload.get("prior_statement_history"),
         "governed_runtime_lock": execution_plan.get("governed_runtime_lock"),
         "execution_plan": execution_plan,
         "orchestration_context": {

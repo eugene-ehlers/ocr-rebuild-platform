@@ -61,6 +61,22 @@ Allowed values include:
 
 ---
 
+
+## Payload Contract Cross-Reference
+
+Field-level contract authority for the following governed tokens is defined in `docs/20_service_design/financial_management_payloads_v1.md`, Section 9:
+
+- prior_statement_history
+- period_groupings
+- trend_metrics
+- missing_period_flags
+- exclusion_flags
+- multi_period_requirement_signal
+
+This rule table remains the authority for when those tokens are required and when sufficiency must fail closed.
+
+---
+
 ## Rule Table
 
 ---
