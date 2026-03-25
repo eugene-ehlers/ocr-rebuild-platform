@@ -697,6 +697,142 @@ def _build_statement_outcome(
     }
 
 
+
+def _validate_cash_flow_outcome_internal_contract(
+    outcome: Dict[str, Any],
+    audience_mode: str,
+) -> Dict[str, Any]:
+    errors: List[str] = []
+
+    if not isinstance(outcome, dict):
+        return {
+            "status": "fail",
+            "errors": ["fm_otc_002_not_dict"],
+        }
+
+    if outcome.get("outcome_intent") != "analyse_cash_flow":
+        errors.append("fm_otc_002_outcome_intent_invalid")
+
+    missing_period_flags = outcome.get("missing_period_flags")
+    if not isinstance(missing_period_flags, list):
+        errors.append("fm_otc_002_missing_period_flags_missing")
+    elif any(flag not in ALLOWED_MISSING_PERIOD_FLAGS for flag in missing_period_flags):
+        errors.append("fm_otc_002_missing_period_flags_invalid")
+
+    exclusion_flags = outcome.get("exclusion_flags")
+    if not isinstance(exclusion_flags, list):
+        errors.append("fm_otc_002_exclusion_flags_missing")
+    elif any(flag not in ALLOWED_EXCLUSION_FLAGS for flag in exclusion_flags):
+        errors.append("fm_otc_002_exclusion_flags_invalid")
+
+    inflow_outflow_metrics = outcome.get("inflow_outflow_metrics")
+    required_inflow_outflow_keys = {"inflows", "outflows", "net_cash_flow"}
+    if not isinstance(inflow_outflow_metrics, dict):
+        errors.append("fm_otc_002_inflow_outflow_metrics_missing")
+    elif not required_inflow_outflow_keys.issubset(inflow_outflow_metrics.keys()):
+        errors.append("fm_otc_002_inflow_outflow_metrics_incomplete")
+
+    trend_metrics = outcome.get("trend_metrics")
+    if not isinstance(trend_metrics, list):
+        errors.append("fm_otc_002_trend_metrics_missing")
+
+    cash_flow_summary = outcome.get("cash_flow_summary")
+    required_cash_flow_summary_keys = {
+        "income_total",
+        "fixed_expense_total",
+        "variable_expense_total",
+        "discretionary_total",
+        "net_cash_flow",
+    }
+    if not isinstance(cash_flow_summary, dict):
+        errors.append("fm_otc_002_cash_flow_summary_missing")
+    elif not required_cash_flow_summary_keys.issubset(cash_flow_summary.keys()):
+        errors.append("fm_otc_002_cash_flow_summary_incomplete")
+
+    if outcome.get("overall_confidence") is None:
+        errors.append("fm_otc_002_overall_confidence_missing")
+
+    if audience_mode == "internal":
+        inclusion_exclusion_trace = outcome.get("inclusion_exclusion_trace")
+        required_trace_keys = {
+            "multi_period_scope",
+            "included_prior_period_ids",
+            "excluded_flags",
+            "substrate_fail_closed",
+        }
+        if not isinstance(inclusion_exclusion_trace, dict):
+            errors.append("fm_otc_002_inclusion_exclusion_trace_missing")
+        elif not required_trace_keys.issubset(inclusion_exclusion_trace.keys()):
+            errors.append("fm_otc_002_inclusion_exclusion_trace_incomplete")
+
+    return {
+        "status": "pass" if not errors else "fail",
+        "errors": errors,
+    }
+
+
+def _build_cash_flow_outcome_internal(
+    payload: Dict[str, Any],
+    parsed_transactions: List[Dict[str, Any]],
+    parsed_metadata: Dict[str, Any],
+    classified_transactions: List[Dict[str, Any]],
+    classification_metadata: Dict[str, Any],
+    cash_flow_summary: Dict[str, float],
+    multi_period_substrate: Dict[str, Any],
+) -> Dict[str, Any]:
+    inflows = round(sum(item["amount"] for item in parsed_transactions if item["type"] == "credit"), 2)
+    outflows = round(sum(abs(item["amount"]) for item in parsed_transactions if item["type"] == "debit"), 2)
+
+    overall_confidence = round(
+        (
+            parsed_metadata.get("parsing_confidence", 0.0)
+            + classification_metadata.get("classification_confidence_overall", 0.0)
+        ) / 2,
+        2,
+    )
+
+    period_groupings = multi_period_substrate.get("period_groupings", {})
+    prior_periods = period_groupings.get("prior_periods", []) if isinstance(period_groupings, dict) else []
+    audience_mode = str(payload.get("audience_mode") or "internal").strip().lower()
+
+    result = {
+        "outcome_family": "analytical",
+        "outcome_intent": "analyse_cash_flow",
+        "degradation_policy": "degrade_with_caveat",
+        "missing_period_flags": list(multi_period_substrate.get("missing_period_flags", [])),
+        "exclusion_flags": list(multi_period_substrate.get("exclusion_flags", [])),
+        "inflow_outflow_metrics": {
+            "inflows": inflows,
+            "outflows": outflows,
+            "net_cash_flow": cash_flow_summary["net_cash_flow"],
+        },
+        "trend_metrics": list(multi_period_substrate.get("trend_metrics", [])),
+        "cash_flow_summary": {
+            "income_total": cash_flow_summary["income_total"],
+            "fixed_expense_total": cash_flow_summary["fixed_expense_total"],
+            "variable_expense_total": cash_flow_summary["variable_expense_total"],
+            "discretionary_total": cash_flow_summary["discretionary_total"],
+            "net_cash_flow": cash_flow_summary["net_cash_flow"],
+        },
+        "overall_confidence": overall_confidence,
+    }
+
+    if audience_mode == "internal":
+        result["inclusion_exclusion_trace"] = {
+            "multi_period_scope": (multi_period_substrate.get("multi_period_requirement_signal") or {}).get("scope"),
+            "included_prior_period_ids": [
+                item.get("period_id")
+                for item in prior_periods
+                if isinstance(item, dict) and item.get("period_id")
+            ],
+            "excluded_flags": list(multi_period_substrate.get("exclusion_flags", [])),
+            "substrate_fail_closed": bool(multi_period_substrate.get("substrate_fail_closed", False)),
+        }
+
+    return result
+
+
+
 def run(payload: Dict[str, Any]) -> Dict[str, Any]:
     execution_plan_ack = _build_execution_plan_ack(payload)
     validation = _validate_execution_plan(payload, EXPECTED_SERVICE_FAMILY)
@@ -730,6 +866,30 @@ def run(payload: Dict[str, Any]) -> Dict[str, Any]:
         classification_metadata,
         cash_flow_summary,
     )
+
+    _fm_otc_002_internal = _build_cash_flow_outcome_internal(
+        payload,
+        parsed_transactions,
+        parsed_metadata,
+        classified_transactions,
+        classification_metadata,
+        cash_flow_summary,
+        multi_period_substrate,
+    )
+
+    _fm_otc_002_internal_validation = _validate_cash_flow_outcome_internal_contract(
+        _fm_otc_002_internal,
+        str(payload.get("audience_mode") or "internal").strip().lower(),
+    )
+
+    fm_otc_002_internal_status = "valid"
+    fm_otc_002_internal_available = True
+    fm_otc_002_internal_summary = "Internal FM-OTC-002 contract validation passed."
+
+    if _fm_otc_002_internal_validation["status"] != "pass":
+        fm_otc_002_internal_status = "invalid"
+        fm_otc_002_internal_available = False
+        fm_otc_002_internal_summary = "Internal FM-OTC-002 contract validation failed; FM-OTC-002 remains internal-only and unavailable."
 
     return {
         "service": "financial_management",
