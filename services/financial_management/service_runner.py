@@ -56,6 +56,50 @@ def _build_execution_plan_ack(payload: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def _resolve_selected_runtime_lock(payload: Dict[str, Any]) -> Dict[str, Any]:
+    execution_plan = payload.get("execution_plan")
+    if not isinstance(execution_plan, dict):
+        return {}
+
+    runtime_lock = execution_plan.get("governed_runtime_lock")
+    if not isinstance(runtime_lock, dict):
+        return {}
+
+    return runtime_lock
+
+
+def _validate_selected_runtime_lock(runtime_lock: Dict[str, Any]) -> Dict[str, Any]:
+    errors: List[str] = []
+
+    if not isinstance(runtime_lock, dict) or not runtime_lock:
+        errors.append("governed_runtime_lock_missing")
+        return {
+            "status": "fail",
+            "errors": errors,
+        }
+
+    if runtime_lock.get("service_family") != EXPECTED_SERVICE_FAMILY:
+        errors.append("governed_runtime_lock_service_family_invalid")
+
+    allowed_pairs = {
+        ("FM-OTC-001", "fm_otc_001", "explain_document"),
+        ("FM-OTC-002", "fm_otc_002", "analyse_cash_flow"),
+    }
+
+    pair = (
+        runtime_lock.get("governed_outcome_code"),
+        runtime_lock.get("outcome_result_key"),
+        runtime_lock.get("outcome_intent"),
+    )
+    if pair not in allowed_pairs:
+        errors.append("governed_runtime_lock_outcome_invalid")
+
+    return {
+        "status": "pass" if not errors else "fail",
+        "errors": errors,
+    }
+
+
 def _validate_execution_plan(payload: Any, expected_service_family: str) -> Dict[str, Any]:
     errors: List[str] = []
 
@@ -849,6 +893,22 @@ def run(payload: Dict[str, Any]) -> Dict[str, Any]:
             },
         }
 
+    selected_runtime_lock = _resolve_selected_runtime_lock(payload)
+    selected_runtime_lock_validation = _validate_selected_runtime_lock(selected_runtime_lock)
+
+    if selected_runtime_lock_validation["status"] != "pass":
+        return {
+            "service": "financial_management",
+            "status": "rejected",
+            "execution_plan_ack": execution_plan_ack,
+            "execution_plan_validation": validation,
+            "received_payload": payload,
+            "result": {
+                "summary": "Worker rejected payload due to governed runtime lock validation failure.",
+                "runtime_lock_validation": selected_runtime_lock_validation,
+            },
+        }
+
     (
         parsed_transactions,
         parsed_metadata,
@@ -867,7 +927,7 @@ def run(payload: Dict[str, Any]) -> Dict[str, Any]:
         cash_flow_summary,
     )
 
-    _fm_otc_002_internal = _build_cash_flow_outcome_internal(
+    _selected_cash_flow_outcome = _build_cash_flow_outcome_internal(
         payload,
         parsed_transactions,
         parsed_metadata,
@@ -877,19 +937,112 @@ def run(payload: Dict[str, Any]) -> Dict[str, Any]:
         multi_period_substrate,
     )
 
-    _fm_otc_002_internal_validation = _validate_cash_flow_outcome_internal_contract(
-        _fm_otc_002_internal,
+    _selected_cash_flow_validation = _validate_cash_flow_outcome_internal_contract(
+        _selected_cash_flow_outcome,
         str(payload.get("audience_mode") or "internal").strip().lower(),
     )
 
-    fm_otc_002_internal_status = "valid"
-    fm_otc_002_internal_available = True
-    fm_otc_002_internal_summary = "Internal FM-OTC-002 contract validation passed."
+    cash_flow_outcome_internal_status = "valid"
+    cash_flow_outcome_internal_available = True
+    cash_flow_outcome_internal_summary = "Internal FM-OTC-002 contract validation passed."
 
-    if _fm_otc_002_internal_validation["status"] != "pass":
-        fm_otc_002_internal_status = "invalid"
-        fm_otc_002_internal_available = False
-        fm_otc_002_internal_summary = "Internal FM-OTC-002 contract validation failed; FM-OTC-002 remains internal-only and unavailable."
+    if _selected_cash_flow_validation["status"] != "pass":
+        cash_flow_outcome_internal_status = "invalid"
+        cash_flow_outcome_internal_available = False
+        cash_flow_outcome_internal_summary = "Internal FM-OTC-002 contract validation failed; FM-OTC-002 remains unavailable."
+
+    selected_outcome_code = selected_runtime_lock.get("governed_outcome_code")
+    selected_outcome_key = selected_runtime_lock.get("outcome_result_key")
+    selected_outcome_intent = selected_runtime_lock.get("outcome_intent")
+
+    outward_result = None
+    outward_summary = None
+
+    if selected_outcome_code == "FM-OTC-001":
+        outward_result = {
+            "fm_otc_001": fm_otc_001,
+        }
+        outward_summary = "Financial management worker executed with FM-OTC-001 governed outcome outputs."
+
+    elif selected_outcome_code == "FM-OTC-002":
+        if _selected_cash_flow_validation["status"] != "pass":
+            return {
+                "service": "financial_management",
+                "status": "rejected",
+                "execution_plan_ack": execution_plan_ack,
+                "execution_plan_validation": validation,
+                "received_payload": payload,
+                "result": {
+                    "summary": "Worker rejected payload because selected FM-OTC-002 outcome contract is invalid.",
+                    "runtime_lock_validation": selected_runtime_lock_validation,
+                    "cash_flow_outcome_internal_validation": _selected_cash_flow_validation,
+                },
+            }
+
+        if bool(multi_period_substrate.get("substrate_fail_closed", False)):
+            return {
+                "service": "financial_management",
+                "status": "rejected",
+                "execution_plan_ack": execution_plan_ack,
+                "execution_plan_validation": validation,
+                "received_payload": payload,
+                "result": {
+                    "summary": "Worker rejected payload because selected FM-OTC-002 requires sufficient governed multi-period substrate.",
+                    "runtime_lock_validation": selected_runtime_lock_validation,
+                    "cash_flow_outcome_internal_validation": _selected_cash_flow_validation,
+                    "multi_period_substrate": {
+                        "multi_period_requirement_signal": multi_period_substrate.get("multi_period_requirement_signal"),
+                        "missing_period_flags": multi_period_substrate.get("missing_period_flags", []),
+                        "exclusion_flags": multi_period_substrate.get("exclusion_flags", []),
+                        "substrate_fail_closed": multi_period_substrate.get("substrate_fail_closed", False),
+                    },
+                },
+            }
+
+        outward_result = {
+            "fm_otc_002": _selected_cash_flow_outcome,
+        }
+        outward_summary = "Financial management worker executed with FM-OTC-002 governed outcome outputs."
+
+    else:
+        return {
+            "service": "financial_management",
+            "status": "rejected",
+            "execution_plan_ack": execution_plan_ack,
+            "execution_plan_validation": validation,
+            "received_payload": payload,
+            "result": {
+                "summary": "Worker rejected payload due to unsupported governed outcome selection.",
+                "runtime_lock_validation": selected_runtime_lock_validation,
+            },
+        }
+
+    if selected_outcome_key not in outward_result:
+        return {
+            "service": "financial_management",
+            "status": "rejected",
+            "execution_plan_ack": execution_plan_ack,
+            "execution_plan_validation": validation,
+            "received_payload": payload,
+            "result": {
+                "summary": "Worker rejected payload because outward governed outcome key did not match runtime lock.",
+                "runtime_lock_validation": selected_runtime_lock_validation,
+            },
+        }
+
+    selected_block = outward_result[selected_outcome_key]
+    if not isinstance(selected_block, dict) or selected_block.get("outcome_intent") != selected_outcome_intent:
+        return {
+            "service": "financial_management",
+            "status": "rejected",
+            "execution_plan_ack": execution_plan_ack,
+            "execution_plan_validation": validation,
+            "received_payload": payload,
+            "result": {
+                "summary": "Worker rejected payload because outward governed outcome intent did not match runtime lock.",
+                "runtime_lock_validation": selected_runtime_lock_validation,
+            },
+        }
 
     return {
         "service": "financial_management",
@@ -898,7 +1051,7 @@ def run(payload: Dict[str, Any]) -> Dict[str, Any]:
         "execution_plan_validation": validation,
         "received_payload": payload,
         "result": {
-            "summary": "Financial management worker executed with FM-OTC-001 governed outcome outputs.",
+            "summary": outward_summary,
             "capabilities": [
                 "transaction_parsing",
                 "category_classification",
@@ -910,6 +1063,6 @@ def run(payload: Dict[str, Any]) -> Dict[str, Any]:
             "classified_transactions": classified_transactions,
             "classified_transactions_metadata": classification_metadata,
             "cash_flow_summary": cash_flow_summary,
-            "fm_otc_001": fm_otc_001,
+            **outward_result,
         },
     }

@@ -66,11 +66,23 @@ DEFAULT_VALIDITY_SECONDS = {
 ENFORCEMENT_MODE = "hard"
 
 
-FM_BASELINE_RUNTIME_LOCK = {
-    "service_code": "financial_management",
-    "service_family": "financial_management",
-    "governed_outcome_code": "FM-OTC-001",
-    "outcome_intent": "explain_document",
+FM_GOVERNED_RUNTIME_LOCKS = {
+    "explain_document": {
+        "service_code": "financial_management",
+        "service_family": "financial_management",
+        "governed_outcome_code": "FM-OTC-001",
+        "outcome_result_key": "fm_otc_001",
+        "outcome_intent": "explain_document",
+        "analysis_type": "explain_document",
+    },
+    "cash_flow_multi_period": {
+        "service_code": "financial_management",
+        "service_family": "financial_management",
+        "governed_outcome_code": "FM-OTC-002",
+        "outcome_result_key": "fm_otc_002",
+        "outcome_intent": "analyse_cash_flow",
+        "analysis_type": "cash_flow_multi_period",
+    },
 }
 
 
@@ -82,6 +94,9 @@ class OrchestrationContext:
     service_family: str
     document_ids: List[str]
     disclose_to_third_party: bool
+    analysis_type: Optional[str]
+    governed_outcome_code: Optional[str]
+    governed_outcome_intent: Optional[str]
     created_at: str
 
 
@@ -115,6 +130,20 @@ def _resolve_service_family(service_code: str) -> str:
     raise ValueError(f"Unsupported service_code: {service_code}")
 
 
+def _normalize_analysis_type(raw_value: Any) -> str:
+    normalized = str(raw_value or "").strip().lower()
+    return normalized or "explain_document"
+
+
+def _resolve_financial_management_runtime_lock(analysis_type: str) -> Dict[str, Any]:
+    runtime_lock = FM_GOVERNED_RUNTIME_LOCKS.get(analysis_type)
+    if runtime_lock is None:
+        raise ValueError(
+            "analysis_type must be one of: explain_document, cash_flow_multi_period"
+        )
+    return dict(runtime_lock)
+
+
 def _build_context(payload: Dict[str, Any]) -> OrchestrationContext:
     customer_id = str(payload.get("customerId", "")).strip()
     service_code = str(payload.get("serviceCode", "")).strip()
@@ -130,9 +159,21 @@ def _build_context(payload: Dict[str, Any]) -> OrchestrationContext:
 
     service_family = _resolve_service_family(service_code)
 
+    selected_analysis_type: Optional[str] = None
+    selected_governed_outcome_code: Optional[str] = None
+    selected_governed_outcome_intent: Optional[str] = None
+
+    if service_family == "financial_management":
+        runtime_lock = _resolve_financial_management_runtime_lock(
+            _normalize_analysis_type(payload.get("analysis_type"))
+        )
+        selected_analysis_type = runtime_lock["analysis_type"]
+        selected_governed_outcome_code = runtime_lock["governed_outcome_code"]
+        selected_governed_outcome_intent = runtime_lock["outcome_intent"]
+
     if (
-        service_code == FM_BASELINE_RUNTIME_LOCK["service_code"]
-        and service_family != FM_BASELINE_RUNTIME_LOCK["service_family"]
+        service_code == "financial_management"
+        and service_family != FM_GOVERNED_RUNTIME_LOCKS["explain_document"]["service_family"]
     ):
         raise ValueError("financial_management runtime lock service_family mismatch")
 
@@ -143,6 +184,9 @@ def _build_context(payload: Dict[str, Any]) -> OrchestrationContext:
         service_family=service_family,
         document_ids=[str(x) for x in document_ids],
         disclose_to_third_party=disclose,
+        analysis_type=selected_analysis_type,
+        governed_outcome_code=selected_governed_outcome_code,
+        governed_outcome_intent=selected_governed_outcome_intent,
         created_at=_utc_now(),
     )
 
@@ -585,8 +629,10 @@ def _build_execution_plan(context: OrchestrationContext, execution_mode: str) ->
     ]
 
     plan_runtime_lock = None
-    if context.service_code == FM_BASELINE_RUNTIME_LOCK["service_code"]:
-        plan_runtime_lock = dict(FM_BASELINE_RUNTIME_LOCK)
+    if context.service_family == "financial_management":
+        plan_runtime_lock = _resolve_financial_management_runtime_lock(
+            context.analysis_type or "explain_document"
+        )
 
     return {
         "plan_id": _new_plan_id(context.request_id),
@@ -692,7 +738,8 @@ def _finalize_result_record(
     if worker_status == "executed":
         if runtime_lock:
             result_payload = invocation_result.get("result") if isinstance(invocation_result, dict) else None
-            outcome_block = result_payload.get("fm_otc_001") if isinstance(result_payload, dict) else None
+            expected_outcome_result_key = runtime_lock.get("outcome_result_key")
+            outcome_block = result_payload.get(expected_outcome_result_key) if isinstance(result_payload, dict) else None
 
             if plan.get("service_code") != runtime_lock.get("service_code"):
                 return {
@@ -719,7 +766,7 @@ def _finalize_result_record(
                 }
 
             outcome_keys = sorted([k for k in result_payload.keys() if k.startswith("fm_otc_")])
-            if outcome_keys != ["fm_otc_001"]:
+            if outcome_keys != [expected_outcome_result_key]:
                 return {
                     "request_status": "completed",
                     "result_status": "execution_failed",
@@ -727,7 +774,10 @@ def _finalize_result_record(
                     "finalization_reason": "runtime_lock_governed_outcome_mismatch",
                 }
 
-            if runtime_lock.get("governed_outcome_code") != "FM-OTC-001":
+            allowed_outcome_codes = {
+                cfg["governed_outcome_code"] for cfg in FM_GOVERNED_RUNTIME_LOCKS.values()
+            }
+            if runtime_lock.get("governed_outcome_code") not in allowed_outcome_codes:
                 return {
                     "request_status": "completed",
                     "result_status": "execution_failed",
