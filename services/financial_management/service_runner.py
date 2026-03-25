@@ -87,6 +87,7 @@ def _validate_selected_runtime_lock(runtime_lock: Dict[str, Any]) -> Dict[str, A
         ("FM-OTC-003", "fm_otc_003", "analyse_spending_patterns"),
         ("FM-OTC-004", "fm_otc_004", "assess_financial_obligation_pressure"),
         ("FM-OTC-005", "fm_otc_005", "compare_against_reference"),
+        ("FM-OTC-006", "fm_otc_006", "detect_financial_risk"),
     }
 
     pair = (
@@ -1688,6 +1689,270 @@ def _build_benchmark_outcome_internal(
     return result
 
 
+def _build_risk_outcome_internal(
+    payload: Dict[str, Any],
+    parsed_metadata: Dict[str, Any],
+    classification_metadata: Dict[str, Any],
+    multi_period_substrate: Dict[str, Any],
+    obligation_context_substrate: Dict[str, Any],
+) -> Dict[str, Any]:
+    audience_mode = str(payload.get("audience_mode") or "internal").strip().lower()
+
+    overall_confidence = round(
+        (
+            parsed_metadata.get("parsing_confidence", 0.0)
+            + classification_metadata.get("classification_confidence_overall", 0.0)
+        ) / 2,
+        2,
+    )
+
+    trend_metrics = list(multi_period_substrate.get("trend_metrics", []))
+    debt_burden_metrics = dict(obligation_context_substrate.get("debt_burden_metrics", {}))
+    overload_flags = list(obligation_context_substrate.get("overload_flags", []))
+    risk_markers = list(obligation_context_substrate.get("risk_markers", []))
+    missing_obligation_flags = list(obligation_context_substrate.get("missing_obligation_flags", []))
+    included_prior_period_ids = list(obligation_context_substrate.get("included_prior_period_ids", []))
+    multi_period_requirement_signal = dict(multi_period_substrate.get("multi_period_requirement_signal", {}))
+
+    escalation_flags: List[str] = []
+    if "high_obligation_load" in overload_flags:
+        escalation_flags.append("high_obligation_load_detected")
+    if "debt_service_coverage_weak" in risk_markers:
+        escalation_flags.append("debt_service_coverage_weak_detected")
+    if missing_obligation_flags:
+        escalation_flags.append("required_obligation_inputs_missing")
+    if bool(multi_period_substrate.get("substrate_fail_closed", False)):
+        escalation_flags.append("multi_period_basis_insufficient")
+
+    stress_components: List[float] = []
+    debt_to_income_ratio = debt_burden_metrics.get("debt_to_income_ratio")
+    obligation_to_income_ratio = debt_burden_metrics.get("obligation_to_income_ratio")
+    debt_service_coverage = debt_burden_metrics.get("debt_service_coverage")
+
+    if isinstance(debt_to_income_ratio, (int, float)):
+        stress_components.append(max(0.0, min(1.0, float(debt_to_income_ratio))))
+    if isinstance(obligation_to_income_ratio, (int, float)):
+        stress_components.append(max(0.0, min(1.0, float(obligation_to_income_ratio))))
+    if isinstance(debt_service_coverage, (int, float)):
+        normalized_coverage_risk = 1.0 - min(float(debt_service_coverage), 2.0) / 2.0
+        stress_components.append(max(0.0, min(1.0, normalized_coverage_risk)))
+
+    if overload_flags:
+        stress_components.append(0.85 if "high_obligation_load" in overload_flags else 0.65)
+    if "debt_service_coverage_weak" in risk_markers:
+        stress_components.append(0.75)
+
+    stress_score = round(sum(stress_components) / len(stress_components), 2) if stress_components else None
+
+    health_summary_parts: List[str] = []
+    if stress_score is None:
+        health_summary_parts.append("Financial risk view is unavailable because required multi-signal stress inputs are incomplete.")
+    elif stress_score >= 0.75:
+        health_summary_parts.append("Observed financial risk indicators show a high current stress profile.")
+    elif stress_score >= 0.5:
+        health_summary_parts.append("Observed financial risk indicators show a moderate stress profile.")
+    else:
+        health_summary_parts.append("Observed financial risk indicators do not currently show elevated overall stress.")
+
+    if overload_flags:
+        health_summary_parts.append(f"Overload flags present: {', '.join(overload_flags)}.")
+    if risk_markers:
+        health_summary_parts.append(f"Risk markers present: {', '.join(risk_markers)}.")
+    if missing_obligation_flags:
+        health_summary_parts.append(f"Missing obligation inputs: {', '.join(missing_obligation_flags)}.")
+
+    escalation_guidance: List[str] = []
+    if "high_obligation_load_detected" in escalation_flags:
+        escalation_guidance.append("Escalate for review because obligation load is high relative to observed income.")
+    elif "high_obligation_load" in overload_flags:
+        escalation_guidance.append("Review current obligations urgently because debt-linked commitments appear materially elevated.")
+    elif "elevated_obligation_load" in overload_flags:
+        escalation_guidance.append("Review current obligations because they consume a substantial share of observed income.")
+    else:
+        escalation_guidance.append("Continue monitoring obligations and cash flow for emerging signs of financial stress.")
+
+    if "debt_service_coverage_weak_detected" in escalation_flags:
+        escalation_guidance.append("Escalate for review because debt servicing coverage appears weak.")
+    if "required_obligation_inputs_missing" in escalation_flags:
+        escalation_guidance.append("Escalate for review because required obligation inputs are incomplete.")
+    if "multi_period_basis_insufficient" in escalation_flags:
+        escalation_guidance.append("Escalate for review because required prior-statement history is insufficient for governed risk analysis.")
+
+    section_confidence_trace = {
+        "transactions": parsed_metadata.get("parsing_confidence", 0.0),
+        "categories": classification_metadata.get("classification_confidence_overall", 0.0),
+        "comparison_basis": multi_period_requirement_signal.get("scope"),
+        "included_prior_period_ids": included_prior_period_ids,
+    }
+
+    audit_trace = {
+        "multi_period_scope": multi_period_requirement_signal.get("scope"),
+        "missing_period_flags": list(multi_period_substrate.get("missing_period_flags", [])),
+        "exclusion_flags": list(multi_period_substrate.get("exclusion_flags", [])),
+        "missing_obligation_flags": missing_obligation_flags,
+        "risk_markers": risk_markers,
+    }
+
+    trigger_decomposition_trace = {
+        "stress_components_present": [
+            "debt_to_income_ratio" if isinstance(debt_to_income_ratio, (int, float)) else None,
+            "obligation_to_income_ratio" if isinstance(obligation_to_income_ratio, (int, float)) else None,
+            "debt_service_coverage" if isinstance(debt_service_coverage, (int, float)) else None,
+        ],
+        "overload_flags": overload_flags,
+        "risk_markers": risk_markers,
+        "escalation_flags": escalation_flags,
+    }
+    trigger_decomposition_trace["stress_components_present"] = [
+        item for item in trigger_decomposition_trace["stress_components_present"] if item is not None
+    ]
+
+    scenario_confidence = {
+        "stress_score_confidence": overall_confidence if stress_score is not None else 0.0,
+        "escalation_flag_confidence": overall_confidence if escalation_flags else round(overall_confidence * 0.9, 2),
+    }
+
+    result = {
+        "outcome_family": "analytical",
+        "outcome_intent": "detect_financial_risk",
+        "degradation_policy": "internal_review_required",
+        "stress_score": stress_score,
+        "overload_flags": overload_flags,
+        "escalation_flags": escalation_flags,
+        "trend_metrics": trend_metrics,
+        "debt_burden_metrics": debt_burden_metrics,
+        "health_summary": " ".join(health_summary_parts).strip(),
+        "escalation_guidance": escalation_guidance,
+        "audit_trace": audit_trace,
+        "section_confidence_trace": section_confidence_trace,
+        "trigger_decomposition_trace": trigger_decomposition_trace,
+        "overall_confidence": overall_confidence,
+        "scenario_confidence": scenario_confidence,
+    }
+
+    if audience_mode != "internal":
+        result.pop("audit_trace", None)
+        result.pop("section_confidence_trace", None)
+        result.pop("trigger_decomposition_trace", None)
+
+    return result
+
+
+def _validate_risk_outcome_internal_contract(
+    outcome: Dict[str, Any],
+    audience_mode: str,
+) -> Dict[str, Any]:
+    errors: List[str] = []
+
+    if not isinstance(outcome, dict):
+        return {
+            "status": "fail",
+            "errors": ["fm_otc_006_not_dict"],
+        }
+
+    if outcome.get("outcome_intent") != "detect_financial_risk":
+        errors.append("fm_otc_006_outcome_intent_invalid")
+
+    if outcome.get("stress_score") is None:
+        errors.append("fm_otc_006_stress_score_missing")
+
+    overload_flags = outcome.get("overload_flags")
+    if not isinstance(overload_flags, list):
+        errors.append("fm_otc_006_overload_flags_missing")
+
+    escalation_flags = outcome.get("escalation_flags")
+    if not isinstance(escalation_flags, list):
+        errors.append("fm_otc_006_escalation_flags_missing")
+
+    trend_metrics = outcome.get("trend_metrics")
+    if not isinstance(trend_metrics, list) or not trend_metrics:
+        errors.append("fm_otc_006_trend_metrics_missing")
+
+    debt_burden_metrics = outcome.get("debt_burden_metrics")
+    required_metric_keys = {
+        "total_outstanding_debt",
+        "monthly_debt_payment",
+        "debt_to_income_ratio",
+        "obligation_to_income_ratio",
+        "debt_service_coverage",
+    }
+    if not isinstance(debt_burden_metrics, dict):
+        errors.append("fm_otc_006_debt_burden_metrics_missing")
+    elif not required_metric_keys.issubset(debt_burden_metrics.keys()):
+        errors.append("fm_otc_006_debt_burden_metrics_incomplete")
+
+    health_summary = outcome.get("health_summary")
+    if not isinstance(health_summary, str) or not health_summary.strip():
+        errors.append("fm_otc_006_health_summary_missing")
+
+    escalation_guidance = outcome.get("escalation_guidance")
+    if not isinstance(escalation_guidance, list) or not escalation_guidance:
+        errors.append("fm_otc_006_escalation_guidance_missing")
+
+    if outcome.get("overall_confidence") is None:
+        errors.append("fm_otc_006_overall_confidence_missing")
+
+    scenario_confidence = outcome.get("scenario_confidence")
+    required_scenario_confidence_keys = {"stress_score_confidence", "escalation_flag_confidence"}
+    if not isinstance(scenario_confidence, dict):
+        errors.append("fm_otc_006_scenario_confidence_missing")
+    elif not required_scenario_confidence_keys.issubset(scenario_confidence.keys()):
+        errors.append("fm_otc_006_scenario_confidence_incomplete")
+
+    if audience_mode == "internal":
+        audit_trace = outcome.get("audit_trace")
+        required_audit_trace_keys = {
+            "multi_period_scope",
+            "missing_period_flags",
+            "exclusion_flags",
+            "missing_obligation_flags",
+            "risk_markers",
+        }
+        if not isinstance(audit_trace, dict):
+            errors.append("fm_otc_006_audit_trace_missing")
+        elif not required_audit_trace_keys.issubset(audit_trace.keys()):
+            errors.append("fm_otc_006_audit_trace_incomplete")
+
+        section_confidence_trace = outcome.get("section_confidence_trace")
+        required_section_trace_keys = {
+            "transactions",
+            "categories",
+            "comparison_basis",
+            "included_prior_period_ids",
+        }
+        if not isinstance(section_confidence_trace, dict):
+            errors.append("fm_otc_006_section_confidence_trace_missing")
+        elif not required_section_trace_keys.issubset(section_confidence_trace.keys()):
+            errors.append("fm_otc_006_section_confidence_trace_incomplete")
+
+        trigger_decomposition_trace = outcome.get("trigger_decomposition_trace")
+        required_trigger_trace_keys = {
+            "stress_components_present",
+            "overload_flags",
+            "risk_markers",
+            "escalation_flags",
+        }
+        if not isinstance(trigger_decomposition_trace, dict):
+            errors.append("fm_otc_006_trigger_decomposition_trace_missing")
+        elif not required_trigger_trace_keys.issubset(trigger_decomposition_trace.keys()):
+            errors.append("fm_otc_006_trigger_decomposition_trace_incomplete")
+
+    if outcome.get("stress_score") is None:
+        errors.append("fm_otc_006_multi_signal_stress_basis_missing")
+
+    if isinstance(escalation_guidance, list) and escalation_guidance:
+        if not isinstance(escalation_flags, list):
+            errors.append("fm_otc_006_escalation_guidance_without_supporting_flags")
+        if audience_mode == "internal":
+            if not isinstance(outcome.get("audit_trace"), dict) or not isinstance(outcome.get("trigger_decomposition_trace"), dict):
+                errors.append("fm_otc_006_risk_summary_without_traceability")
+
+    return {
+        "status": "pass" if not errors else "fail",
+        "errors": errors,
+    }
+
+
 def run(payload: Dict[str, Any]) -> Dict[str, Any]:
     execution_plan_ack = _build_execution_plan_ack(payload)
     validation = _validate_execution_plan(payload, EXPECTED_SERVICE_FAMILY)
@@ -1804,6 +2069,19 @@ def run(payload: Dict[str, Any]) -> Dict[str, Any]:
 
     _selected_benchmark_validation = _validate_benchmark_outcome_internal_contract(
         _selected_benchmark_outcome,
+        str(payload.get("audience_mode") or "internal").strip().lower(),
+    )
+
+    _selected_risk_outcome = _build_risk_outcome_internal(
+        payload,
+        parsed_metadata,
+        classification_metadata,
+        multi_period_substrate,
+        obligation_context_substrate,
+    )
+
+    _selected_risk_validation = _validate_risk_outcome_internal_contract(
+        _selected_risk_outcome,
         str(payload.get("audience_mode") or "internal").strip().lower(),
     )
 
@@ -2003,6 +2281,53 @@ def run(payload: Dict[str, Any]) -> Dict[str, Any]:
             "fm_otc_005": _selected_benchmark_outcome,
         }
         outward_summary = "Financial management worker executed with FM-OTC-005 governed outcome outputs."
+
+    elif selected_outcome_code == "FM-OTC-006":
+        if _selected_risk_validation["status"] != "pass":
+            return {
+                "service": "financial_management",
+                "status": "rejected",
+                "execution_plan_ack": execution_plan_ack,
+                "execution_plan_validation": validation,
+                "received_payload": payload,
+                "result": {
+                    "summary": "Worker rejected payload because selected FM-OTC-006 outcome contract is invalid.",
+                    "runtime_lock_validation": selected_runtime_lock_validation,
+                    "risk_outcome_internal_validation": _selected_risk_validation,
+                },
+            }
+
+        if bool(obligation_context_substrate.get("substrate_fail_closed", False)):
+            return {
+                "service": "financial_management",
+                "status": "rejected",
+                "execution_plan_ack": execution_plan_ack,
+                "execution_plan_validation": validation,
+                "received_payload": payload,
+                "result": {
+                    "summary": "Worker rejected payload because selected FM-OTC-006 requires sufficient governed risk substrate.",
+                    "runtime_lock_validation": selected_runtime_lock_validation,
+                    "risk_outcome_internal_validation": _selected_risk_validation,
+                    "multi_period_substrate": {
+                        "multi_period_requirement_signal": multi_period_substrate.get("multi_period_requirement_signal"),
+                        "missing_period_flags": multi_period_substrate.get("missing_period_flags", []),
+                        "exclusion_flags": multi_period_substrate.get("exclusion_flags", []),
+                        "substrate_fail_closed": multi_period_substrate.get("substrate_fail_closed", False),
+                    },
+                    "obligation_context_substrate": {
+                        "account_context_available": obligation_context_substrate.get("account_context_available", False),
+                        "prior_periods_with_debt": obligation_context_substrate.get("prior_periods_with_debt", 0),
+                        "prior_periods_with_account_context": obligation_context_substrate.get("prior_periods_with_account_context", 0),
+                        "missing_obligation_flags": obligation_context_substrate.get("missing_obligation_flags", []),
+                        "substrate_fail_closed": obligation_context_substrate.get("substrate_fail_closed", False),
+                    },
+                },
+            }
+
+        outward_result = {
+            "fm_otc_006": _selected_risk_outcome,
+        }
+        outward_summary = "Financial management worker executed with FM-OTC-006 governed outcome outputs."
 
     else:
         return {

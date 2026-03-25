@@ -107,6 +107,14 @@ FM_GOVERNED_RUNTIME_LOCKS = {
         "outcome_intent": "compare_against_reference",
         "analysis_type": "benchmark_reference_comparison",
     },
+    "detect_financial_risk": {
+        "service_code": "financial_management",
+        "service_family": "financial_management",
+        "governed_outcome_code": "FM-OTC-006",
+        "outcome_result_key": "fm_otc_006",
+        "outcome_intent": "detect_financial_risk",
+        "analysis_type": "detect_financial_risk",
+    },
 }
 
 
@@ -163,7 +171,7 @@ def _resolve_financial_management_runtime_lock(analysis_type: str) -> Dict[str, 
     runtime_lock = FM_GOVERNED_RUNTIME_LOCKS.get(analysis_type)
     if runtime_lock is None:
         raise ValueError(
-            "analysis_type must be one of: explain_document, cash_flow_multi_period, spend_analysis_multi_period, advanced_obligation_context, benchmark_reference_comparison"
+            "analysis_type must be one of: explain_document, cash_flow_multi_period, spend_analysis_multi_period, advanced_obligation_context, benchmark_reference_comparison, detect_financial_risk"
         )
     return dict(runtime_lock)
 
@@ -716,6 +724,10 @@ def _execute(
         "document_metadata": payload.get("document_metadata"),
         "multi_period_requirement_signal": payload.get("multi_period_requirement_signal"),
         "prior_statement_history": payload.get("prior_statement_history"),
+        "account_context": payload.get("account_context"),
+        "debt_positions": payload.get("debt_positions"),
+        "audience_mode": payload.get("audience_mode"),
+        "service_status": payload.get("service_status"),
         "governed_runtime_lock": execution_plan.get("governed_runtime_lock"),
         "execution_plan": execution_plan,
         "orchestration_context": {
