@@ -74,6 +74,8 @@ Current request-governed selector:
 Current governed outward mapping:
 - `analysis_type=explain_document` -> FM-OTC-001
 - `analysis_type=cash_flow_multi_period` -> FM-OTC-002
+- `analysis_type=spend_analysis_multi_period` -> FM-OTC-003
+- `analysis_type=advanced_obligation_context` -> FM-OTC-004
 
 Current runtime constraints:
 - omitted `analysis_type` defaults to FM-OTC-001
@@ -84,12 +86,16 @@ Current runtime constraints:
 Current fail-closed boundary:
 - FM-OTC-002 requires sufficient multi-period basis
 - where sufficient prior-period basis is not available, FM-OTC-002 must fail closed
+- FM-OTC-003 requires sufficient comparative prior-period basis
+- where sufficient comparative basis is not available, FM-OTC-003 must fail closed
+- FM-OTC-004 requires sufficient governed obligation context substrate
+- where sufficient obligation context substrate is not available, FM-OTC-004 must fail closed
 - this must not be interpreted as permission to silently downgrade the selected request into a mixed or inferred FM outcome
 
 Current scope boundary:
-- this is controlled exposure for FM-OTC-002 only
+- this is controlled request-governed exposure for FM-OTC-001 through FM-OTC-004
 - it does not constitute a generalized Financial Management selector redesign
-- FM-OTC-003 and broader multi-outcome routing remain future scope unless separately governed
+- broader multi-outcome routing remains future scope unless separately governed
 
 ### Validated Runtime Baseline — Full OCR Pipeline Execution
 

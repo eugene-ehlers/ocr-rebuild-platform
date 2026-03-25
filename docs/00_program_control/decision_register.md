@@ -238,14 +238,14 @@ FM-OTC-002 is intentionally deferred to ensure:
 - FM-OTC-002 must not be implemented, inferred, or partially exposed until explicitly approved in a future governed decision
 
 
-### DEC-007 — FM-OTC-002 Is Approved For Controlled Option-A Exposure
+### DEC-007 — FM Request-Governed Controlled Option-A Exposure Is Approved Through FM-OTC-004
 
 - **Status:** ACTIVE
 - **Date:** 2026-03-25
 
 #### Decision
 
-FM-OTC-002 is now approved for controlled operational exposure under governed Option A.
+Request-governed Financial Management controlled operational exposure is approved under governed Option A through FM-OTC-004.
 
 The governed request selector is:
 
@@ -255,6 +255,8 @@ Allowed governed values for the current exposure are:
 
 - `explain_document` => FM-OTC-001
 - `cash_flow_multi_period` => FM-OTC-002
+- `spend_analysis_multi_period` => FM-OTC-003
+- `advanced_obligation_context` => FM-OTC-004
 
 Current governing constraints:
 
@@ -263,21 +265,24 @@ Current governing constraints:
 - exactly one outward governed Financial Management outcome may be emitted
 - mixed FM outcomes are not permitted
 - FM-OTC-002 must fail closed when sufficient multi-period basis is not available
+- FM-OTC-003 must fail closed when sufficient comparative prior-period basis is not available
+- FM-OTC-004 must fail closed when sufficient governed obligation context substrate is not available
 
 #### Rationale
 
-Controlled implementation evidence now shows that FM-OTC-002 can be exposed without redesigning the wider Financial Management routing model, provided that selection remains explicit, outward outcome emission remains singular, and multi-period sufficiency is enforced strictly.
+Controlled implementation evidence now shows that FM-OTC-002, FM-OTC-003, and FM-OTC-004 can be exposed without redesigning the wider Financial Management routing model, provided that selection remains explicit, outward outcome emission remains singular, and sufficiency is enforced strictly for each selected governed path.
 
 This preserves the governed baseline while avoiding:
 - hidden inference of multi-period intent
+- hidden inference of obligation-assessment intent
 - mixed outcome emission
 - accidental drift from FM-OTC-001 as the default explanation path
-- permissive degradation where multi-period basis is insufficient
+- permissive degradation where selected governed basis is insufficient
 
 #### Consequences
 
 - DEC-006 remains valid only for the period before controlled exposure approval
-- current runtime and governed service documents must treat FM-OTC-002 as operationally exposed under Option A only
+- current runtime and governed service documents must treat FM-OTC-001, FM-OTC-002, FM-OTC-003, and FM-OTC-004 as the currently operational controlled Option-A exposure set
 - documentation must distinguish controlled current exposure from broader future Financial Management routing scope
-- broader selector generalisation and FM-OTC-003 onward remain future scope unless separately approved
+- broader selector generalisation and multi-outcome routing remain future scope unless separately approved
 

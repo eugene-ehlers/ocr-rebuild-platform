@@ -85,6 +85,7 @@ def _validate_selected_runtime_lock(runtime_lock: Dict[str, Any]) -> Dict[str, A
         ("FM-OTC-001", "fm_otc_001", "explain_document"),
         ("FM-OTC-002", "fm_otc_002", "analyse_cash_flow"),
         ("FM-OTC-003", "fm_otc_003", "analyse_spending_patterns"),
+        ("FM-OTC-004", "fm_otc_004", "assess_financial_obligation_pressure"),
     }
 
     pair = (
@@ -776,6 +777,162 @@ def _build_multi_period_substrate(
     }
 
 
+def _build_obligation_context_substrate(
+    payload: Dict[str, Any],
+    cash_flow_summary: Dict[str, float],
+    multi_period_substrate: Dict[str, Any],
+) -> Dict[str, Any]:
+    current_debt_positions = payload.get("debt_positions")
+    if not isinstance(current_debt_positions, list):
+        current_debt_positions = []
+    current_debt_positions = [item for item in current_debt_positions if isinstance(item, dict)]
+
+    current_account_context = payload.get("account_context")
+    if not isinstance(current_account_context, dict):
+        current_account_context = {}
+
+    prior_statement_history = multi_period_substrate.get("prior_statement_history") or {}
+    periods = prior_statement_history.get("periods") or []
+
+    included_prior_period_ids: List[str] = []
+    prior_periods_with_debt = 0
+    prior_periods_with_account_context = 0
+
+    for item in periods:
+        if not isinstance(item, dict):
+            continue
+        period_id = str(item.get("period_id") or "").strip()
+        if period_id:
+            included_prior_period_ids.append(period_id)
+        if isinstance(item.get("debt_positions"), list) and item.get("debt_positions"):
+            prior_periods_with_debt += 1
+        if isinstance(item.get("account_context"), dict) and item.get("account_context"):
+            prior_periods_with_account_context += 1
+
+    def _num(value: Any) -> float:
+        try:
+            if value in (None, ""):
+                return 0.0
+            return float(value)
+        except (TypeError, ValueError):
+            return 0.0
+
+    total_outstanding_debt = round(
+        sum(
+            _num(
+                item.get("outstanding_balance")
+                or item.get("balance")
+                or item.get("amount_outstanding")
+            )
+            for item in current_debt_positions
+        ),
+        2,
+    )
+
+    monthly_debt_payment = round(
+        sum(
+            _num(
+                item.get("monthly_payment")
+                or item.get("scheduled_payment_amount")
+                or item.get("repayment_amount")
+                or item.get("minimum_payment")
+            )
+            for item in current_debt_positions
+        ),
+        2,
+    )
+
+    income_total = round(float(cash_flow_summary.get("income_total") or 0.0), 2)
+    fixed_expense_total = round(float(cash_flow_summary.get("fixed_expense_total") or 0.0), 2)
+    committed_expense_total = round(monthly_debt_payment + fixed_expense_total, 2)
+
+    debt_to_income_ratio = None
+    obligation_to_income_ratio = None
+    debt_service_coverage = None
+
+    if income_total > 0:
+        debt_to_income_ratio = round(monthly_debt_payment / income_total, 4)
+        obligation_to_income_ratio = round(committed_expense_total / income_total, 4)
+
+    if monthly_debt_payment > 0:
+        debt_service_coverage = round(income_total / monthly_debt_payment, 2)
+
+    overload_flags: List[str] = []
+    risk_markers: List[str] = []
+    missing_obligation_flags: List[str] = []
+
+    account_context_available = bool(current_account_context) or prior_periods_with_account_context > 0
+
+    if not current_debt_positions:
+        missing_obligation_flags.append("DEBT_POSITIONS_MISSING")
+    if not account_context_available:
+        missing_obligation_flags.append("ACCOUNT_CONTEXT_MISSING")
+
+    if obligation_to_income_ratio is not None:
+        if obligation_to_income_ratio >= 0.70:
+            overload_flags.append("high_obligation_load")
+        elif obligation_to_income_ratio >= 0.50:
+            overload_flags.append("elevated_obligation_load")
+
+    if debt_service_coverage is not None and debt_service_coverage < 1.20:
+        risk_markers.append("debt_service_coverage_weak")
+    if debt_to_income_ratio is None and current_debt_positions:
+        risk_markers.append("income_basis_unavailable")
+
+    affordability_support_score = None
+    if obligation_to_income_ratio is not None:
+        affordability_support_score = round(max(0.0, min(1.0, 1.0 - obligation_to_income_ratio)), 2)
+    elif current_debt_positions:
+        affordability_support_score = 0.0
+    else:
+        affordability_support_score = 1.0
+
+    next_step_guidance: List[str] = []
+    if "high_obligation_load" in overload_flags:
+        next_step_guidance.append("Reduce debt-linked commitments or increase reliable income coverage before taking on additional obligations.")
+    elif "elevated_obligation_load" in overload_flags:
+        next_step_guidance.append("Review debt and committed expenses closely because obligations consume a high share of current income.")
+    else:
+        next_step_guidance.append("Current obligation load does not show elevated pressure on the observed income basis.")
+
+    if "debt_service_coverage_weak" in risk_markers:
+        next_step_guidance.append("Debt servicing coverage appears weak relative to observed repayment commitments.")
+
+    substrate_fail_closed = bool(multi_period_substrate.get("substrate_fail_closed", False))
+    if not current_debt_positions or not account_context_available:
+        substrate_fail_closed = True
+
+    return {
+        "current_debt_positions": current_debt_positions,
+        "current_account_context": current_account_context,
+        "account_context_available": account_context_available,
+        "included_prior_period_ids": included_prior_period_ids,
+        "prior_periods_with_debt": prior_periods_with_debt,
+        "prior_periods_with_account_context": prior_periods_with_account_context,
+        "missing_obligation_flags": missing_obligation_flags,
+        "overload_flags": overload_flags,
+        "risk_markers": risk_markers,
+        "next_step_guidance": next_step_guidance,
+        "affordability_support_score": affordability_support_score,
+        "debt_burden_metrics": {
+            "total_outstanding_debt": total_outstanding_debt,
+            "monthly_debt_payment": monthly_debt_payment,
+            "debt_to_income_ratio": debt_to_income_ratio,
+            "obligation_to_income_ratio": obligation_to_income_ratio,
+            "debt_service_coverage": debt_service_coverage,
+        },
+        "debt_summary": {
+            "total_debt_accounts": len(current_debt_positions),
+            "total_outstanding_debt": total_outstanding_debt,
+            "monthly_debt_payment": monthly_debt_payment,
+            "committed_expense_total": committed_expense_total,
+            "prior_periods_with_debt": prior_periods_with_debt,
+            "account_context_available": account_context_available,
+        },
+        "substrate_fail_closed": substrate_fail_closed,
+    }
+
+
 def _build_statement_outcome(
     payload: Dict[str, Any],
     parsed_transactions: List[Dict[str, Any]],
@@ -1194,6 +1351,135 @@ def _build_spending_outcome_internal(
     return result
 
 
+def _validate_obligation_outcome_internal_contract(
+    outcome: Dict[str, Any],
+    audience_mode: str,
+) -> Dict[str, Any]:
+    errors: List[str] = []
+
+    if not isinstance(outcome, dict):
+        return {
+            "status": "fail",
+            "errors": ["fm_otc_004_not_dict"],
+        }
+
+    if outcome.get("outcome_intent") != "assess_financial_obligation_pressure":
+        errors.append("fm_otc_004_outcome_intent_invalid")
+
+    if outcome.get("affordability_support_score") is None:
+        errors.append("fm_otc_004_affordability_support_score_missing")
+
+    overload_flags = outcome.get("overload_flags")
+    if not isinstance(overload_flags, list):
+        errors.append("fm_otc_004_overload_flags_missing")
+
+    risk_markers = outcome.get("risk_markers")
+    if not isinstance(risk_markers, list):
+        errors.append("fm_otc_004_risk_markers_missing")
+
+    debt_burden_metrics = outcome.get("debt_burden_metrics")
+    required_metric_keys = {
+        "total_outstanding_debt",
+        "monthly_debt_payment",
+        "debt_to_income_ratio",
+        "obligation_to_income_ratio",
+        "debt_service_coverage",
+    }
+    if not isinstance(debt_burden_metrics, dict):
+        errors.append("fm_otc_004_debt_burden_metrics_missing")
+    elif not required_metric_keys.issubset(debt_burden_metrics.keys()):
+        errors.append("fm_otc_004_debt_burden_metrics_incomplete")
+
+    trend_metrics = outcome.get("trend_metrics")
+    if not isinstance(trend_metrics, list):
+        errors.append("fm_otc_004_trend_metrics_missing")
+
+    debt_summary = outcome.get("debt_summary")
+    required_summary_keys = {
+        "total_debt_accounts",
+        "total_outstanding_debt",
+        "monthly_debt_payment",
+        "committed_expense_total",
+        "prior_periods_with_debt",
+        "account_context_available",
+    }
+    if not isinstance(debt_summary, dict):
+        errors.append("fm_otc_004_debt_summary_missing")
+    elif not required_summary_keys.issubset(debt_summary.keys()):
+        errors.append("fm_otc_004_debt_summary_incomplete")
+
+    next_step_guidance = outcome.get("next_step_guidance")
+    if not isinstance(next_step_guidance, list):
+        errors.append("fm_otc_004_next_step_guidance_missing")
+
+    if outcome.get("overall_confidence") is None:
+        errors.append("fm_otc_004_overall_confidence_missing")
+
+    if audience_mode == "internal":
+        obligation_trace = outcome.get("obligation_trace")
+        required_trace_keys = {
+            "multi_period_scope",
+            "included_prior_period_ids",
+            "prior_periods_with_debt",
+            "prior_periods_with_account_context",
+            "missing_obligation_flags",
+            "substrate_fail_closed",
+        }
+        if not isinstance(obligation_trace, dict):
+            errors.append("fm_otc_004_obligation_trace_missing")
+        elif not required_trace_keys.issubset(obligation_trace.keys()):
+            errors.append("fm_otc_004_obligation_trace_incomplete")
+
+    return {
+        "status": "pass" if not errors else "fail",
+        "errors": errors,
+    }
+
+
+def _build_obligation_outcome_internal(
+    payload: Dict[str, Any],
+    parsed_metadata: Dict[str, Any],
+    classification_metadata: Dict[str, Any],
+    multi_period_substrate: Dict[str, Any],
+    obligation_context_substrate: Dict[str, Any],
+) -> Dict[str, Any]:
+    audience_mode = str(payload.get("audience_mode") or "internal").strip().lower()
+
+    overall_confidence = round(
+        (
+            parsed_metadata.get("parsing_confidence", 0.0)
+            + classification_metadata.get("classification_confidence_overall", 0.0)
+        ) / 2,
+        2,
+    )
+
+    result = {
+        "outcome_family": "analytical",
+        "outcome_intent": "assess_financial_obligation_pressure",
+        "degradation_policy": "escalate_for_missing_dependencies",
+        "affordability_support_score": obligation_context_substrate.get("affordability_support_score"),
+        "overload_flags": list(obligation_context_substrate.get("overload_flags", [])),
+        "risk_markers": list(obligation_context_substrate.get("risk_markers", [])),
+        "debt_burden_metrics": dict(obligation_context_substrate.get("debt_burden_metrics", {})),
+        "trend_metrics": list(multi_period_substrate.get("trend_metrics", [])),
+        "debt_summary": dict(obligation_context_substrate.get("debt_summary", {})),
+        "next_step_guidance": list(obligation_context_substrate.get("next_step_guidance", [])),
+        "overall_confidence": overall_confidence,
+    }
+
+    if audience_mode == "internal":
+        result["obligation_trace"] = {
+            "multi_period_scope": (multi_period_substrate.get("multi_period_requirement_signal") or {}).get("scope"),
+            "included_prior_period_ids": list(obligation_context_substrate.get("included_prior_period_ids", [])),
+            "prior_periods_with_debt": obligation_context_substrate.get("prior_periods_with_debt", 0),
+            "prior_periods_with_account_context": obligation_context_substrate.get("prior_periods_with_account_context", 0),
+            "missing_obligation_flags": list(obligation_context_substrate.get("missing_obligation_flags", [])),
+            "substrate_fail_closed": bool(obligation_context_substrate.get("substrate_fail_closed", False)),
+        }
+
+    return result
+
+
 def run(payload: Dict[str, Any]) -> Dict[str, Any]:
     execution_plan_ack = _build_execution_plan_ack(payload)
     validation = _validate_execution_plan(payload, EXPECTED_SERVICE_FAMILY)
@@ -1237,6 +1523,12 @@ def run(payload: Dict[str, Any]) -> Dict[str, Any]:
         multi_period_substrate,
     ) = _build_substrate(payload)
 
+    obligation_context_substrate = _build_obligation_context_substrate(
+        payload,
+        cash_flow_summary,
+        multi_period_substrate,
+    )
+
     fm_otc_001 = _build_statement_outcome(
         payload,
         parsed_transactions,
@@ -1274,6 +1566,19 @@ def run(payload: Dict[str, Any]) -> Dict[str, Any]:
 
     _selected_spending_validation = _validate_spending_outcome_internal_contract(
         _selected_spending_outcome,
+        str(payload.get("audience_mode") or "internal").strip().lower(),
+    )
+
+    _selected_obligation_outcome = _build_obligation_outcome_internal(
+        payload,
+        parsed_metadata,
+        classification_metadata,
+        multi_period_substrate,
+        obligation_context_substrate,
+    )
+
+    _selected_obligation_validation = _validate_obligation_outcome_internal_contract(
+        _selected_obligation_outcome,
         str(payload.get("audience_mode") or "internal").strip().lower(),
     )
 
@@ -1387,6 +1692,52 @@ def run(payload: Dict[str, Any]) -> Dict[str, Any]:
             "fm_otc_003": _selected_spending_outcome,
         }
         outward_summary = "Financial management worker executed with FM-OTC-003 governed outcome outputs."
+
+    elif selected_outcome_code == "FM-OTC-004":
+        if _selected_obligation_validation["status"] != "pass":
+            return {
+                "service": "financial_management",
+                "status": "rejected",
+                "execution_plan_ack": execution_plan_ack,
+                "execution_plan_validation": validation,
+                "received_payload": payload,
+                "result": {
+                    "summary": "Worker rejected payload because selected FM-OTC-004 outcome contract is invalid.",
+                    "runtime_lock_validation": selected_runtime_lock_validation,
+                    "obligation_outcome_internal_validation": _selected_obligation_validation,
+                },
+            }
+
+        if bool(obligation_context_substrate.get("substrate_fail_closed", False)):
+            return {
+                "service": "financial_management",
+                "status": "rejected",
+                "execution_plan_ack": execution_plan_ack,
+                "execution_plan_validation": validation,
+                "received_payload": payload,
+                "result": {
+                    "summary": "Worker rejected payload because selected FM-OTC-004 requires sufficient governed obligation context substrate.",
+                    "runtime_lock_validation": selected_runtime_lock_validation,
+                    "obligation_outcome_internal_validation": _selected_obligation_validation,
+                    "multi_period_substrate": {
+                        "multi_period_requirement_signal": multi_period_substrate.get("multi_period_requirement_signal"),
+                        "missing_period_flags": multi_period_substrate.get("missing_period_flags", []),
+                        "exclusion_flags": multi_period_substrate.get("exclusion_flags", []),
+                        "substrate_fail_closed": multi_period_substrate.get("substrate_fail_closed", False),
+                    },
+                    "obligation_context_substrate": {
+                        "account_context_available": obligation_context_substrate.get("account_context_available", False),
+                        "prior_periods_with_debt": obligation_context_substrate.get("prior_periods_with_debt", 0),
+                        "prior_periods_with_account_context": obligation_context_substrate.get("prior_periods_with_account_context", 0),
+                        "substrate_fail_closed": obligation_context_substrate.get("substrate_fail_closed", False),
+                    },
+                },
+            }
+
+        outward_result = {
+            "fm_otc_004": _selected_obligation_outcome,
+        }
+        outward_summary = "Financial management worker executed with FM-OTC-004 governed outcome outputs."
 
     else:
         return {

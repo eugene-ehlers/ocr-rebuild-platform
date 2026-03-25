@@ -83,10 +83,14 @@ Current operational exposure for outward Financial Management request selection 
 - request-governed selector field: `analysis_type`
 - `analysis_type=explain_document` maps to `outcome_intent: explain_document`
 - `analysis_type=cash_flow_multi_period` maps to `outcome_intent: analyse_cash_flow`
+- `analysis_type=spend_analysis_multi_period` maps to `outcome_intent: analyse_spending_patterns`
+- `analysis_type=advanced_obligation_context` maps to `outcome_intent: assess_financial_obligation_pressure`
 - omitted `analysis_type` defaults to the FM-OTC-001 explanation path
 - outward runtime selection must remain mutually exclusive
 - exactly one outward governed Financial Management outcome may be emitted
 - where the selected cash-flow path lacks sufficient multi-period basis, fulfillment must fail closed rather than silently mixing or downgrading outcomes
+- where the selected spending path lacks sufficient comparative prior-period basis, fulfillment must fail closed rather than silently mixing or downgrading outcomes
+- where the selected obligation path lacks sufficient governed obligation context substrate, fulfillment must fail closed rather than silently mixing or downgrading outcomes
 
 
 ---
