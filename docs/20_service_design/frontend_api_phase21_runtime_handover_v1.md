@@ -174,3 +174,6 @@ Current Tesseract-backed OCR runtime remains:
 
 - analysis_type=benchmark_reference_comparison -> FM-OTC-005
 
+
+- analysis_type=detect_financial_risk -> FM-OTC-006
+

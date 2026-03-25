@@ -180,3 +180,6 @@ Interpretation constraints:
 
 - analysis_type=benchmark_reference_comparison selects FM-OTC-005
 
+
+- analysis_type=detect_financial_risk selects FM-OTC-006
+

@@ -322,3 +322,6 @@ Current operational exposure for outward Financial Management request selection 
 
 - analysis_type=benchmark_reference_comparison maps to outcome_intent: compare_against_reference
 
+
+- analysis_type=detect_financial_risk maps to outcome_intent: detect_financial_risk
+

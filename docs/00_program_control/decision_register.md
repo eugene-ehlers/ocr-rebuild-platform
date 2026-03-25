@@ -301,3 +301,19 @@ This preserves the governed baseline while avoiding:
   - reject if optimisation_recommendations cannot be produced
   - reject if internal contract validation fails
 
+
+### FM-OTC-006 Controlled Exposure
+
+- analysis_type: detect_financial_risk
+- outcome_code: FM-OTC-006
+- outcome_intent: detect_financial_risk
+- exposure_model: request-governed (Option A)
+- outward_behavior: exactly one FM outcome emitted
+- fail_closed_behavior:
+  - reject if required prior-period basis is missing when multi-period scope applies
+  - reject if required trend_metrics are missing
+  - reject if required debt_burden_metrics are missing
+  - reject if stress_score lacks multi-signal basis
+  - reject if required traceability is incomplete
+  - reject if required confidence outputs are missing
+
