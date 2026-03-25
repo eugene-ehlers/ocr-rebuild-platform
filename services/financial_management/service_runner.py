@@ -84,6 +84,7 @@ def _validate_selected_runtime_lock(runtime_lock: Dict[str, Any]) -> Dict[str, A
     allowed_pairs = {
         ("FM-OTC-001", "fm_otc_001", "explain_document"),
         ("FM-OTC-002", "fm_otc_002", "analyse_cash_flow"),
+        ("FM-OTC-003", "fm_otc_003", "analyse_spending_patterns"),
     }
 
     pair = (
@@ -274,6 +275,8 @@ def _build_substrate(
     Dict[str, Any],
     Dict[str, float],
     Dict[str, Any],
+    Dict[str, Any],
+    Dict[str, Any],
 ]:
     raw_transactions = payload.get("transactions")
     if not isinstance(raw_transactions, list):
@@ -332,7 +335,17 @@ def _build_substrate(
         ),
     }
 
-    multi_period_substrate = _build_multi_period_substrate(payload, cash_flow_summary)
+    category_spend_summary = _build_category_spend_summary(
+        parsed_transactions,
+        classified_transactions,
+    )
+    category_spend_metrics = _build_category_spend_metrics(category_spend_summary)
+
+    multi_period_substrate = _build_multi_period_substrate(
+        payload,
+        cash_flow_summary,
+        category_spend_summary,
+    )
 
     return (
         parsed_transactions,
@@ -340,6 +353,8 @@ def _build_substrate(
         classified_transactions,
         classification_metadata,
         cash_flow_summary,
+        category_spend_summary,
+        category_spend_metrics,
         multi_period_substrate,
     )
 
@@ -560,9 +575,146 @@ def _build_trend_metrics(
     return trend_metrics
 
 
+
+
+def _build_category_spend_summary(
+    parsed_transactions: list,
+    classified_transactions: list,
+) -> dict:
+    category_totals = {}
+
+    for parsed, classified in zip(parsed_transactions, classified_transactions):
+        category = classified.get("primary_category") or "unknown"
+        amount = abs(parsed.get("amount") or 0.0)
+
+        if parsed.get("type") == "debit":
+            category_totals[category] = round(category_totals.get(category, 0.0) + amount, 2)
+
+    return {
+        "category_totals": category_totals
+    }
+
+
+def _build_category_spend_metrics(
+    category_spend_summary: dict,
+) -> dict:
+    category_totals = category_spend_summary.get("category_totals", {})
+
+    total_spend = round(sum(category_totals.values()), 2)
+
+    category_percentages = {}
+    for k, v in category_totals.items():
+        if total_spend > 0:
+            category_percentages[k] = round((v / total_spend) * 100.0, 2)
+        else:
+            category_percentages[k] = 0.0
+
+    return {
+        "total_spend": total_spend,
+        "category_percentages": category_percentages,
+    }
+
+
+
+
+def _select_usable_prior_spend_period(
+    prior_statement_history: Dict[str, Any],
+    exclusion_flags: List[str],
+) -> Optional[Dict[str, Any]]:
+    usable_periods: List[Dict[str, Any]] = []
+
+    for item in prior_statement_history.get("periods", []):
+        if not (
+            str(item.get("period_id") or "").strip()
+            and str(item.get("period_start_date") or "").strip()
+            and str(item.get("period_end_date") or "").strip()
+            and str(item.get("statement_reference") or "").strip()
+        ):
+            continue
+
+        parsed_transactions = item.get("parsed_transactions")
+        classified_transactions = item.get("classified_transactions")
+
+        if not isinstance(parsed_transactions, list) or not isinstance(classified_transactions, list):
+            exclusion_flags.append("EXCLUDED_MISSING_SUBSTRATE")
+            continue
+
+        usable_periods.append(item)
+
+    if not usable_periods:
+        return None
+
+    return usable_periods[0]
+
+
+def _build_spending_trend_metrics(
+    category_spend_summary: Dict[str, Any],
+    prior_statement_history: Dict[str, Any],
+    exclusion_flags: List[str],
+) -> List[Dict[str, Any]]:
+    prior_period = _select_usable_prior_spend_period(prior_statement_history, exclusion_flags)
+    if not prior_period:
+        return []
+
+    usable_period_count = 0
+    for item in prior_statement_history.get("periods", []):
+        if (
+            isinstance(item, dict)
+            and isinstance(item.get("parsed_transactions"), list)
+            and isinstance(item.get("classified_transactions"), list)
+            and str(item.get("period_id") or "").strip()
+            and str(item.get("period_start_date") or "").strip()
+            and str(item.get("period_end_date") or "").strip()
+            and str(item.get("statement_reference") or "").strip()
+        ):
+            usable_period_count += 1
+
+    prior_category_spend_summary = _build_category_spend_summary(
+        prior_period.get("parsed_transactions") or [],
+        prior_period.get("classified_transactions") or [],
+    )
+
+    comparison_basis = "rolling_multi_period" if usable_period_count > 1 else "current_vs_prior"
+    current_totals = category_spend_summary.get("category_totals", {})
+    prior_totals = prior_category_spend_summary.get("category_totals", {})
+
+    metric_names = sorted(set(current_totals.keys()) | set(prior_totals.keys()))
+    trend_metrics: List[Dict[str, Any]] = []
+
+    for metric_name in metric_names:
+        current_value = round(float(current_totals.get(metric_name, 0.0) or 0.0), 2)
+        prior_value = round(float(prior_totals.get(metric_name, 0.0) or 0.0), 2)
+        absolute_change = round(current_value - prior_value, 2)
+
+        percent_change = None
+        if prior_value not in (None, 0):
+            percent_change = round((absolute_change / prior_value) * 100.0, 2)
+
+        direction = "flat"
+        if current_value > prior_value:
+            direction = "increase"
+        elif current_value < prior_value:
+            direction = "decrease"
+
+        trend_metrics.append(
+            {
+                "metric_name": metric_name,
+                "comparison_basis": comparison_basis,
+                "current_value": current_value,
+                "prior_value": prior_value,
+                "absolute_change": absolute_change,
+                "percent_change": percent_change,
+                "direction": direction if prior_value is not None else "unknown",
+            }
+        )
+
+    return trend_metrics
+
+
 def _build_multi_period_substrate(
     payload: Dict[str, Any],
     cash_flow_summary: Dict[str, float],
+    category_spend_summary: Dict[str, Any],
 ) -> Dict[str, Any]:
     multi_period_requirement_signal = _normalize_multi_period_requirement_signal(payload)
     prior_statement_history = _normalize_prior_statement_history(payload)
@@ -581,6 +733,11 @@ def _build_multi_period_substrate(
         prior_statement_history,
         exclusion_flags,
     )
+    spending_trend_metrics = _build_spending_trend_metrics(
+        category_spend_summary,
+        prior_statement_history,
+        exclusion_flags,
+    )
 
     scope = multi_period_requirement_signal["scope"]
     periods = prior_statement_history.get("periods", [])
@@ -588,7 +745,7 @@ def _build_multi_period_substrate(
     if scope in {"multi_period_required", "advanced_obligation_context_required"} and not periods:
         missing_period_flags.append("PRIOR_STATEMENT_HISTORY_MISSING")
 
-    if scope == "comparative_required" and not trend_metrics:
+    if scope == "comparative_required" and not spending_trend_metrics:
         missing_period_flags.append("PRIOR_PERIOD_COMPARISON_UNAVAILABLE")
 
     missing_period_flags = _dedupe_flags(missing_period_flags, ALLOWED_MISSING_PERIOD_FLAGS)
@@ -602,7 +759,9 @@ def _build_multi_period_substrate(
             substrate_fail_closed = True
         elif scope == "comparative_required" and "PRIOR_PERIOD_COMPARISON_UNAVAILABLE" in missing_period_flags:
             substrate_fail_closed = True
-        elif scope != "single_period_only" and not trend_metrics:
+        elif scope == "comparative_required" and not spending_trend_metrics:
+            substrate_fail_closed = True
+        elif scope in {"multi_period_required", "advanced_obligation_context_required"} and not trend_metrics:
             substrate_fail_closed = True
 
     return {
@@ -610,6 +769,7 @@ def _build_multi_period_substrate(
         "prior_statement_history": prior_statement_history,
         "period_groupings": period_groupings,
         "trend_metrics": trend_metrics,
+        "spending_trend_metrics": spending_trend_metrics,
         "missing_period_flags": missing_period_flags,
         "exclusion_flags": exclusion_flags,
         "substrate_fail_closed": substrate_fail_closed,
@@ -877,6 +1037,163 @@ def _build_cash_flow_outcome_internal(
 
 
 
+
+def _validate_spending_outcome_internal_contract(
+    outcome: Dict[str, Any],
+    audience_mode: str,
+) -> Dict[str, Any]:
+    errors: List[str] = []
+
+    if not isinstance(outcome, dict):
+        return {
+            "status": "fail",
+            "errors": ["fm_otc_003_not_dict"],
+        }
+
+    if outcome.get("outcome_intent") != "analyse_spending_patterns":
+        errors.append("fm_otc_003_outcome_intent_invalid")
+
+    missing_data_flags = outcome.get("missing_data_flags")
+    if not isinstance(missing_data_flags, list):
+        errors.append("fm_otc_003_missing_data_flags_missing")
+
+    caveat_flags = outcome.get("caveat_flags")
+    if not isinstance(caveat_flags, list):
+        errors.append("fm_otc_003_caveat_flags_missing")
+
+    category_spend_metrics = outcome.get("category_spend_metrics")
+    required_metric_keys = {"total_spend", "category_percentages"}
+    if not isinstance(category_spend_metrics, dict):
+        errors.append("fm_otc_003_category_spend_metrics_missing")
+    elif not required_metric_keys.issubset(category_spend_metrics.keys()):
+        errors.append("fm_otc_003_category_spend_metrics_incomplete")
+
+    trend_metrics = outcome.get("trend_metrics")
+    if not isinstance(trend_metrics, list):
+        errors.append("fm_otc_003_trend_metrics_missing")
+
+    spending_summary = outcome.get("spending_summary")
+    required_summary_keys = {"category_totals", "top_spend_categories", "comparative_summary"}
+    if not isinstance(spending_summary, dict):
+        errors.append("fm_otc_003_spending_summary_missing")
+    elif not required_summary_keys.issubset(spending_summary.keys()):
+        errors.append("fm_otc_003_spending_summary_incomplete")
+
+    if outcome.get("overall_confidence") is None:
+        errors.append("fm_otc_003_overall_confidence_missing")
+    if outcome.get("category_confidence") is None:
+        errors.append("fm_otc_003_category_confidence_missing")
+    if outcome.get("merchant_confidence") is None:
+        errors.append("fm_otc_003_merchant_confidence_missing")
+
+    if audience_mode == "internal":
+        section_confidence_trace = outcome.get("section_confidence_trace")
+        required_trace_keys = {
+            "transactions",
+            "categories",
+            "comparison_basis",
+            "included_prior_period_ids",
+        }
+        if not isinstance(section_confidence_trace, dict):
+            errors.append("fm_otc_003_section_confidence_trace_missing")
+        elif not required_trace_keys.issubset(section_confidence_trace.keys()):
+            errors.append("fm_otc_003_section_confidence_trace_incomplete")
+
+    return {
+        "status": "pass" if not errors else "fail",
+        "errors": errors,
+    }
+
+
+def _build_spending_outcome_internal(
+    payload: Dict[str, Any],
+    parsed_transactions: List[Dict[str, Any]],
+    parsed_metadata: Dict[str, Any],
+    classified_transactions: List[Dict[str, Any]],
+    classification_metadata: Dict[str, Any],
+    category_spend_summary: Dict[str, Any],
+    category_spend_metrics: Dict[str, Any],
+    multi_period_substrate: Dict[str, Any],
+) -> Dict[str, Any]:
+    audience_mode = str(payload.get("audience_mode") or "internal").strip().lower()
+    spending_trend_metrics = list(multi_period_substrate.get("spending_trend_metrics", []))
+    period_groupings = multi_period_substrate.get("period_groupings", {})
+    prior_periods = period_groupings.get("prior_periods", []) if isinstance(period_groupings, dict) else []
+
+    missing_data_flags: List[str] = []
+    if not parsed_transactions:
+        missing_data_flags.append("parsed_transactions_missing")
+    if not classified_transactions:
+        missing_data_flags.append("classified_transactions_missing")
+    if not category_spend_summary.get("category_totals"):
+        missing_data_flags.append("category_spend_summary_missing")
+    if not spending_trend_metrics:
+        missing_data_flags.append("trend_metrics_missing")
+
+    caveat_flags: List[str] = []
+    caveat_flags.extend(list(multi_period_substrate.get("missing_period_flags", [])))
+    caveat_flags.extend(list(multi_period_substrate.get("exclusion_flags", [])))
+
+    top_spend_categories = [
+        {"category": category, "amount": amount}
+        for category, amount in sorted(
+            category_spend_summary.get("category_totals", {}).items(),
+            key=lambda item: (-item[1], item[0]),
+        )[:5]
+    ]
+
+    comparative_summary = {
+        "comparison_basis": spending_trend_metrics[0]["comparison_basis"] if spending_trend_metrics else "current_vs_prior",
+        "changed_categories": len(spending_trend_metrics),
+    }
+
+    overall_confidence = round(
+        (
+            parsed_metadata.get("parsing_confidence", 0.0)
+            + classification_metadata.get("classification_confidence_overall", 0.0)
+        ) / 2,
+        2,
+    )
+    category_confidence = round(classification_metadata.get("classification_confidence_overall", 0.0), 2)
+    merchant_confidence = round(classification_metadata.get("classification_confidence_overall", 0.0), 2)
+
+    result = {
+        "outcome_family": "analytical",
+        "outcome_intent": "analyse_spending_patterns",
+        "degradation_policy": "degrade_with_caveat",
+        "missing_data_flags": missing_data_flags,
+        "caveat_flags": caveat_flags,
+        "category_spend_metrics": category_spend_metrics,
+        "trend_metrics": spending_trend_metrics,
+        "spending_summary": {
+            "category_totals": category_spend_summary.get("category_totals", {}),
+            "top_spend_categories": top_spend_categories,
+            "comparative_summary": comparative_summary,
+        },
+        "overall_confidence": overall_confidence,
+        "category_confidence": category_confidence,
+        "merchant_confidence": merchant_confidence,
+        "processing_timestamp": _utc_now_iso(),
+        "service_status": dict(payload.get("service_status", {})),
+    }
+
+    result["service_status"]["financial_management"] = "completed"
+
+    if audience_mode == "internal":
+        result["section_confidence_trace"] = {
+            "transactions": parsed_metadata.get("parsing_confidence", 0.0),
+            "categories": classification_metadata.get("classification_confidence_overall", 0.0),
+            "comparison_basis": comparative_summary["comparison_basis"],
+            "included_prior_period_ids": [
+                item.get("period_id")
+                for item in prior_periods
+                if isinstance(item, dict) and item.get("period_id")
+            ],
+        }
+
+    return result
+
+
 def run(payload: Dict[str, Any]) -> Dict[str, Any]:
     execution_plan_ack = _build_execution_plan_ack(payload)
     validation = _validate_execution_plan(payload, EXPECTED_SERVICE_FAMILY)
@@ -915,6 +1232,8 @@ def run(payload: Dict[str, Any]) -> Dict[str, Any]:
         classified_transactions,
         classification_metadata,
         cash_flow_summary,
+        category_spend_summary,
+        category_spend_metrics,
         multi_period_substrate,
     ) = _build_substrate(payload)
 
@@ -942,6 +1261,22 @@ def run(payload: Dict[str, Any]) -> Dict[str, Any]:
         str(payload.get("audience_mode") or "internal").strip().lower(),
     )
 
+    _selected_spending_outcome = _build_spending_outcome_internal(
+        payload,
+        parsed_transactions,
+        parsed_metadata,
+        classified_transactions,
+        classification_metadata,
+        category_spend_summary,
+        category_spend_metrics,
+        multi_period_substrate,
+    )
+
+    _selected_spending_validation = _validate_spending_outcome_internal_contract(
+        _selected_spending_outcome,
+        str(payload.get("audience_mode") or "internal").strip().lower(),
+    )
+
     cash_flow_outcome_internal_status = "valid"
     cash_flow_outcome_internal_available = True
     cash_flow_outcome_internal_summary = "Internal FM-OTC-002 contract validation passed."
@@ -950,6 +1285,15 @@ def run(payload: Dict[str, Any]) -> Dict[str, Any]:
         cash_flow_outcome_internal_status = "invalid"
         cash_flow_outcome_internal_available = False
         cash_flow_outcome_internal_summary = "Internal FM-OTC-002 contract validation failed; FM-OTC-002 remains unavailable."
+
+    spending_outcome_internal_status = "valid"
+    spending_outcome_internal_available = True
+    spending_outcome_internal_summary = "Internal FM-OTC-003 contract validation passed."
+
+    if _selected_spending_validation["status"] != "pass":
+        spending_outcome_internal_status = "invalid"
+        spending_outcome_internal_available = False
+        spending_outcome_internal_summary = "Internal FM-OTC-003 contract validation failed; FM-OTC-003 remains unavailable."
 
     selected_outcome_code = selected_runtime_lock.get("governed_outcome_code")
     selected_outcome_key = selected_runtime_lock.get("outcome_result_key")
@@ -1003,6 +1347,46 @@ def run(payload: Dict[str, Any]) -> Dict[str, Any]:
             "fm_otc_002": _selected_cash_flow_outcome,
         }
         outward_summary = "Financial management worker executed with FM-OTC-002 governed outcome outputs."
+
+    elif selected_outcome_code == "FM-OTC-003":
+        if _selected_spending_validation["status"] != "pass":
+            return {
+                "service": "financial_management",
+                "status": "rejected",
+                "execution_plan_ack": execution_plan_ack,
+                "execution_plan_validation": validation,
+                "received_payload": payload,
+                "result": {
+                    "summary": "Worker rejected payload because selected FM-OTC-003 outcome contract is invalid.",
+                    "runtime_lock_validation": selected_runtime_lock_validation,
+                    "spending_outcome_internal_validation": _selected_spending_validation,
+                },
+            }
+
+        if bool(multi_period_substrate.get("substrate_fail_closed", False)):
+            return {
+                "service": "financial_management",
+                "status": "rejected",
+                "execution_plan_ack": execution_plan_ack,
+                "execution_plan_validation": validation,
+                "received_payload": payload,
+                "result": {
+                    "summary": "Worker rejected payload because selected FM-OTC-003 requires sufficient governed comparative spending substrate.",
+                    "runtime_lock_validation": selected_runtime_lock_validation,
+                    "spending_outcome_internal_validation": _selected_spending_validation,
+                    "multi_period_substrate": {
+                        "multi_period_requirement_signal": multi_period_substrate.get("multi_period_requirement_signal"),
+                        "missing_period_flags": multi_period_substrate.get("missing_period_flags", []),
+                        "exclusion_flags": multi_period_substrate.get("exclusion_flags", []),
+                        "substrate_fail_closed": multi_period_substrate.get("substrate_fail_closed", False),
+                    },
+                },
+            }
+
+        outward_result = {
+            "fm_otc_003": _selected_spending_outcome,
+        }
+        outward_summary = "Financial management worker executed with FM-OTC-003 governed outcome outputs."
 
     else:
         return {

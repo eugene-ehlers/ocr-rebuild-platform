@@ -83,6 +83,14 @@ FM_GOVERNED_RUNTIME_LOCKS = {
         "outcome_intent": "analyse_cash_flow",
         "analysis_type": "cash_flow_multi_period",
     },
+    "spend_analysis_multi_period": {
+        "service_code": "financial_management",
+        "service_family": "financial_management",
+        "governed_outcome_code": "FM-OTC-003",
+        "outcome_result_key": "fm_otc_003",
+        "outcome_intent": "analyse_spending_patterns",
+        "analysis_type": "spend_analysis_multi_period",
+    },
 }
 
 
@@ -139,7 +147,7 @@ def _resolve_financial_management_runtime_lock(analysis_type: str) -> Dict[str, 
     runtime_lock = FM_GOVERNED_RUNTIME_LOCKS.get(analysis_type)
     if runtime_lock is None:
         raise ValueError(
-            "analysis_type must be one of: explain_document, cash_flow_multi_period"
+            "analysis_type must be one of: explain_document, cash_flow_multi_period, spend_analysis_multi_period"
         )
     return dict(runtime_lock)
 
