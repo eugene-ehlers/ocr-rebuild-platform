@@ -63,6 +63,34 @@ The current governed document stack for interpretation and change control is:
 - Document stack map:
   - `docs/00_program_control/governed_document_map.md`
 
+
+### Financial Management Runtime Exposure Boundary (Current State)
+
+Financial Management currently exposes a controlled outward FM selector path under governed Option A.
+
+Current request-governed selector:
+- `analysis_type`
+
+Current governed outward mapping:
+- `analysis_type=explain_document` -> FM-OTC-001
+- `analysis_type=cash_flow_multi_period` -> FM-OTC-002
+
+Current runtime constraints:
+- omitted `analysis_type` defaults to FM-OTC-001
+- runtime lock is mutually exclusive
+- exactly one outward governed Financial Management outcome is emitted
+- mixed outward FM outcomes are not permitted
+
+Current fail-closed boundary:
+- FM-OTC-002 requires sufficient multi-period basis
+- where sufficient prior-period basis is not available, FM-OTC-002 must fail closed
+- this must not be interpreted as permission to silently downgrade the selected request into a mixed or inferred FM outcome
+
+Current scope boundary:
+- this is controlled exposure for FM-OTC-002 only
+- it does not constitute a generalized Financial Management selector redesign
+- FM-OTC-003 and broader multi-outcome routing remain future scope unless separately governed
+
 ### Validated Runtime Baseline — Full OCR Pipeline Execution
 
 A controlled live Step Functions execution has been validated for the current OCR pipeline baseline.

@@ -190,7 +190,7 @@ This decision prevents those failure modes and preserves audit integrity.
 
 ### DEC-006 — Multi-Period Substrate Is Baseline Requirement; FM-OTC-002 Deferred
 
-- **Status:** ACTIVE
+- **Status:** SUPERSEDED
 - **Date:** 2026-03-24
 
 #### Decision
@@ -236,4 +236,48 @@ FM-OTC-002 is intentionally deferred to ensure:
 - GAP-031 must not be interpreted as a missing substrate
 - Service rule tables and payload contracts must align to Section 9 definitions
 - FM-OTC-002 must not be implemented, inferred, or partially exposed until explicitly approved in a future governed decision
+
+
+### DEC-007 — FM-OTC-002 Is Approved For Controlled Option-A Exposure
+
+- **Status:** ACTIVE
+- **Date:** 2026-03-25
+
+#### Decision
+
+FM-OTC-002 is now approved for controlled operational exposure under governed Option A.
+
+The governed request selector is:
+
+- `analysis_type`
+
+Allowed governed values for the current exposure are:
+
+- `explain_document` => FM-OTC-001
+- `cash_flow_multi_period` => FM-OTC-002
+
+Current governing constraints:
+
+- default path remains FM-OTC-001 when `analysis_type` is omitted
+- runtime selection must be mutually exclusive
+- exactly one outward governed Financial Management outcome may be emitted
+- mixed FM outcomes are not permitted
+- FM-OTC-002 must fail closed when sufficient multi-period basis is not available
+
+#### Rationale
+
+Controlled implementation evidence now shows that FM-OTC-002 can be exposed without redesigning the wider Financial Management routing model, provided that selection remains explicit, outward outcome emission remains singular, and multi-period sufficiency is enforced strictly.
+
+This preserves the governed baseline while avoiding:
+- hidden inference of multi-period intent
+- mixed outcome emission
+- accidental drift from FM-OTC-001 as the default explanation path
+- permissive degradation where multi-period basis is insufficient
+
+#### Consequences
+
+- DEC-006 remains valid only for the period before controlled exposure approval
+- current runtime and governed service documents must treat FM-OTC-002 as operationally exposed under Option A only
+- documentation must distinguish controlled current exposure from broader future Financial Management routing scope
+- broader selector generalisation and FM-OTC-003 onward remain future scope unless separately approved
 

@@ -157,3 +157,21 @@ Interpretation constraints:
 - No interpretation may treat them as optional, missing, or future-state.
 - All service rule tables and runtime behaviour must align to this contract.
 
+## Phase Closure Alignment — FM-OTC-002 Controlled Exposure Authority
+
+The following governed files now jointly define the approved documentation baseline for current FM-OTC-002 exposure under Option A:
+
+- `docs/00_program_control/decision_register.md`
+- `docs/20_service_design/frontend_api_phase21_runtime_handover_v1.md`
+- `docs/20_service_design/financial_management_input_to_outcome_rule_table_v1.md`
+
+Interpretation constraints:
+
+- current controlled request selector is `analysis_type`
+- `analysis_type=explain_document` selects FM-OTC-001
+- `analysis_type=cash_flow_multi_period` selects FM-OTC-002
+- omitted `analysis_type` defaults to FM-OTC-001
+- runtime selection must remain mutually exclusive
+- exactly one outward governed Financial Management outcome may be emitted
+- insufficient multi-period basis for FM-OTC-002 must fail closed
+

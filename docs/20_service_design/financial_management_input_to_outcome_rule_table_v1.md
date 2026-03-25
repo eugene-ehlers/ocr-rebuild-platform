@@ -75,6 +75,20 @@ Field-level contract authority for the following governed tokens is defined in `
 
 This rule table remains the authority for when those tokens are required and when sufficiency must fail closed.
 
+
+## Current Operational Exposure Constraint
+
+Current operational exposure for outward Financial Management request selection is controlled as follows:
+
+- request-governed selector field: `analysis_type`
+- `analysis_type=explain_document` maps to `outcome_intent: explain_document`
+- `analysis_type=cash_flow_multi_period` maps to `outcome_intent: analyse_cash_flow`
+- omitted `analysis_type` defaults to the FM-OTC-001 explanation path
+- outward runtime selection must remain mutually exclusive
+- exactly one outward governed Financial Management outcome may be emitted
+- where the selected cash-flow path lacks sufficient multi-period basis, fulfillment must fail closed rather than silently mixing or downgrading outcomes
+
+
 ---
 
 ## Rule Table
@@ -108,7 +122,7 @@ This rule table remains the authority for when those tokens are required and whe
 - mandatory_outcome_conditions: explanation_must_be_plain_language
 - optional_outcome_conditions: prior_period_change_if_history_available
 
-- notes: customer-facing low-detail explanation outcome
+- notes: customer-facing low-detail explanation outcome; current default outward path when `analysis_type` is omitted
 
 ---
 
@@ -170,7 +184,7 @@ This rule table remains the authority for when those tokens are required and whe
 - mandatory_outcome_conditions: multi_period_history_required
 - optional_outcome_conditions: chart_rendering_if_frontend_supports
 
-- notes: customer cash-flow trend outcome
+- notes: customer cash-flow trend outcome; current controlled outward FM-OTC-002 path when `analysis_type=cash_flow_multi_period`; fail closed if multi-period history is insufficient
 
 ---
 
