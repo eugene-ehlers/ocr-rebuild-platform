@@ -286,3 +286,18 @@ This preserves the governed baseline while avoiding:
 - documentation must distinguish controlled current exposure from broader future Financial Management routing scope
 - broader selector generalisation and multi-outcome routing remain future scope unless separately approved
 
+
+### FM-OTC-005 Controlled Exposure
+
+- analysis_type: benchmark_reference_comparison
+- outcome_code: FM-OTC-005
+- outcome_intent: compare_against_reference
+- exposure_model: request-governed (Option A)
+- outward_behavior: exactly one FM outcome emitted
+- fail_closed_behavior:
+  - reject if benchmark_source missing
+  - reject if benchmark_comparison_metrics unavailable
+  - reject if benchmark_applicability_confidence cannot be derived
+  - reject if optimisation_recommendations cannot be produced
+  - reject if internal contract validation fails
+

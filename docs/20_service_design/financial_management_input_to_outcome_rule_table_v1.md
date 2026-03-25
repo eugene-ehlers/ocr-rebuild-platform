@@ -319,3 +319,6 @@ Current operational exposure for outward Financial Management request selection 
 ## End of Rule Table v1
 
 ## End of Document
+
+- analysis_type=benchmark_reference_comparison maps to outcome_intent: compare_against_reference
+

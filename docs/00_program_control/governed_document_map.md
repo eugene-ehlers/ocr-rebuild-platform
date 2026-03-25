@@ -177,3 +177,6 @@ Interpretation constraints:
 - exactly one outward governed Financial Management outcome may be emitted
 - insufficient basis for the selected governed Financial Management path must fail closed
 
+
+- analysis_type=benchmark_reference_comparison selects FM-OTC-005
+

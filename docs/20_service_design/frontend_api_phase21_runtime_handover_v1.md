@@ -171,3 +171,6 @@ Current Tesseract-backed OCR runtime remains:
 - primary failure → fallback → successful completion path validated
 - execution truth fields (fallback_used, fallback_provider, attempted_provider_chain) now preserved end to end
 - no contract redesign required; alignment to existing governed semantics
+
+- analysis_type=benchmark_reference_comparison -> FM-OTC-005
+
