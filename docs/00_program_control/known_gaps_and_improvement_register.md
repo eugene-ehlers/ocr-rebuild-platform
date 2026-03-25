@@ -87,3 +87,25 @@ All future developer handovers MUST:
 
 ---
 
+
+---
+
+## Phase Closure Alignment — Multi-Period Substrate
+
+- The multi-period financial-analysis substrate contract is now **defined and implemented as part of the governed baseline**.
+- Authoritative definition: `docs/20_service_design/financial_management_payloads_v1.md` (Section 9).
+
+Interpretation constraints:
+
+- No new gap is introduced for the multi-period substrate.
+- GAP-031 MUST be interpreted as:
+  - a **contract-to-capability alignment gap (CREDIT-OTC-002)**,
+  - NOT a missing substrate capability gap.
+- The following governed constructs are **present and baseline-complete** and must not be treated as missing:
+  - `prior_statement_history`
+  - `period_groupings`
+  - `trend_metrics`
+  - `missing_period_flags`
+  - `exclusion_flags`
+  - `multi_period_requirement_signal`
+

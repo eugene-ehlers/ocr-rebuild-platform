@@ -133,3 +133,27 @@ Any material project change must update the relevant governed class at the time 
 - Implementation if executable behavior changed
 
 No material change is complete until the relevant governed documentation is aligned.
+
+---
+
+## Phase Closure Alignment — Multi-Period Substrate Authority
+
+The following document and section are now **authoritative Design Authority sources** for the financial-management multi-period substrate:
+
+- `docs/20_service_design/financial_management_payloads_v1.md` — Section 9
+
+This section is the governed authority for:
+
+- `prior_statement_history`
+- `period_groupings`
+- `trend_metrics`
+- `missing_period_flags`
+- `exclusion_flags`
+- `multi_period_requirement_signal`
+
+Interpretation constraints:
+
+- These constructs are **baseline-defined and implemented**.
+- No interpretation may treat them as optional, missing, or future-state.
+- All service rule tables and runtime behaviour must align to this contract.
+

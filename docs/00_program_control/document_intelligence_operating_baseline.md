@@ -564,3 +564,20 @@ The governed file-to-class mapping is maintained in:
 
 This mapping is mandatory and must be kept aligned as the document stack evolves.
 
+
+---
+
+## Submission Boundary Behaviour
+
+The submission boundary occurs when the user initiates processing after successful validation.
+
+At this point:
+
+- The workspace transitions from editable to locked state
+- A snapshot of the prepared document set is created
+- No further modifications to documents or structure are permitted
+- The system transitions control from user-driven interaction to system-driven processing
+
+The frontend must clearly indicate this transition to the user.
+
+All processing must operate on the submitted snapshot, not on a mutable workspace state.

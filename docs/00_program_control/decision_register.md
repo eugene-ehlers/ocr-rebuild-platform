@@ -187,3 +187,53 @@ This decision prevents those failure modes and preserves audit integrity.
 - Governed validation failures must be surfaced as real outcomes.
 - Remediation must occur through approved design change, not hidden runtime shortcuts.
 
+
+### DEC-006 — Multi-Period Substrate Is Baseline Requirement; FM-OTC-002 Deferred
+
+- **Status:** ACTIVE
+- **Date:** 2026-03-24
+
+#### Decision
+
+The multi-period financial-analysis substrate is a **baseline prerequisite capability** and is now:
+
+- explicitly defined in governed design authority (`financial_management_payloads_v1.md`, Section 9)
+- implemented in the system baseline
+
+The following constructs are mandatory baseline components:
+
+- `prior_statement_history`
+- `period_groupings`
+- `trend_metrics`
+- `missing_period_flags`
+- `exclusion_flags`
+- `multi_period_requirement_signal`
+
+FM-OTC-002 (multi-period outcome capability) is **explicitly deferred** and is not part of the current implemented baseline.
+
+#### Rationale
+
+Execution and validation evidence demonstrated that:
+
+- multi-period structural constructs are required as shared substrate inputs across financial analysis capabilities
+- absence of a governed contract for these constructs creates ambiguity, drift, and incorrect gap classification
+
+Formalizing the substrate as baseline:
+
+- eliminates ambiguity around data availability and structure
+- separates **data substrate completeness** from **capability/output completeness**
+- prevents misclassification of FM-OTC-002 as a missing infrastructure feature
+
+FM-OTC-002 is intentionally deferred to ensure:
+
+- controlled enablement
+- no premature inference or partial capability exposure
+- alignment with governed contract-to-capability progression
+
+#### Consequences
+
+- All interpretation must treat the multi-period substrate as **present and enforced baseline**
+- GAP-031 must not be interpreted as a missing substrate
+- Service rule tables and payload contracts must align to Section 9 definitions
+- FM-OTC-002 must not be implemented, inferred, or partially exposed until explicitly approved in a future governed decision
+
