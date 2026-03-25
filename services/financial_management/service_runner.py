@@ -86,6 +86,7 @@ def _validate_selected_runtime_lock(runtime_lock: Dict[str, Any]) -> Dict[str, A
         ("FM-OTC-002", "fm_otc_002", "analyse_cash_flow"),
         ("FM-OTC-003", "fm_otc_003", "analyse_spending_patterns"),
         ("FM-OTC-004", "fm_otc_004", "assess_financial_obligation_pressure"),
+        ("FM-OTC-005", "fm_otc_005", "compare_against_reference"),
     }
 
     pair = (
@@ -1480,6 +1481,213 @@ def _build_obligation_outcome_internal(
     return result
 
 
+def _build_benchmark_context_substrate(
+    payload: Dict[str, Any],
+    category_spend_summary: Dict[str, Any],
+) -> Dict[str, Any]:
+    benchmark_dataset = payload.get("benchmark_dataset")
+    if not isinstance(benchmark_dataset, dict):
+        benchmark_dataset = {}
+
+    category_totals = category_spend_summary.get("category_totals", {})
+    benchmark_category_averages = benchmark_dataset.get("category_averages")
+    if not isinstance(benchmark_category_averages, dict):
+        benchmark_category_averages = {}
+
+    benchmark_source = benchmark_dataset.get("benchmark_source")
+    external_pricing_source = benchmark_dataset.get("external_pricing_source")
+    customer_segment = payload.get("customer_segment")
+
+    source_trace = {
+        "benchmark_source": benchmark_source,
+        "external_pricing_source": external_pricing_source,
+        "customer_segment": customer_segment,
+        "reference_categories": sorted(str(key) for key in benchmark_category_averages.keys()),
+    }
+
+    benchmark_comparison_metrics = []
+    comparison_basis_count = 0
+    absolute_deviation_sum = 0.0
+
+    for category in sorted(category_totals.keys()):
+        current_amount = round(float(category_totals.get(category, 0.0) or 0.0), 2)
+        reference_amount_raw = benchmark_category_averages.get(category)
+        if reference_amount_raw in (None, ""):
+            continue
+
+        reference_amount = round(float(reference_amount_raw), 2)
+        absolute_deviation = round(current_amount - reference_amount, 2)
+        deviation_ratio = None
+        if reference_amount != 0:
+            deviation_ratio = round(absolute_deviation / reference_amount, 4)
+
+        benchmark_comparison_metrics.append(
+            {
+                "category": category,
+                "current_amount": current_amount,
+                "reference_amount": reference_amount,
+                "absolute_deviation": absolute_deviation,
+                "deviation_ratio": deviation_ratio,
+            }
+        )
+        comparison_basis_count += 1
+        absolute_deviation_sum += abs(absolute_deviation)
+
+    caveat_flags: List[str] = []
+    if not benchmark_source:
+        caveat_flags.append("benchmark_source_missing")
+    if not benchmark_comparison_metrics:
+        caveat_flags.append("benchmark_comparison_unavailable")
+    elif comparison_basis_count < len(category_totals):
+        caveat_flags.append("partial_reference_coverage")
+
+    benchmark_applicability_confidence = None
+    if benchmark_source and benchmark_comparison_metrics:
+        coverage_ratio = comparison_basis_count / max(len(category_totals), 1)
+        benchmark_applicability_confidence = round(min(1.0, max(0.0, coverage_ratio)), 2)
+
+    benchmark_deviation_score = None
+    if benchmark_comparison_metrics and benchmark_applicability_confidence is not None:
+        benchmark_deviation_score = round(
+            absolute_deviation_sum / max(len(benchmark_comparison_metrics), 1),
+            2,
+        )
+
+    optimisation_recommendations: List[str] = []
+    if benchmark_comparison_metrics:
+        highest = sorted(
+            benchmark_comparison_metrics,
+            key=lambda item: abs(float(item.get("absolute_deviation") or 0.0)),
+            reverse=True,
+        )[0]
+        optimisation_recommendations.append(
+            f"Review {highest['category']} spend against the reference basis because it shows the largest benchmark deviation."
+        )
+
+    substrate_fail_closed = False
+    if not benchmark_source:
+        substrate_fail_closed = True
+    elif not benchmark_comparison_metrics:
+        substrate_fail_closed = True
+    elif benchmark_applicability_confidence is None:
+        substrate_fail_closed = True
+    elif not optimisation_recommendations:
+        substrate_fail_closed = True
+
+    return {
+        "benchmark_dataset": benchmark_dataset,
+        "benchmark_source_trace": source_trace,
+        "benchmark_comparison_metrics": benchmark_comparison_metrics,
+        "benchmark_deviation_score": benchmark_deviation_score,
+        "benchmark_applicability_confidence": benchmark_applicability_confidence,
+        "benchmark_summary": {
+            "categories_compared": len(benchmark_comparison_metrics),
+            "reference_basis": benchmark_source,
+            "coverage_ratio": round(comparison_basis_count / max(len(category_totals), 1), 2) if category_totals else 0.0,
+        },
+        "optimisation_recommendations": optimisation_recommendations,
+        "caveat_flags": caveat_flags,
+        "substrate_fail_closed": substrate_fail_closed,
+    }
+
+
+def _validate_benchmark_outcome_internal_contract(
+    outcome: Dict[str, Any],
+    audience_mode: str,
+) -> Dict[str, Any]:
+    errors: List[str] = []
+
+    if not isinstance(outcome, dict):
+        return {
+            "status": "fail",
+            "errors": ["fm_otc_005_not_dict"],
+        }
+
+    if outcome.get("outcome_intent") != "compare_against_reference":
+        errors.append("fm_otc_005_outcome_intent_invalid")
+
+    if outcome.get("benchmark_deviation_score") is None:
+        errors.append("fm_otc_005_benchmark_deviation_score_missing")
+
+    caveat_flags = outcome.get("caveat_flags")
+    if not isinstance(caveat_flags, list):
+        errors.append("fm_otc_005_caveat_flags_missing")
+
+    benchmark_comparison_metrics = outcome.get("benchmark_comparison_metrics")
+    if not isinstance(benchmark_comparison_metrics, list) or not benchmark_comparison_metrics:
+        errors.append("fm_otc_005_benchmark_comparison_metrics_missing")
+
+    benchmark_summary = outcome.get("benchmark_summary")
+    required_summary_keys = {"categories_compared", "reference_basis", "coverage_ratio"}
+    if not isinstance(benchmark_summary, dict):
+        errors.append("fm_otc_005_benchmark_summary_missing")
+    elif not required_summary_keys.issubset(benchmark_summary.keys()):
+        errors.append("fm_otc_005_benchmark_summary_incomplete")
+
+    optimisation_recommendations = outcome.get("optimisation_recommendations")
+    if not isinstance(optimisation_recommendations, list) or not optimisation_recommendations:
+        errors.append("fm_otc_005_optimisation_recommendations_missing")
+
+    if outcome.get("overall_confidence") is None:
+        errors.append("fm_otc_005_overall_confidence_missing")
+
+    if outcome.get("benchmark_applicability_confidence") is None:
+        errors.append("fm_otc_005_benchmark_applicability_confidence_missing")
+
+    if audience_mode == "internal":
+        benchmark_source_trace = outcome.get("benchmark_source_trace")
+        required_trace_keys = {
+            "benchmark_source",
+            "external_pricing_source",
+            "customer_segment",
+            "reference_categories",
+        }
+        if not isinstance(benchmark_source_trace, dict):
+            errors.append("fm_otc_005_benchmark_source_trace_missing")
+        elif not required_trace_keys.issubset(benchmark_source_trace.keys()):
+            errors.append("fm_otc_005_benchmark_source_trace_incomplete")
+
+    return {
+        "status": "pass" if not errors else "fail",
+        "errors": errors,
+    }
+
+
+def _build_benchmark_outcome_internal(
+    payload: Dict[str, Any],
+    parsed_metadata: Dict[str, Any],
+    classification_metadata: Dict[str, Any],
+    benchmark_context_substrate: Dict[str, Any],
+) -> Dict[str, Any]:
+    audience_mode = str(payload.get("audience_mode") or "internal").strip().lower()
+
+    overall_confidence = round(
+        (
+            parsed_metadata.get("parsing_confidence", 0.0)
+            + classification_metadata.get("classification_confidence_overall", 0.0)
+        ) / 2,
+        2,
+    )
+
+    result = {
+        "outcome_family": "analytical",
+        "outcome_intent": "compare_against_reference",
+        "degradation_policy": "no_safe_degradation",
+        "benchmark_deviation_score": benchmark_context_substrate.get("benchmark_deviation_score"),
+        "caveat_flags": list(benchmark_context_substrate.get("caveat_flags", [])),
+        "benchmark_comparison_metrics": list(benchmark_context_substrate.get("benchmark_comparison_metrics", [])),
+        "benchmark_summary": dict(benchmark_context_substrate.get("benchmark_summary", {})),
+        "optimisation_recommendations": list(benchmark_context_substrate.get("optimisation_recommendations", [])),
+        "overall_confidence": overall_confidence,
+        "benchmark_applicability_confidence": benchmark_context_substrate.get("benchmark_applicability_confidence"),
+    }
+
+    if audience_mode == "internal":
+        result["benchmark_source_trace"] = dict(benchmark_context_substrate.get("benchmark_source_trace", {}))
+
+    return result
+
+
 def run(payload: Dict[str, Any]) -> Dict[str, Any]:
     execution_plan_ack = _build_execution_plan_ack(payload)
     validation = _validate_execution_plan(payload, EXPECTED_SERVICE_FAMILY)
@@ -1527,6 +1735,11 @@ def run(payload: Dict[str, Any]) -> Dict[str, Any]:
         payload,
         cash_flow_summary,
         multi_period_substrate,
+    )
+
+    benchmark_context_substrate = _build_benchmark_context_substrate(
+        payload,
+        category_spend_summary,
     )
 
     fm_otc_001 = _build_statement_outcome(
@@ -1579,6 +1792,18 @@ def run(payload: Dict[str, Any]) -> Dict[str, Any]:
 
     _selected_obligation_validation = _validate_obligation_outcome_internal_contract(
         _selected_obligation_outcome,
+        str(payload.get("audience_mode") or "internal").strip().lower(),
+    )
+
+    _selected_benchmark_outcome = _build_benchmark_outcome_internal(
+        payload,
+        parsed_metadata,
+        classification_metadata,
+        benchmark_context_substrate,
+    )
+
+    _selected_benchmark_validation = _validate_benchmark_outcome_internal_contract(
+        _selected_benchmark_outcome,
         str(payload.get("audience_mode") or "internal").strip().lower(),
     )
 
@@ -1738,6 +1963,46 @@ def run(payload: Dict[str, Any]) -> Dict[str, Any]:
             "fm_otc_004": _selected_obligation_outcome,
         }
         outward_summary = "Financial management worker executed with FM-OTC-004 governed outcome outputs."
+
+    elif selected_outcome_code == "FM-OTC-005":
+        if _selected_benchmark_validation["status"] != "pass":
+            return {
+                "service": "financial_management",
+                "status": "rejected",
+                "execution_plan_ack": execution_plan_ack,
+                "execution_plan_validation": validation,
+                "received_payload": payload,
+                "result": {
+                    "summary": "Worker rejected payload because selected FM-OTC-005 outcome contract is invalid.",
+                    "runtime_lock_validation": selected_runtime_lock_validation,
+                    "benchmark_outcome_internal_validation": _selected_benchmark_validation,
+                },
+            }
+
+        if bool(benchmark_context_substrate.get("substrate_fail_closed", False)):
+            return {
+                "service": "financial_management",
+                "status": "rejected",
+                "execution_plan_ack": execution_plan_ack,
+                "execution_plan_validation": validation,
+                "received_payload": payload,
+                "result": {
+                    "summary": "Worker rejected payload because selected FM-OTC-005 requires sufficient governed benchmark reference substrate.",
+                    "runtime_lock_validation": selected_runtime_lock_validation,
+                    "benchmark_outcome_internal_validation": _selected_benchmark_validation,
+                    "benchmark_context_substrate": {
+                        "benchmark_source_trace": benchmark_context_substrate.get("benchmark_source_trace", {}),
+                        "caveat_flags": benchmark_context_substrate.get("caveat_flags", []),
+                        "benchmark_applicability_confidence": benchmark_context_substrate.get("benchmark_applicability_confidence"),
+                        "substrate_fail_closed": benchmark_context_substrate.get("substrate_fail_closed", False),
+                    },
+                },
+            }
+
+        outward_result = {
+            "fm_otc_005": _selected_benchmark_outcome,
+        }
+        outward_summary = "Financial management worker executed with FM-OTC-005 governed outcome outputs."
 
     else:
         return {

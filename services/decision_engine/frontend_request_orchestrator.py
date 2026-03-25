@@ -99,6 +99,14 @@ FM_GOVERNED_RUNTIME_LOCKS = {
         "outcome_intent": "assess_financial_obligation_pressure",
         "analysis_type": "advanced_obligation_context",
     },
+    "benchmark_reference_comparison": {
+        "service_code": "financial_management",
+        "service_family": "financial_management",
+        "governed_outcome_code": "FM-OTC-005",
+        "outcome_result_key": "fm_otc_005",
+        "outcome_intent": "compare_against_reference",
+        "analysis_type": "benchmark_reference_comparison",
+    },
 }
 
 
@@ -155,7 +163,7 @@ def _resolve_financial_management_runtime_lock(analysis_type: str) -> Dict[str, 
     runtime_lock = FM_GOVERNED_RUNTIME_LOCKS.get(analysis_type)
     if runtime_lock is None:
         raise ValueError(
-            "analysis_type must be one of: explain_document, cash_flow_multi_period, spend_analysis_multi_period, advanced_obligation_context"
+            "analysis_type must be one of: explain_document, cash_flow_multi_period, spend_analysis_multi_period, advanced_obligation_context, benchmark_reference_comparison"
         )
     return dict(runtime_lock)
 
