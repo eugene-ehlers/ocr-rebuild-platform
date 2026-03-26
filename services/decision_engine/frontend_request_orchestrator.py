@@ -829,7 +829,11 @@ def _finalize_result_record(
                     "finalization_reason": "runtime_lock_outcome_block_missing",
                 }
 
-            if outcome_block.get("outcome_intent") != runtime_lock.get("outcome_intent"):
+            emitted_outcome_intent = (
+                outcome_block.get("outcome_intent")
+                or (outcome_block.get("outcome_payload") or {}).get("outcome_intent")
+            )
+            if emitted_outcome_intent != runtime_lock.get("outcome_intent"):
                 return {
                     "request_status": "completed",
                     "result_status": "execution_failed",
