@@ -58,6 +58,15 @@ EXPECTED_DOCUMENT_TYPES = {
     "credit_decision": {"bank_statement", "identity_document"},
 }
 
+CREDIT_ANALYSIS_TYPE_EXPECTED_DOCUMENT_TYPES = {
+    "bank_statement_ocr_extraction": {"bank_statement"},
+    "bank_statement_income_signal_assessment": {"bank_statement"},
+    "bank_statement_expense_signal_assessment": {"bank_statement"},
+    "ocr_based_affordability_snapshot": {"bank_statement"},
+    "credit_document_pack_completeness": {"bank_statement"},
+    "ocr_based_credit_recommendation": {"bank_statement"},
+}
+
 DEFAULT_VALIDITY_SECONDS = {
     "processing": 60 * 60 * 24 * 30,
     "disclosure": 60 * 60 * 24 * 7,
@@ -202,6 +211,40 @@ def _build_context(payload: Dict[str, Any]) -> OrchestrationContext:
         selected_analysis_type = runtime_lock["analysis_type"]
         selected_governed_outcome_code = runtime_lock["governed_outcome_code"]
         selected_governed_outcome_intent = runtime_lock["outcome_intent"]
+
+    if service_family == "credit_decision":
+        analysis_type = _normalize_analysis_type(payload.get("analysis_type"))
+        selected_analysis_type = analysis_type
+        credit_runtime_locks = {
+            "bank_statement_ocr_extraction": {
+                "governed_outcome_code": "Credit-OTC-003",
+                "outcome_intent": "extract_bank_statement_fields",
+            },
+            "bank_statement_income_signal_assessment": {
+                "governed_outcome_code": "Credit-OTC-004",
+                "outcome_intent": "assess_bank_statement_income_signal",
+            },
+            "bank_statement_expense_signal_assessment": {
+                "governed_outcome_code": "Credit-OTC-005",
+                "outcome_intent": "assess_bank_statement_expense_signal",
+            },
+            "ocr_based_affordability_snapshot": {
+                "governed_outcome_code": "Credit-OTC-007",
+                "outcome_intent": "produce_ocr_based_affordability_snapshot",
+            },
+            "credit_document_pack_completeness": {
+                "governed_outcome_code": "Credit-OTC-008",
+                "outcome_intent": "assess_credit_document_pack_completeness",
+            },
+            "ocr_based_credit_recommendation": {
+                "governed_outcome_code": "Credit-OTC-009",
+                "outcome_intent": "produce_ocr_based_credit_recommendation",
+            },
+        }
+        runtime_lock = credit_runtime_locks.get(analysis_type)
+        if runtime_lock:
+            selected_governed_outcome_code = runtime_lock["governed_outcome_code"]
+            selected_governed_outcome_intent = runtime_lock["outcome_intent"]
 
     if (
         service_code == "financial_management"
@@ -408,6 +451,13 @@ def _assess_document(document_id: str, expected_types: set[str]) -> Dict[str, An
 
 def _evaluate_documents(context: OrchestrationContext) -> Dict[str, Any]:
     expected_types = EXPECTED_DOCUMENT_TYPES.get(context.service_family, set())
+
+    if context.service_family == "credit_decision" and context.analysis_type:
+        expected_types = CREDIT_ANALYSIS_TYPE_EXPECTED_DOCUMENT_TYPES.get(
+            context.analysis_type,
+            expected_types,
+        )
+
     assessments = [_assess_document(doc_id, expected_types) for doc_id in context.document_ids]
 
     reasons: List[str] = []
@@ -665,6 +715,58 @@ def _build_execution_plan(context: OrchestrationContext, execution_mode: str) ->
         plan_runtime_lock = _resolve_financial_management_runtime_lock(
             context.analysis_type or "explain_document"
         )
+    elif context.service_family == "credit_decision":
+        credit_runtime_locks = {
+            "bank_statement_ocr_extraction": {
+                "service_code": "credit_decision",
+                "service_family": "credit_decision",
+                "governed_outcome_code": "Credit-OTC-003",
+                "outcome_result_key": "credit_otc_003",
+                "outcome_intent": "extract_bank_statement_fields",
+                "analysis_type": "bank_statement_ocr_extraction",
+            },
+            "bank_statement_income_signal_assessment": {
+                "service_code": "credit_decision",
+                "service_family": "credit_decision",
+                "governed_outcome_code": "Credit-OTC-004",
+                "outcome_result_key": "credit_otc_004",
+                "outcome_intent": "assess_bank_statement_income_signal",
+                "analysis_type": "bank_statement_income_signal_assessment",
+            },
+            "bank_statement_expense_signal_assessment": {
+                "service_code": "credit_decision",
+                "service_family": "credit_decision",
+                "governed_outcome_code": "Credit-OTC-005",
+                "outcome_result_key": "credit_otc_005",
+                "outcome_intent": "assess_bank_statement_expense_signal",
+                "analysis_type": "bank_statement_expense_signal_assessment",
+            },
+            "ocr_based_affordability_snapshot": {
+                "service_code": "credit_decision",
+                "service_family": "credit_decision",
+                "governed_outcome_code": "Credit-OTC-007",
+                "outcome_result_key": "credit_otc_007",
+                "outcome_intent": "produce_ocr_based_affordability_snapshot",
+                "analysis_type": "ocr_based_affordability_snapshot",
+            },
+            "credit_document_pack_completeness": {
+                "service_code": "credit_decision",
+                "service_family": "credit_decision",
+                "governed_outcome_code": "Credit-OTC-008",
+                "outcome_result_key": "credit_otc_008",
+                "outcome_intent": "assess_credit_document_pack_completeness",
+                "analysis_type": "credit_document_pack_completeness",
+            },
+            "ocr_based_credit_recommendation": {
+                "service_code": "credit_decision",
+                "service_family": "credit_decision",
+                "governed_outcome_code": "Credit-OTC-009",
+                "outcome_result_key": "credit_otc_009",
+                "outcome_intent": "produce_ocr_based_credit_recommendation",
+                "analysis_type": "ocr_based_credit_recommendation",
+            },
+        }
+        plan_runtime_lock = credit_runtime_locks.get(context.analysis_type or "")
 
     return {
         "plan_id": _new_plan_id(context.request_id),
@@ -728,6 +830,12 @@ def _execute(
         "debt_positions": payload.get("debt_positions"),
         "audience_mode": payload.get("audience_mode"),
         "service_status": payload.get("service_status"),
+        "request": payload.get("request"),
+        "document": payload.get("document"),
+        "subject": payload.get("subject"),
+        "substrates": payload.get("substrates"),
+        "rules": payload.get("rules"),
+        "documents_submitted": payload.get("documents_submitted"),
         "governed_runtime_lock": execution_plan.get("governed_runtime_lock"),
         "execution_plan": execution_plan,
         "orchestration_context": {
@@ -735,6 +843,9 @@ def _execute(
             "plan_version": execution_plan.get("plan_version"),
             "current_stage": "downstream_execution",
             "plan_status": execution_plan.get("plan_status"),
+            "analysis_type": context.analysis_type,
+            "governed_outcome_code": context.governed_outcome_code,
+            "governed_outcome_intent": context.governed_outcome_intent,
         },
     }
     return execute_service_family(context.service_family, execution_payload)
@@ -801,7 +912,24 @@ def _finalize_result_record(
                     "finalization_reason": "runtime_lock_result_missing",
                 }
 
-            outcome_keys = sorted([k for k in result_payload.keys() if k.startswith("fm_otc_")])
+            family_prefix_map = {
+                "financial_management": "fm_otc_",
+                "credit_decision": "credit_otc_",
+            }
+            family_lock_map = {
+                "financial_management": FM_GOVERNED_RUNTIME_LOCKS,
+            }
+
+            expected_prefix = family_prefix_map.get(plan.get("service_family"))
+            if not expected_prefix:
+                return {
+                    "request_status": "completed",
+                    "result_status": "execution_failed",
+                    "plan_status": "failed",
+                    "finalization_reason": "runtime_lock_service_family_unsupported",
+                }
+
+            outcome_keys = sorted([k for k in result_payload.keys() if k.startswith(expected_prefix)])
             if outcome_keys != [expected_outcome_result_key]:
                 return {
                     "request_status": "completed",
@@ -810,9 +938,19 @@ def _finalize_result_record(
                     "finalization_reason": "runtime_lock_governed_outcome_mismatch",
                 }
 
-            allowed_outcome_codes = {
-                cfg["governed_outcome_code"] for cfg in FM_GOVERNED_RUNTIME_LOCKS.values()
-            }
+            if plan.get("service_family") == "credit_decision":
+                allowed_outcome_codes = {
+                    "Credit-OTC-003",
+                    "Credit-OTC-004",
+                    "Credit-OTC-005",
+                    "Credit-OTC-007",
+                    "Credit-OTC-008",
+                    "Credit-OTC-009",
+                }
+            else:
+                allowed_outcome_codes = {
+                    cfg["governed_outcome_code"] for cfg in family_lock_map[plan.get("service_family")].values()
+                }
             if runtime_lock.get("governed_outcome_code") not in allowed_outcome_codes:
                 return {
                     "request_status": "completed",
