@@ -1,10 +1,5 @@
-import { PageScaffold } from '../PageScaffold';
+import { LegalDocumentPage } from './LegalDocumentPage';
 
 export function PrivacyPage() {
-  return (
-    <PageScaffold
-      title="Privacy"
-      summary="Placeholder legal page for Privacy."
-    />
-  );
+  return <LegalDocumentPage documentKey="privacy" />;
 }

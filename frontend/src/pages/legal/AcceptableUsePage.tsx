@@ -1,10 +1,5 @@
-import { PageScaffold } from '../PageScaffold';
+import { LegalDocumentPage } from './LegalDocumentPage';
 
 export function AcceptableUsePage() {
-  return (
-    <PageScaffold
-      title="Acceptable Use"
-      summary="Placeholder legal page for Acceptable Use."
-    />
-  );
+  return <LegalDocumentPage documentKey="acceptable-use" />;
 }

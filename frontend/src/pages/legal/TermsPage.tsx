@@ -1,10 +1,5 @@
-import { PageScaffold } from '../PageScaffold';
+import { LegalDocumentPage } from './LegalDocumentPage';
 
 export function TermsPage() {
-  return (
-    <PageScaffold
-      title="Terms"
-      summary="Placeholder legal page for Terms."
-    />
-  );
+  return <LegalDocumentPage documentKey="terms" />;
 }

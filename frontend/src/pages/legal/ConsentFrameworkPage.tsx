@@ -1,10 +1,5 @@
-import { PageScaffold } from '../PageScaffold';
+import { LegalDocumentPage } from './LegalDocumentPage';
 
 export function ConsentFrameworkPage() {
-  return (
-    <PageScaffold
-      title="Consent Framework"
-      summary="Placeholder legal page for Consent Framework."
-    />
-  );
+  return <LegalDocumentPage documentKey="consent-framework" />;
 }

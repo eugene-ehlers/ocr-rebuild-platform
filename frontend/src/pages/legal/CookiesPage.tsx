@@ -1,10 +1,5 @@
-import { PageScaffold } from '../PageScaffold';
+import { LegalDocumentPage } from './LegalDocumentPage';
 
 export function CookiesPage() {
-  return (
-    <PageScaffold
-      title="Cookies"
-      summary="Placeholder legal page for Cookies."
-    />
-  );
+  return <LegalDocumentPage documentKey="cookies" />;
 }
