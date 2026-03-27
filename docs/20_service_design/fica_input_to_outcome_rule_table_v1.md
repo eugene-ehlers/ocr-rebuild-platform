@@ -2,283 +2,115 @@
 
 ## Purpose
 
-Defines how FICA Compliance service requests are interpreted into required outcome structures.
+Defines how approved OCR-first FICA requests are interpreted into governed FICA outcome structures.
 
-This table operates strictly at the **decision layer**:
+This table operates strictly at the decision layer:
 
-request → outcome_intent → outcome_structure
+request -> outcome_intent -> outcome_structure
 
 It does NOT define:
-- capabilities
 - providers
 - execution logic
-- OCR behavior
+- worker sequencing
+- implementation code
 
 ---
 
 ## Governance Notes
 
-- All tokens used in this table are **proposed governed vocabulary**
-- Tokens must be standardized before production enforcement
-- This table defines **WHAT must be produced**, not HOW
+- This document is authoritative for the OCR-first FICA target basket in this application.
+- Scope is limited to OCR-derived document evidence and governed analytical checks against OCR results.
+- Bureau, PEP, PIP, Home Affairs, and other external compliance scope are explicitly out of scope for this app.
+- Extraction OTCs and analytical OTCs must remain distinct.
+- Each request must resolve to exactly one governed outward outcome.
+- Insufficient basis for the selected outcome must fail closed.
 
 ### Controlled Vocabulary Rule
 
 Tokens in this table are governed design-time normalized vocabulary for request-to-outcome mapping.
 
-Where a token is not yet persisted in a dedicated registry or approved controlled vocabulary artifact as a literal term:
-- it must be treated as proposed controlled vocabulary
-- it must be interpreted consistently
-- it must not be replaced ad hoc in implementation
-
-### Outcome Sufficiency Interpretation
-
-Required outcome fields in this table are sufficiency-critical for valid fulfillment of the rule.
-
-If mandatory outcome conditions cannot be satisfied, runtime behavior must:
-- fail safely
-- degrade in a governed way
-- or escalate according to decision policy
-
-### Condition Interpretation
-
-- `mandatory_outcome_conditions`
-  → must be satisfied or the service must fail, degrade, or escalate
-
-- `optional_outcome_conditions`
-  → enrichment only, not required for baseline service delivery
-
 ### Degradation Policy
-
-Defines how the system must behave if required outcome conditions cannot be fully met.
 
 Allowed values include:
 - no_safe_degradation
-- degrade_with_caveat
-- degrade_to_summary_only
-- escalate_for_missing_dependencies
 - internal_review_required
+- escalate_for_missing_dependencies
 
 ---
 
 ## Rule Table
 
----
-
-### FICA-IOR-001
-
-- service_family: fica_compliance
-- requested_service: document_validation
-- requested_option_set: standard_validation
-- request_scope: single_document
-- audience_mode: internal
-- document_type: bank_statement
-- expected_document_type: bank_statement
-- product_context: null
-- complexity_mode: standard
-- outcome_intent: validate_document_authenticity
+### FICA-OTC-001
+- outcome_code: FICA-OTC-001
+- outcome_family: proof_verification
+- outcome_intent: extract_identity_document_fields
 - degradation_policy: no_safe_degradation
+- required_inputs: payload.request.outcome_code|payload.document.document_type|payload.document.file_bytes_b64_or_s3_uri
+- required_outputs: extraction_status|extracted_identity|overall_confidence|audit_trace|section_confidence_trace|provenance_trace|consent_trace|document_version_trace|fail_closed_reasons
+- required_dependencies: payload.document.document_type=identity_document|payload.substrates.ocr.raw_text|payload.substrates.ocr.page_traces|payload.substrates.ocr.engine_metadata
+- required_capabilities: document_ocr|identity_field_extraction|field_normalization|traceability_generation
+- fail_closed_rules: missing_document_payload|unsupported_document_type|ocr_failure|missing_identity_anchor_fields|missing_traceability
+- prohibited_shortcuts: no_manual_fill_as_ocr|no_success_without_extracted_identity_basis|no_missing_confidence_suppression
 
-- required_determinations: document_validity_status
-- required_scores: document_validity_confidence
-- required_flags: document_integrity_flags
-- required_metrics: none
-- required_summaries: validation_summary
-- required_recommendations: none
-- required_traceability: audit_trace|input_evidence_linkage|decision_trace
-- required_confidence_outputs: overall_confidence
-- required_execution_metadata: processing_timestamp|service_status|execution_state
-
-- mandatory_outcome_conditions: authenticity_decision_must_be_traceable
-- optional_outcome_conditions: none
-
-- notes: internal document authenticity determination outcome
-
----
-
-### FICA-IOR-002
-
-- service_family: fica_compliance
-- requested_service: document_validation
-- requested_option_set: customer_status_only
-- request_scope: single_document
-- audience_mode: customer
-- document_type: bank_statement
-- expected_document_type: bank_statement
-- product_context: null
-- complexity_mode: simple
-- outcome_intent: validate_document_authenticity
+### FICA-OTC-002
+- outcome_code: FICA-OTC-002
+- outcome_family: analytical
+- outcome_intent: assess_identity_field_consistency
 - degradation_policy: no_safe_degradation
+- required_inputs: payload.substrates.ocr.structured_fields.identity|payload.subject.first_name|payload.subject.last_name|payload.subject.id_number
+- required_outputs: identity_match_determination|name_match_flag|id_number_match_flag|dob_match_flag|mismatch_reasons|summary|overall_confidence|audit_trace|section_confidence_trace|provenance_trace|consent_trace|document_version_trace|fail_closed_reasons
+- required_dependencies: FICA-OTC-001 substrate|identity_matching_rules
+- required_capabilities: exact_field_matching|normalized_field_matching|mismatch_reasoning|traceability_generation
+- fail_closed_rules: missing_identity_substrate|missing_required_subject_fields|no_primary_identity_anchor|missing_traceability
+- prohibited_shortcuts: no_match_without_document_basis|no_manual_review_without_discrepancy_basis|no_inferred_identity_confirmation
 
-- required_determinations: document_validity_status
-- required_scores: none
-- required_flags: none
-- required_metrics: none
-- required_summaries: validation_status_summary
-- required_recommendations: remediation_request_if_invalid
-- required_traceability: none
-- required_confidence_outputs: none
-- required_execution_metadata: processing_timestamp|service_status
-
-- mandatory_outcome_conditions: customer_status_must_align_to_internal_determination
-- optional_outcome_conditions: none
-
-- notes: customer-facing validation status outcome derived from governed internal determination
-
----
-
-### FICA-IOR-003
-
-- service_family: fica_compliance
-- requested_service: identity_verification
-- requested_option_set: standard_identity_match
-- request_scope: single_document
-- audience_mode: internal
-- document_type: bank_statement
-- expected_document_type: bank_statement
-- product_context: null
-- complexity_mode: standard
-- outcome_intent: verify_identity_and_ownership
-- degradation_policy: escalate_for_missing_dependencies
-
-- required_determinations: identity_match_status|manual_review
-- required_scores: identity_match_confidence
-- required_flags: identity_discrepancy_flags
-- required_metrics: none
-- required_summaries: identity_verification_summary
-- required_recommendations: none
-- required_traceability: audit_trace|input_evidence_linkage|decision_trace
-- required_confidence_outputs: overall_confidence
-- required_execution_metadata: processing_timestamp|service_status|execution_state
-
-- mandatory_outcome_conditions: ownership_verification_must_reference_customer_and_issuer_context
-- optional_outcome_conditions: historical_cross_check_if_available
-
-- notes: internal identity and ownership determination outcome
-
----
-
-### FICA-IOR-004
-
-- service_family: fica_compliance
-- requested_service: identity_verification
-- requested_option_set: customer_status_only
-- request_scope: single_document
-- audience_mode: customer
-- document_type: bank_statement
-- expected_document_type: bank_statement
-- product_context: null
-- complexity_mode: simple
-- outcome_intent: verify_identity_and_ownership
-- degradation_policy: escalate_for_missing_dependencies
-
-- required_determinations: identity_match_status|manual_review
-- required_scores: none
-- required_flags: none
-- required_metrics: none
-- required_summaries: identity_status_summary
-- required_recommendations: remediation_request_if_unverified
-- required_traceability: none
-- required_confidence_outputs: none
-- required_execution_metadata: processing_timestamp|service_status
-
-- mandatory_outcome_conditions: customer_status_must_align_to_internal_identity_determination
-- optional_outcome_conditions: none
-
-- notes: customer-facing identity verification status outcome
-
----
-
-### FICA-IOR-005
-
-- service_family: fica_compliance
-- requested_service: transaction_compliance
-- requested_option_set: standard_transaction_screening
-- request_scope: single_document
-- audience_mode: internal
-- document_type: bank_statement
-- expected_document_type: bank_statement
-- product_context: null
-- complexity_mode: advanced
-- outcome_intent: evaluate_transaction_compliance
+### FICA-OTC-003
+- outcome_code: FICA-OTC-003
+- outcome_family: proof_verification
+- outcome_intent: extract_proof_of_address_fields
 - degradation_policy: no_safe_degradation
+- required_inputs: payload.request.outcome_code|payload.document.document_type|payload.document.file_bytes_b64_or_s3_uri
+- required_outputs: extraction_status|extracted_address|overall_confidence|audit_trace|section_confidence_trace|provenance_trace|consent_trace|document_version_trace|fail_closed_reasons
+- required_dependencies: payload.document.document_type=proof_of_address|payload.substrates.ocr.raw_text|payload.substrates.ocr.page_traces|payload.substrates.ocr.engine_metadata
+- required_capabilities: document_ocr|address_field_extraction|address_normalization|traceability_generation
+- fail_closed_rules: missing_document_payload|unsupported_document_type|ocr_failure|missing_address_content|missing_document_date|missing_traceability
+- prohibited_shortcuts: no_success_without_address_basis|no_inferred_address_completion|no_manual_fill_as_ocr
 
-- required_determinations: transaction_compliance_status|manual_review
-- required_scores: transaction_compliance_confidence|compliance_score
-- required_flags: transaction_compliance_flags
-- required_metrics: transaction_compliance_metrics
-- required_summaries: transaction_compliance_summary
-- required_recommendations: escalation_guidance
-- required_traceability: audit_trace|input_evidence_linkage|decision_trace
-- required_confidence_outputs: overall_confidence
-- required_execution_metadata: processing_timestamp|service_status|execution_state|finalization_reason
-
-- mandatory_outcome_conditions: compliance_decision_must_reference_detected_issues_and_metrics
-- optional_outcome_conditions: historical_pattern_comparison_if_available
-
-- notes: internal transaction compliance determination outcome
-
----
-
-### FICA-IOR-006
-
-- service_family: fica_compliance
-- requested_service: transaction_compliance
-- requested_option_set: customer_status_only
-- request_scope: single_document
-- audience_mode: customer
-- document_type: bank_statement
-- expected_document_type: bank_statement
-- product_context: null
-- complexity_mode: simple
-- outcome_intent: evaluate_transaction_compliance
+### FICA-OTC-004
+- outcome_code: FICA-OTC-004
+- outcome_family: analytical
+- outcome_intent: assess_proof_of_address_validity_and_recency
 - degradation_policy: no_safe_degradation
+- required_inputs: payload.substrates.ocr.structured_fields.proof_of_address|payload.rules.proof_of_address.max_age_days
+- required_outputs: address_validity_determination|recency_pass_flag|address_completeness_flag|issuer_acceptance_flag|document_age_days|summary|overall_confidence|audit_trace|section_confidence_trace|provenance_trace|consent_trace|document_version_trace|fail_closed_reasons
+- required_dependencies: FICA-OTC-003 substrate|date_normalization_rules|issuer_acceptance_rules_if_enabled
+- required_capabilities: date_interpretation|recency_calculation|address_completeness_check|issuer_check_optional|traceability_generation
+- fail_closed_rules: missing_proof_of_address_substrate|missing_document_date|required_recency_uncomputable|missing_traceability
+- prohibited_shortcuts: no_validity_without_date_basis|no_recency_pass_without_age_calculation|no_issuer_acceptance_without_rule_basis
 
-- required_determinations: transaction_compliance_status|manual_review
-- required_scores: none
-- required_flags: none
-- required_metrics: none
-- required_summaries: compliance_status_summary
-- required_recommendations: remediation_request_if_non_compliant
-- required_traceability: none
-- required_confidence_outputs: none
-- required_execution_metadata: processing_timestamp|service_status
+### FICA-OTC-005
+- outcome_code: FICA-OTC-005
+- outcome_family: proof_verification
+- outcome_intent: extract_business_registration_fields
+- degradation_policy: no_safe_degradation
+- required_inputs: payload.request.outcome_code|payload.document.document_type|payload.document.file_bytes_b64_or_s3_uri
+- required_outputs: extraction_status|extracted_business|overall_confidence|audit_trace|section_confidence_trace|provenance_trace|consent_trace|document_version_trace|fail_closed_reasons
+- required_dependencies: payload.document.document_type=business_registration|payload.substrates.ocr.raw_text|payload.substrates.ocr.page_traces|payload.substrates.ocr.engine_metadata
+- required_capabilities: document_ocr|business_field_extraction|entity_normalization|traceability_generation
+- fail_closed_rules: missing_document_payload|unsupported_document_type|ocr_failure|missing_company_name|missing_registration_number|missing_traceability
+- prohibited_shortcuts: no_success_without_company_identity_anchors|no_manual_fill_as_ocr|no_inferred_registration_number
 
-- mandatory_outcome_conditions: customer_status_must_align_to_internal_compliance_determination
-- optional_outcome_conditions: none
-
-- notes: customer-facing transaction compliance status outcome
-
----
-
-### FICA-IOR-007
-
-- service_family: fica_compliance
-- requested_service: compliance_risk_assessment
-- requested_option_set: consolidated_internal_review
-- request_scope: single_document
-- audience_mode: internal
-- document_type: bank_statement
-- expected_document_type: bank_statement
-- product_context: null
-- complexity_mode: advisor_internal
-- outcome_intent: assess_compliance_risk
+### FICA-OTC-006
+- outcome_code: FICA-OTC-006
+- outcome_family: analytical
+- outcome_intent: assess_business_ownership_or_authority_consistency
 - degradation_policy: internal_review_required
-
-- required_determinations: compliance_risk_status|manual_review
-- required_scores: fraud_score|compliance_score
-- required_flags: document_integrity_flags|identity_discrepancy_flags|transaction_compliance_flags
-- required_metrics: transaction_compliance_metrics
-- required_summaries: compliance_risk_summary
-- required_recommendations: escalation_guidance
-- required_traceability: audit_trace|input_evidence_linkage|decision_trace
-- required_confidence_outputs: overall_confidence
-- required_execution_metadata: processing_timestamp|service_status|execution_state|finalization_reason
-
-- mandatory_outcome_conditions: consolidated_risk_output_must_be_traceable_across_component_checks
-- optional_outcome_conditions: affordability_support_if_enabled
-
-- notes: consolidated internal compliance risk outcome
+- required_inputs: payload.substrates.ocr.structured_fields.business_registration|payload.subject.company_name|payload.subject.registration_number
+- required_outputs: business_consistency_determination|company_name_match_flag|registration_match_flag|represented_person_found_flag|gaps|summary|overall_confidence|audit_trace|section_confidence_trace|provenance_trace|consent_trace|document_version_trace|fail_closed_reasons
+- required_dependencies: FICA-OTC-005 substrate|entity_matching_rules|authority_presence_rules
+- required_capabilities: company_identity_matching|registration_matching|authority_presence_check|gap_reasoning|traceability_generation
+- fail_closed_rules: missing_business_registration_substrate|missing_claimed_company_anchors|missing_traceability
+- prohibited_shortcuts: no_supported_authority_without_document_evidence|no_match_without_registration_or_name_basis|no_inferred_representative_authority
 
 ---
 

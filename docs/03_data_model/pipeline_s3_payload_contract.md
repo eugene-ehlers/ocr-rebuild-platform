@@ -1,92 +1,94 @@
 # Pipeline S3 Payload Contract
 
-## 1. Purpose
+## Purpose
 
-Define how execution payloads are passed between ECS stages via S3.
+Defines the governed pipeline payload carriers required for OCR-first document processing and governed outward outcome emission.
 
-This enables Step Functions to orchestrate ECS workers while preserving the full execution payload.
+## Field-Level Additions and Clarifications for OCR-First FICA and Credit
 
-## 2. Core Principle
+### Request
 
-- The **entire execution payload** is stored and passed via S3
-- No partial payloads
-- No field loss
-- Each stage:
-  - reads full payload
-  - enriches payload
-  - writes full payload
+- `payload.request.outcome_code`
+- `payload.request.outcome_family`
+- `payload.request.client_reference`
+- `payload.request.request_timestamp`
+- `payload.request.consent_reference`
 
-## 3. S3 Bucket
+### Document
 
-Payload storage bucket:
+- `payload.document.document_id`
+- `payload.document.document_type`
+- `payload.document.file_format`
+- `payload.document.file_bytes_b64`
+- `payload.document.s3_uri`
+- `payload.document.document_country`
+- `payload.document.document_language`
 
-`ocr-rebuild-results`
+Rule:
+- at least one of `payload.document.file_bytes_b64` or `payload.document.s3_uri` must be present
 
-## 4. Key Structure
+### Subject
 
-Each pipeline execution uses a deterministic structure:
+- `payload.subject.subject_type`
+- `payload.subject.first_name`
+- `payload.subject.last_name`
+- `payload.subject.full_name`
+- `payload.subject.id_number`
+- `payload.subject.date_of_birth`
+- `payload.subject.company_name`
+- `payload.subject.registration_number`
 
-`payloads/{manifest_id}/{stage}/payload.json`
+### OCR Substrates
 
-Examples:
+- `payload.substrates.ocr.raw_text`
+- `payload.substrates.ocr.structured_fields.identity`
+- `payload.substrates.ocr.structured_fields.proof_of_address`
+- `payload.substrates.ocr.structured_fields.business_registration`
+- `payload.substrates.ocr.structured_fields.payslip`
+- `payload.substrates.ocr.structured_fields.bank_statement`
+- `payload.substrates.ocr.page_traces`
+- `payload.substrates.ocr.engine_metadata`
 
-- `payloads/man-123/ocr/payload.json`
-- `payloads/man-123/table_extraction/payload.json`
-- `payloads/man-123/logo_recognition/payload.json`
-- `payloads/man-123/fraud_detection/payload.json`
-- `payloads/man-123/aggregation/payload.json`
+### Analytics Substrates
 
-## 5. Input Contract (ECS)
+- `payload.substrates.analytics.identity_consistency`
+- `payload.substrates.analytics.proof_of_address_validity`
+- `payload.substrates.analytics.business_consistency`
+- `payload.substrates.analytics.bank_income_signal`
+- `payload.substrates.analytics.bank_expense_signal`
+- `payload.substrates.analytics.income_consistency`
+- `payload.substrates.analytics.affordability_snapshot`
+- `payload.substrates.analytics.document_pack_completeness`
+- `payload.substrates.analytics.recommendation_support_metrics`
 
-Each ECS worker receives:
+### Runtime Current Outcome
 
-- `INPUT_S3_BUCKET`
-- `INPUT_S3_KEY`
+- `payload.runtime.current_outcome.outcome_code`
+- `payload.runtime.current_outcome.outcome_family`
+- `payload.runtime.current_outcome.outcome_payload`
+- `payload.runtime.current_outcome.audit_trace`
+- `payload.runtime.current_outcome.section_confidence_trace`
+- `payload.runtime.current_outcome.provenance_trace`
+- `payload.runtime.current_outcome.consent_trace`
+- `payload.runtime.current_outcome.document_version_trace`
+- `payload.runtime.current_outcome.fail_closed_reasons`
 
-Worker must:
+### Rules Carriers
 
-- read full payload JSON from S3
-- treat it as authoritative input
+- `payload.rules.proof_of_address.max_age_days`
+- `payload.rules.credit.payslip_rules`
+- `payload.rules.credit.bank_income_rules`
+- `payload.rules.credit.bank_expense_rules`
+- `payload.rules.credit.income_consistency_rules`
+- `payload.rules.credit.affordability_rules`
+- `payload.rules.credit.required_document_set`
+- `payload.rules.credit.recommendation_rules`
 
-## 6. Output Contract (ECS)
+## Scope Constraint
 
-Each ECS worker must write full enriched payload JSON to:
+This contract update is limited to OCR-first FICA and Credit basket support.
+It does not add bureau, PEP, PIP, Home Affairs, pricing, or offer-generation scope.
 
-- `OUTPUT_S3_BUCKET`
-- `OUTPUT_S3_KEY`
+---
 
-## 7. Step Functions Responsibility
-
-Step Functions must:
-
-- pass correct input S3 key to each stage
-- track output S3 key per stage
-- ensure next stage reads from previous stage output
-
-## 8. Payload Integrity Rules
-
-- payload must remain complete
-- no field deletion allowed
-- only enrichment allowed
-- required fields must persist:
-  - `manifest_update`
-  - `execution_state`
-  - `service_status`
-  - `pipeline_history`
-
-## 9. Failure Handling
-
-If a stage fails:
-
-- partial payload must still exist in S3
-- manifest must reflect failure
-- Step Functions decides retry or continue
-
-## 10. Observability
-
-S3 payloads provide:
-
-- full audit trail
-- replay capability
-- debugging visibility
-- validation checkpoints
+## End of Document

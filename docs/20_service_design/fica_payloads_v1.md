@@ -1,93 +1,102 @@
-# FICA Compliance Service — Payloads v1
+# FICA Payloads v1
 
 ## Purpose
-Defines the input/output payloads required to execute the FICA Compliance Service. 
-Ensures all Lambda functions, APIs, and the decision engine communicate reliably.
 
----
+Defines governed payload carriers for OCR-first FICA outcomes and supporting substrates.
 
-## Input Payload Structure
+## Root Carriers
 
 {
-  "manifest_id": "string",
-  "document_id": "string",
-  "source_uri": "s3://bucket/key",
-  "document_type": "string",
-  "expected_document_type": "string",
-  "requested_services": {
-    "document_validation": true,
-    "identity_verification": true,
-    "transaction_compliance": true
-  },
-  "service_status": {
-    "document_validation": "pending|requested|running|succeeded|failed",
-    "identity_verification": "pending|requested|running|succeeded|failed",
-    "transaction_compliance": "pending|requested|running|succeeded|failed"
-  },
-  "execution_state": {
-    "current_stage": "manifest_generation|preprocessing|fic_checks|gate_evaluation",
-    "completed_stages": [],
-    "failed_stages": [],
-    "skipped_stages": []
-  },
-  "pages": [
-    {
-      "page_number": 1,
-      "text": "string",
-      "tables": [],
-      "logos": [],
-      "confidence_score": 0.0
+  "payload": {
+    "request": {},
+    "document": {},
+    "subject": {},
+    "substrates": {
+      "ocr": {},
+      "analytics": {}
+    },
+    "runtime": {
+      "current_outcome": {}
     }
-  ],
-  "evaluation": {
-    "document_validity": "high|medium|low",
-    "identity_match": "high|medium|low",
-    "transaction_compliance": "high|medium|low"
-  },
-  "errors": [],
-  "processing_timestamp": "YYYY-MM-DDTHH:MM:SSZ"
-}
-
----
-
-## Output Payload Structure
-
-{
-  "document_validation": {
-    "validity": "valid|invalid|suspicious",
-    "issues": ["missing_logo", "altered_text", "misaligned_columns"]
-  },
-  "identity_verification": {
-    "match_status": "verified|unverified|manual_review",
-    "confidence_score": 0.95,
-    "details": {
-      "account_holder_name": "string",
-      "issuer_name": "string",
-      "issuer_address": "string"
-    }
-  },
-  "transaction_compliance": {
-    "compliant": true,
-    "issues": ["missing_declaration", "incorrect_amount", "unverified_transaction"],
-    "metrics": {
-      "total_transactions": 100,
-      "non_compliant_transactions": 2
-    }
-  },
-  "metadata": {
-    "processing_time_seconds": 0,
-    "pipeline_version": "v1"
   }
 }
 
+## Request Carriers
+
+- `payload.request.outcome_code`
+- `payload.request.outcome_family`
+- `payload.request.client_reference`
+- `payload.request.request_timestamp`
+- `payload.request.consent_reference`
+
+## Document Carriers
+
+- `payload.document.document_id`
+- `payload.document.document_type`
+- `payload.document.file_format`
+- `payload.document.file_bytes_b64`
+- `payload.document.s3_uri`
+- `payload.document.document_country`
+- `payload.document.document_language`
+
+Allowed FICA OCR-first document types:
+- `identity_document`
+- `proof_of_address`
+- `business_registration`
+
+## Subject Carriers
+
+- `payload.subject.subject_type`
+- `payload.subject.first_name`
+- `payload.subject.last_name`
+- `payload.subject.full_name`
+- `payload.subject.id_number`
+- `payload.subject.date_of_birth`
+- `payload.subject.company_name`
+- `payload.subject.registration_number`
+
+## OCR Substrates
+
+- `payload.substrates.ocr.raw_text`
+- `payload.substrates.ocr.structured_fields.identity`
+- `payload.substrates.ocr.structured_fields.proof_of_address`
+- `payload.substrates.ocr.structured_fields.business_registration`
+- `payload.substrates.ocr.page_traces`
+- `payload.substrates.ocr.engine_metadata`
+
+## Analytics Substrates
+
+- `payload.substrates.analytics.identity_consistency`
+- `payload.substrates.analytics.proof_of_address_validity`
+- `payload.substrates.analytics.business_consistency`
+
+## Runtime Current Outcome
+
+- `payload.runtime.current_outcome.outcome_code`
+- `payload.runtime.current_outcome.outcome_family`
+- `payload.runtime.current_outcome.outcome_payload`
+- `payload.runtime.current_outcome.audit_trace`
+- `payload.runtime.current_outcome.section_confidence_trace`
+- `payload.runtime.current_outcome.provenance_trace`
+- `payload.runtime.current_outcome.consent_trace`
+- `payload.runtime.current_outcome.document_version_trace`
+- `payload.runtime.current_outcome.fail_closed_reasons`
+
+## Traceability Expectation
+
+Every outward FICA outcome must carry:
+- `audit_trace`
+- `section_confidence_trace`
+- `provenance_trace`
+- `consent_trace`
+- `document_version_trace`
+- `fail_closed_reasons`
+
+## Scope Constraint
+
+This payload contract is limited to OCR-first FICA document extraction and document-evidence-based analytical checks.
+No bureau, PEP, PIP, Home Affairs, or other external compliance-enrichment scope is included.
+
 ---
 
-## Notes
-
-- All stages must track status in `service_status`.
-- Decision engine reads `execution_state` to determine next steps.
-- OCR output is required; document-level validation may flag discrepancies.
-- Confidence levels guide automated approvals vs manual review.
-- Input and output schemas must be strictly followed by all services and Lambda functions.
-- Future capabilities can add optional fields but must maintain backward compatibility.
-
+## End of Document
