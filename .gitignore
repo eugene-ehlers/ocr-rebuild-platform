@@ -18,3 +18,11 @@ services/*/build_py311/
 runtime_data/*.db
 *.sh
 test_*.py
+
+# Repo hygiene additions
+runtime_data/*.json
+docs/working_notes/
+*.pre_*
+*.pre_restore_*
+*.pre_chat_*
+*.pre_semantic_fix_*
