@@ -26,3 +26,6 @@ docs/working_notes/
 *.pre_restore_*
 *.pre_chat_*
 *.pre_semantic_fix_*
+frontend/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
