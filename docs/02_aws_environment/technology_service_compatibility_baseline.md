@@ -286,3 +286,147 @@ This document is successful when:
 - future implementation uses approved combinations
 - dependency and provider drift are controlled
 - container/image/runtime issues are reduced by deciding stack compatibility up front
+
+
+---
+
+# === STACK STANDARD UPDATE (2026-03-27) ===
+
+## 1. Python Runtime Standard
+
+- Mandatory runtime: Python 3.11
+- Applies to:
+  - Lambda
+  - ECS
+  - All service containers
+
+### CloudShell Rule
+- CloudShell is NOT a runtime authority
+- Allowed for:
+  - CLI
+  - heredoc execution
+  - repo operations
+- NOT allowed for:
+  - dependency builds
+  - runtime validation
+
+---
+
+## 2. Approved Backend Libraries
+
+### AWS Integration
+- boto3
+  - MUST be version-locked (action required)
+
+---
+
+### Document & OCR Processing
+
+| Library | Version | Notes |
+|--------|--------|------|
+| Pillow | 12.1.1 | Image processing |
+| PyMuPDF | 1.23.26 | PDF rendering |
+| pytesseract | repo baseline | OCR wrapper |
+| tesseract-ocr | system | container-installed |
+| opencv-python-headless | conditional | only where needed |
+
+---
+
+### Explicit Exclusions (Runtime)
+- numpy
+- pandas
+- sklearn
+- matplotlib
+- seaborn
+
+Allowed only in:
+- offline analysis
+- model experimentation
+
+---
+
+## 3. OCR Architecture
+
+Primary:
+- Tesseract (containerised)
+
+Fallback:
+- AWS Textract (governed usage)
+
+Pipeline:
+- PDF → PyMuPDF
+- Image → Pillow/OpenCV
+- OCR → pytesseract → Tesseract
+
+---
+
+## 4. AWS Architecture Standard
+
+### API Layer
+- API Gateway
+
+### Auth
+- Cognito (User Pools)
+
+### Workflow Engine
+- Step Functions
+
+### Execution Layer
+- Lambda → lightweight
+- ECS → heavy workloads
+
+### Messaging
+- SQS (controlled, not default)
+
+### Storage
+- S3 (documents + artifacts)
+
+### Networking
+- VPC (selective only)
+
+---
+
+## 5. Frontend Constraints
+
+### Separation
+- No business logic in frontend
+- No OCR or processing logic
+
+### Styling
+- No inline styling
+- Centralised CSS/design system required
+
+### Communication
+- Frontend → API Gateway only
+
+### Hosting
+- S3 + CloudFront
+- Real URL required (no localhost dependency)
+
+---
+
+## 6. Domain Strategy
+
+- Domain: tsdg.co.za
+- Development access:
+  - direct URL only
+  - not linked publicly
+
+Recommended future:
+- pilot.tsdg.co.za
+- app.tsdg.co.za
+
+---
+
+## 7. Governance Actions Required
+
+1. Standardise boto3 version
+2. Enforce dependency version locking
+3. Prevent CloudShell-based builds
+4. Maintain frontend/backend separation
+5. Enforce API-only communication model
+
+---
+
+# === END STACK UPDATE ===
+
