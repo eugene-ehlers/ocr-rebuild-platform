@@ -177,3 +177,11 @@ Current Tesseract-backed OCR runtime remains:
 
 - analysis_type=detect_financial_risk -> FM-OTC-006
 
+## Frontend access
+
+Production site:
+- https://tsdg.co.za
+
+Pilot frontend (isolated environment):
+- https://pilot.tsdg.co.za
+
