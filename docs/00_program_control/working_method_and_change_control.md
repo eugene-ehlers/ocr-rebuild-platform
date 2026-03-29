@@ -248,3 +248,18 @@ All infrastructure work must use the admin-role session.
 
 Direct execution as the base IAM user is not permitted for project infrastructure changes.
 
+
+## CloudShell Workspace Policy (Mandatory Reference)
+
+All work must comply with:
+
+docs/00_program_control/cloudshell_workspace_and_resource_usage_policy.md
+
+This policy defines:
+- CloudShell usage constraints
+- backup requirements
+- deletion safety rules
+- working directory control
+- completion requirements
+
+No task may be marked complete without full compliance.

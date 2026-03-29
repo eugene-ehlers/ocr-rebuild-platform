@@ -394,3 +394,16 @@ Do not skip placeholders because a downstream capability is incomplete.
 Build exactly what is written.
 Raise a flag where a safe, documented implementation is not possible.
 
+
+## CloudShell Execution Governance
+
+All frontend work must comply with:
+
+docs/00_program_control/cloudshell_workspace_and_resource_usage_policy.md
+
+This ensures:
+- no CloudShell persistence of code
+- controlled execution via /tmp
+- mandatory backups before changes
+- no unsafe deletes
+- full cleanup after execution
