@@ -263,3 +263,11 @@ This policy defines:
 - completion requirements
 
 No task may be marked complete without full compliance.
+
+## Worker Chat Protocol (Mandatory Reference)
+
+All worker chats must comply with:
+
+docs/00_program_control/worker_chat_execution_and_evidence_protocol.md
+
+No worker package may be accepted without raw evidence and 100% completion under that protocol.

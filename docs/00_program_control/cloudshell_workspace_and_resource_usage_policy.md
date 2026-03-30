@@ -150,3 +150,17 @@ Any violation of this policy results in:
 ## Status
 
 ACTIVE — GOVERNED POLICY
+
+## Worker Evidence and Completion Protocol (Mandatory Reference)
+
+All worker-chat execution must comply with:
+
+docs/00_program_control/worker_chat_execution_and_evidence_protocol.md
+
+This protocol defines:
+- allowed worker communication
+- raw evidence requirements
+- completion gates
+- rejection recovery
+- backup, /tmp, and boundary rules
+- the standard governed evidence path
