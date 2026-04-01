@@ -1,0 +1,139 @@
+===== TIMESTAMP =====
+Wed Apr  1 10:06:38 AM UTC 2026
+===== PRE =====
+  1154	
+  1155	
+  1156	def _build_workflow_response(
+  1157	    finalization: Dict[str, Any],
+  1158	    orchestration_record: Dict[str, Any],
+  1159	) -> Dict[str, Any]:
+  1160	    return _build_workflow_response(finalization, orchestration_record)
+  1161	        return _base_response(
+  1162	            success=False,
+  1163	            status="blocked_by_enforcement",
+  1164	            message="Request blocked due to failed pre-execution checks.",
+  1165	            data=orchestration_record,
+  1166	        )
+  1167	
+  1168	    return _base_response(
+  1169	        success=True,
+  1170	        status="executed",
+  1171	        message="Request evaluated, executed, and persisted under hard enforcement.",
+  1172	        data=orchestration_record,
+  1173	    )
+  1174	
+  1175	
+  1176	def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
+  1177	    context = _build_context(payload)
+  1178	    execution_plan = _build_execution_plan(context, _execution_mode())
+  1179	
+  1180	    plan_execution = _run_workflow(execution_plan, context, payload)
+  1181	    execution_plan = plan_execution["plan"]
+  1182	    stage_results = plan_execution["stage_results"]
+  1183	    consent_check = plan_execution["consent_check"]
+  1184	    document_check = plan_execution["document_check"]
+  1185	    enforcement = plan_execution["enforcement"]
+  1186	    downstream_execution = plan_execution["downstream_execution"]
+  1187	    finalization = plan_execution["finalization"]
+  1188	
+  1189	    remediation_prompts = _build_remediation_prompts(enforcement)
+  1190	
+  1191	    orchestration_record = {
+  1192	        "request": asdict(context),
+  1193	        "execution_plan": execution_plan,
+  1194	        "stage_results": stage_results,
+  1195	        "consent_check": consent_check,
+  1196	        "consent_records": consent_check["consent_records"],
+  1197	        "document_check": document_check,
+  1198	        "enforcement": enforcement,
+  1199	        "finalization": finalization,
+  1200	        "remediation_prompts": remediation_prompts,
+  1201	        "routing": {
+  1202	    if finalization["request_status"] == "blocked":
+  1203	        return _base_response(
+  1204	            success=False,
+  1205	            status="blocked_by_enforcement",
+  1206	            message="Request blocked due to failed pre-execution checks.",
+  1207	            data=orchestration_record,
+  1208	        )
+  1209	
+  1210	    return _base_response(
+  1211	        success=True,
+  1212	        status="executed",
+  1213	        message="Request evaluated, executed, and persisted under hard enforcement.",
+  1214	        data=orchestration_record,
+  1215	    )
+  1216	
+  1217	
+  1218	def get_status(request_id: str) -> Dict[str, Any]:
+REPAIR_APPLIED=YES
+===== POST =====
+  1154	
+  1155	
+  1156	def _build_workflow_response(
+  1157	    finalization: Dict[str, Any],
+  1158	    orchestration_record: Dict[str, Any],
+  1159	) -> Dict[str, Any]:
+  1160	    if finalization["request_status"] == "blocked":
+  1161	        return _base_response(
+  1162	            success=False,
+  1163	            status="blocked_by_enforcement",
+  1164	            message="Request blocked due to failed pre-execution checks.",
+  1165	            data=orchestration_record,
+  1166	        )
+  1167	
+  1168	    return _base_response(
+  1169	        success=True,
+  1170	        status="executed",
+  1171	        message="Request evaluated, executed, and persisted under hard enforcement.",
+  1172	        data=orchestration_record,
+  1173	    )
+  1174	
+  1175	
+  1176	def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
+  1177	    context = _build_context(payload)
+  1178	    execution_plan = _build_execution_plan(context, _execution_mode())
+  1179	
+  1180	    plan_execution = _run_workflow(execution_plan, context, payload)
+  1181	    execution_plan = plan_execution["plan"]
+  1182	    stage_results = plan_execution["stage_results"]
+  1183	    consent_check = plan_execution["consent_check"]
+  1184	    document_check = plan_execution["document_check"]
+  1185	    enforcement = plan_execution["enforcement"]
+  1186	    downstream_execution = plan_execution["downstream_execution"]
+  1187	    finalization = plan_execution["finalization"]
+  1188	
+  1189	    remediation_prompts = _build_remediation_prompts(enforcement)
+  1190	
+  1191	    orchestration_record = {
+  1192	        "request": asdict(context),
+  1193	        "execution_plan": execution_plan,
+  1194	        "stage_results": stage_results,
+  1195	        "consent_check": consent_check,
+  1196	        "consent_records": consent_check["consent_records"],
+  1197	        "document_check": document_check,
+  1198	        "enforcement": enforcement,
+  1199	        "finalization": finalization,
+  1200	        "remediation_prompts": remediation_prompts,
+  1201	        "routing": {
+  1202	            "selected_service_family": context.service_family,
+  1203	            "selected_service_code": context.service_code,
+  1204	            "orchestration_layer": "services.decision_engine.frontend_request_orchestrator",
+  1205	        },
+  1206	        "request_status": finalization["request_status"],
+  1207	        "result_status": finalization["result_status"],
+  1208	        "finalization_reason": finalization["finalization_reason"],
+  1209	        "downstream_execution": downstream_execution,
+  1210	        "last_updated": _utc_now(),
+  1211	    }
+  1212	
+  1213	    _persist_workflow_record(orchestration_record)
+  1214	
+  1215	    return _build_workflow_response(finalization, orchestration_record)
+  1216	
+  1217	def get_status(request_id: str) -> Dict[str, Any]:
+  1218	    record = get_request(request_id)
+===== COMPILE CHECK =====
+PY_COMPILE=PASS
+===== OUTPUT FILE =====
+docs/00_program_control/evidence/WF_MODULARIZATION_HARDENING/20260401_100638_H7_step6_known_good_repair.txt

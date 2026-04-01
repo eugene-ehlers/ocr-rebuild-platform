@@ -1,0 +1,63 @@
+===== TIMESTAMP =====
+Wed Apr  1 10:01:40 AM UTC 2026
+===== PRE =====
+  1156	def _build_workflow_response(
+  1157	    finalization: Dict[str, Any],
+  1158	    orchestration_record: Dict[str, Any],
+  1159	) -> Dict[str, Any]:
+  1160	    return _build_workflow_response(finalization, orchestration_record)
+  1161	
+  1162	
+  1163	def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
+  1164	    context = _build_context(payload)
+  1165	    execution_plan = _build_execution_plan(context, _execution_mode())
+  1166	
+  1200	    _persist_workflow_record(orchestration_record)
+  1201	
+  1202	    if finalization["request_status"] == "blocked":
+  1203	        return _base_response(
+  1204	            success=False,
+  1205	            status="blocked_by_enforcement",
+  1206	            message="Request blocked due to failed pre-execution checks.",
+  1207	            data=orchestration_record,
+  1208	        )
+  1209	
+  1210	    return _base_response(
+  1211	        success=True,
+  1212	        status="executed",
+  1213	        message="Request evaluated, executed, and persisted under hard enforcement.",
+  1214	        data=orchestration_record,
+  1215	    )
+  1216	
+  1217	
+  1218	def get_status(request_id: str) -> Dict[str, Any]:
+PATCH_APPLIED=YES
+===== POST =====
+  1156	def _build_workflow_response(
+  1157	    finalization: Dict[str, Any],
+  1158	    orchestration_record: Dict[str, Any],
+  1159	) -> Dict[str, Any]:
+  1160	    if finalization["request_status"] == "blocked":
+  1161	        return _base_response(
+  1162	            success=False,
+  1163	            status="blocked_by_enforcement",
+  1164	            message="Request blocked due to failed pre-execution checks.",
+  1165	            data=orchestration_record,
+  1166	        )
+  1167	
+  1168	    return _base_response(
+  1169	        success=True,
+  1170	        status="executed",
+  1171	        message="Request evaluated, executed, and persisted under hard enforcement.",
+  1172	        data=orchestration_record,
+  1173	    )
+  1174	
+  1175	
+  1200	        "remediation_prompts": remediation_prompts,
+  1201	        "routing": {
+  1202	    return _build_workflow_response(finalization, orchestration_record)
+  1203	        return _base_response(
+  1204	            success=False,
+  1205	            status="blocked_by_enforcement",
+  1206	            message="Request blocked due to failed pre-execution checks.",
+===== COMPILE CHECK =====

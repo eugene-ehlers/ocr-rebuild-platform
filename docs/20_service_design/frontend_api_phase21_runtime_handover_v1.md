@@ -1,187 +1,89 @@
+# FRONTEND API RUNTIME — WHAT IS (AUTHORITATIVE)
 
-### Execution Plan Enforcement Scope (Current State)
+## 1. RUNTIME ARCHITECTURE
 
-Execution Plan v1 is currently enforced in:
+Single orchestrator with internal workflow control.
 
-- Frontend API orchestration layer
-- Frontend service-family workers:
-  - financial_management
-  - fica_compliance
-  - credit_decision
+Location:
+services/decision_engine/frontend_request_orchestrator.py
 
-These components:
-- build and persist execution plans
-- propagate execution plans downstream
-- enforce strict validation
-- reject invalid payloads safely
-- persist stage results and finalization outcomes
+---
 
-### Pipeline Enforcement Status
+## 2. ENTRYPOINT
 
-Execution Plan enforcement is NOT yet active in:
+create_request(payload)
 
-- preprocessing
-- OCR
-- aggregation
+---
 
-These services continue to operate using the prior payload model.
+## 3. EXECUTION MODEL
 
-Pipeline-wide enforcement remains a controlled future enhancement and must not be assumed as active runtime behaviour.
+create_request
+→ _run_workflow
+    → _run_gating_sequence
+    → _run_downstream_sequence
+    → _run_finalization_sequence
+→ _persist_workflow_record
+→ _build_workflow_response
 
-### Runtime Interpretation Control
+---
 
-Runtime interpretation must follow the governed source-of-truth hierarchy.
+## 4. WORKFLOW PHASES
 
-Authoritative interpretation must rely on:
-- approved governed documentation under `docs/`
-- live implementation source under:
-  - `services/`
-  - `api/`
-  - `infrastructure/`
+### GATING
+- context
+- execution plan
+- consent
+- document
+- enforcement
 
-The following are supporting artifacts only and must not be treated as design or runtime truth:
-- `build/`
-- `__pycache__/`
-- `*.pyc`
-- backup files
-- generated packaging artifacts
-- temporary or local output files
+### DOWNSTREAM
+- service execution
 
-If any conflict exists, governed documentation and live implementation source take precedence.
+### FINALIZATION
+- request_status
+- result_status
+- finalization_reason
 
-### Governed Document References
+---
 
-The current governed document stack for interpretation and change control is:
+## 5. ORCHESTRATION RECORD
 
-- Design Authority:
-  - `docs/00_program_control/document_intelligence_operating_baseline.md`
-  - `docs/00_program_control/known_gaps_and_improvement_register.md`
-- Decision Register:
-  - `docs/00_program_control/decision_register.md`
-- Runtime State:
-  - `docs/20_service_design/frontend_api_phase21_runtime_handover_v1.md`
-- Document stack map:
-  - `docs/00_program_control/governed_document_map.md`
+request
+execution_plan
+stage_results
+consent_check
+document_check
+enforcement
+downstream_execution
+finalization
+routing
+last_updated
 
+---
 
-### Financial Management Runtime Exposure Boundary (Current State)
+## 6. PERSISTENCE
 
-Financial Management currently exposes a controlled outward FM selector path under governed Option A.
+Full orchestration_record persisted without transformation.
 
-Current request-governed selector:
-- `analysis_type`
+---
 
-Current governed outward mapping:
-- `analysis_type=explain_document` -> FM-OTC-001
-- `analysis_type=cash_flow_multi_period` -> FM-OTC-002
-- `analysis_type=spend_analysis_multi_period` -> FM-OTC-003
-- `analysis_type=advanced_obligation_context` -> FM-OTC-004
+## 7. RESPONSE
 
-Current runtime constraints:
-- omitted `analysis_type` defaults to FM-OTC-001
-- runtime lock is mutually exclusive
-- exactly one outward governed Financial Management outcome is emitted
-- mixed outward FM outcomes are not permitted
+Derived from finalization.
 
-Current fail-closed boundary:
-- FM-OTC-002 requires sufficient multi-period basis
-- where sufficient prior-period basis is not available, FM-OTC-002 must fail closed
-- FM-OTC-003 requires sufficient comparative prior-period basis
-- where sufficient comparative basis is not available, FM-OTC-003 must fail closed
-- FM-OTC-004 requires sufficient governed obligation context substrate
-- where sufficient obligation context substrate is not available, FM-OTC-004 must fail closed
-- this must not be interpreted as permission to silently downgrade the selected request into a mixed or inferred FM outcome
+---
 
-Current scope boundary:
-- this is controlled request-governed exposure for FM-OTC-001 through FM-OTC-004
-- it does not constitute a generalized Financial Management selector redesign
-- broader multi-outcome routing remains future scope unless separately governed
+## 8. CHARACTERISTICS
 
-### Validated Runtime Baseline — Full OCR Pipeline Execution
+- single runtime authority
+- internal workflow structure
+- deterministic execution
+- contract-preserving
 
-A controlled live Step Functions execution has been validated for the current OCR pipeline baseline.
+---
 
-Validated execution:
-- state machine: `ocr-pipeline-sf-prod`
-- execution name: `test-1774044490`
-- manifest id: `manifest-5a87dc9c738a4317bb74429a834fe5ed`
-- source object: `s3://ocr-rebuild-original/test-docs/test.png`
-- validation timestamp: `2026-03-20T22:09:51Z`
+## 9. IMPORTANT
 
-Validated live stages completed in AWS:
-- manifest_generation
-- preprocessing
-- ocr
-- gate2_quality_evaluation
-- gate3_service_sufficiency
-- aggregation
-- gate4_final_validation
+This is CURRENT RUNTIME STATE.
 
-Validated live outcome:
-- Step Functions execution succeeded
-- `manifest_update.pipeline_status = completed`
-- `execution_plan.plan_status = completed`
-- `execution_plan.final_status = FINAL_ACCEPT`
-- `routing_decision.gate4_final_decision = FINAL_ACCEPT`
-- `routing_decision.delivery_ready = true`
-
-Validated boundary:
-- this confirms successful baseline pipeline execution for a controlled image input
-- this does NOT change the governed interpretation that preprocessing, OCR, and aggregation are still not execution-plan-enforced in the same strict way as the frontend/API orchestration path and governed service-family workers
-
-### OCR Runtime Control Boundary
-
-Current live OCR pipeline validation includes a Tesseract-backed OCR execution path.
-
-This must be interpreted as:
-- a controlled bootstrap provider
-- a runtime validation baseline
-- not the final architectural ownership model for OCR
-
-Current governed boundary:
-- OCR runtime is operational in AWS for the validated baseline pipeline
-- OCR provider abstraction is not yet fully implemented as design-governed runtime control
-- execution-plan-driven provider selection for OCR remains incomplete
-- current Tesseract-backed OCR must not be treated as permanent design truth
-
-### OCR Provider Interface Contract Boundary
-
-The governed OCR provider interface and execution-plan contract now exists in design authority.
-
-Current runtime interpretation remains strict:
-
-- OCR worker now enforces explicit TEXT_OCR instruction presence and required-field validation
-- manifest generation now emits a governed TEXT_OCR instruction block aligned to the provider-interface contract
-- OCR worker now rejects missing or unsupported OCR provider instructions safely
-- OCR worker now normalizes provider execution metadata into the governed OCR payload shape
-- OCR worker now records attempted provider-chain and fallback traceability in OCR payload structures
-- provider registry now includes a governed AWS Textract adapter baseline in addition to the Tesseract adapter
-- OCR fallback-chain iteration now continues safely across governed provider candidates when an earlier candidate is invalid, not runtime-enabled, or execution-fails
-- AWS Textract remains runtime-disabled unless explicitly enabled by environment control
-- governed executable multi-provider fallback-chain runtime proof is not yet governed runtime truth across the OCR stage
-
-Current Tesseract-backed OCR runtime remains:
-- operational as bootstrap runtime
-- valid behind the governed provider-interface boundary
-- still not sufficient to claim complete multi-provider contract enforcement
-
-
-### OCR Fallback Runtime Status
-- governed fallback execution proven in live AWS
-- primary failure → fallback → successful completion path validated
-- execution truth fields (fallback_used, fallback_provider, attempted_provider_chain) now preserved end to end
-- no contract redesign required; alignment to existing governed semantics
-
-- analysis_type=benchmark_reference_comparison -> FM-OTC-005
-
-
-- analysis_type=detect_financial_risk -> FM-OTC-006
-
-## Frontend access
-
-Production site:
-- https://tsdg.co.za
-
-Pilot frontend (isolated environment):
-- https://pilot.tsdg.co.za
-
+Not modular architecture.

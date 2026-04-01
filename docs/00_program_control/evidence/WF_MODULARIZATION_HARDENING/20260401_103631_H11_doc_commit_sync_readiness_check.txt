@@ -1,0 +1,617 @@
+===== TIMESTAMP =====
+Wed Apr  1 10:36:31 AM UTC 2026
+===== PWD =====
+/home/cloudshell-user/ocr-rebuild-platform
+===== GIT STATUS =====
+ M services/decision_engine/frontend_request_orchestrator.py
+?? docs/00_program_control/evidence/
+===== CURRENT BRANCH =====
+main
+===== REMOTES =====
+origin	git@github.com:eugene-ehlers/ocr-rebuild-platform.git (fetch)
+origin	git@github.com:eugene-ehlers/ocr-rebuild-platform.git (push)
+===== TARGET DOC FILES =====
+-rw-r--r--. 1 cloudshell-user cloudshell-user 7263 Mar 28 18:54 docs/20_service_design/frontend_api_phase21_runtime_handover_v1.md
+-rw-r--r--. 1 cloudshell-user cloudshell-user 1859 Mar 20 11:10 docs/20_service_design/front_end_api_surface_v1.md
+-rw-r--r--. 1 cloudshell-user cloudshell-user 2375 Mar 27 06:04 docs/20_service_design/frontend_fe6a_workflow_facade_architecture.md
+-rw-r--r--. 1 cloudshell-user cloudshell-user 1406 Mar 20 11:10 docs/20_service_design/front_end_module_architecture_v1.md
+===== DOC CONTENT EXCERPTS =====
+----- FILE: docs/20_service_design/frontend_api_phase21_runtime_handover_v1.md -----
+
+### Execution Plan Enforcement Scope (Current State)
+
+Execution Plan v1 is currently enforced in:
+
+- Frontend API orchestration layer
+- Frontend service-family workers:
+  - financial_management
+  - fica_compliance
+  - credit_decision
+
+These components:
+- build and persist execution plans
+- propagate execution plans downstream
+- enforce strict validation
+- reject invalid payloads safely
+- persist stage results and finalization outcomes
+
+### Pipeline Enforcement Status
+
+Execution Plan enforcement is NOT yet active in:
+
+- preprocessing
+- OCR
+- aggregation
+
+These services continue to operate using the prior payload model.
+
+Pipeline-wide enforcement remains a controlled future enhancement and must not be assumed as active runtime behaviour.
+
+### Runtime Interpretation Control
+
+Runtime interpretation must follow the governed source-of-truth hierarchy.
+
+Authoritative interpretation must rely on:
+- approved governed documentation under `docs/`
+- live implementation source under:
+  - `services/`
+  - `api/`
+  - `infrastructure/`
+
+The following are supporting artifacts only and must not be treated as design or runtime truth:
+- `build/`
+- `__pycache__/`
+- `*.pyc`
+- backup files
+- generated packaging artifacts
+- temporary or local output files
+
+If any conflict exists, governed documentation and live implementation source take precedence.
+
+### Governed Document References
+
+The current governed document stack for interpretation and change control is:
+
+- Design Authority:
+  - `docs/00_program_control/document_intelligence_operating_baseline.md`
+  - `docs/00_program_control/known_gaps_and_improvement_register.md`
+- Decision Register:
+  - `docs/00_program_control/decision_register.md`
+- Runtime State:
+  - `docs/20_service_design/frontend_api_phase21_runtime_handover_v1.md`
+- Document stack map:
+  - `docs/00_program_control/governed_document_map.md`
+
+
+### Financial Management Runtime Exposure Boundary (Current State)
+
+Financial Management currently exposes a controlled outward FM selector path under governed Option A.
+
+Current request-governed selector:
+- `analysis_type`
+
+Current governed outward mapping:
+- `analysis_type=explain_document` -> FM-OTC-001
+- `analysis_type=cash_flow_multi_period` -> FM-OTC-002
+- `analysis_type=spend_analysis_multi_period` -> FM-OTC-003
+- `analysis_type=advanced_obligation_context` -> FM-OTC-004
+
+Current runtime constraints:
+- omitted `analysis_type` defaults to FM-OTC-001
+- runtime lock is mutually exclusive
+- exactly one outward governed Financial Management outcome is emitted
+- mixed outward FM outcomes are not permitted
+
+Current fail-closed boundary:
+- FM-OTC-002 requires sufficient multi-period basis
+- where sufficient prior-period basis is not available, FM-OTC-002 must fail closed
+- FM-OTC-003 requires sufficient comparative prior-period basis
+- where sufficient comparative basis is not available, FM-OTC-003 must fail closed
+- FM-OTC-004 requires sufficient governed obligation context substrate
+- where sufficient obligation context substrate is not available, FM-OTC-004 must fail closed
+- this must not be interpreted as permission to silently downgrade the selected request into a mixed or inferred FM outcome
+
+Current scope boundary:
+- this is controlled request-governed exposure for FM-OTC-001 through FM-OTC-004
+- it does not constitute a generalized Financial Management selector redesign
+- broader multi-outcome routing remains future scope unless separately governed
+
+### Validated Runtime Baseline — Full OCR Pipeline Execution
+
+A controlled live Step Functions execution has been validated for the current OCR pipeline baseline.
+
+Validated execution:
+- state machine: `ocr-pipeline-sf-prod`
+- execution name: `test-1774044490`
+- manifest id: `manifest-5a87dc9c738a4317bb74429a834fe5ed`
+- source object: `s3://ocr-rebuild-original/test-docs/test.png`
+- validation timestamp: `2026-03-20T22:09:51Z`
+
+Validated live stages completed in AWS:
+- manifest_generation
+- preprocessing
+- ocr
+- gate2_quality_evaluation
+- gate3_service_sufficiency
+- aggregation
+- gate4_final_validation
+
+Validated live outcome:
+- Step Functions execution succeeded
+- `manifest_update.pipeline_status = completed`
+- `execution_plan.plan_status = completed`
+- `execution_plan.final_status = FINAL_ACCEPT`
+- `routing_decision.gate4_final_decision = FINAL_ACCEPT`
+- `routing_decision.delivery_ready = true`
+
+Validated boundary:
+- this confirms successful baseline pipeline execution for a controlled image input
+- this does NOT change the governed interpretation that preprocessing, OCR, and aggregation are still not execution-plan-enforced in the same strict way as the frontend/API orchestration path and governed service-family workers
+
+### OCR Runtime Control Boundary
+
+Current live OCR pipeline validation includes a Tesseract-backed OCR execution path.
+
+This must be interpreted as:
+- a controlled bootstrap provider
+- a runtime validation baseline
+- not the final architectural ownership model for OCR
+
+Current governed boundary:
+- OCR runtime is operational in AWS for the validated baseline pipeline
+- OCR provider abstraction is not yet fully implemented as design-governed runtime control
+- execution-plan-driven provider selection for OCR remains incomplete
+- current Tesseract-backed OCR must not be treated as permanent design truth
+
+### OCR Provider Interface Contract Boundary
+
+The governed OCR provider interface and execution-plan contract now exists in design authority.
+
+Current runtime interpretation remains strict:
+
+- OCR worker now enforces explicit TEXT_OCR instruction presence and required-field validation
+- manifest generation now emits a governed TEXT_OCR instruction block aligned to the provider-interface contract
+- OCR worker now rejects missing or unsupported OCR provider instructions safely
+- OCR worker now normalizes provider execution metadata into the governed OCR payload shape
+- OCR worker now records attempted provider-chain and fallback traceability in OCR payload structures
+- provider registry now includes a governed AWS Textract adapter baseline in addition to the Tesseract adapter
+- OCR fallback-chain iteration now continues safely across governed provider candidates when an earlier candidate is invalid, not runtime-enabled, or execution-fails
+- AWS Textract remains runtime-disabled unless explicitly enabled by environment control
+- governed executable multi-provider fallback-chain runtime proof is not yet governed runtime truth across the OCR stage
+
+Current Tesseract-backed OCR runtime remains:
+- operational as bootstrap runtime
+- valid behind the governed provider-interface boundary
+- still not sufficient to claim complete multi-provider contract enforcement
+
+
+### OCR Fallback Runtime Status
+- governed fallback execution proven in live AWS
+- primary failure → fallback → successful completion path validated
+- execution truth fields (fallback_used, fallback_provider, attempted_provider_chain) now preserved end to end
+- no contract redesign required; alignment to existing governed semantics
+
+- analysis_type=benchmark_reference_comparison -> FM-OTC-005
+
+
+- analysis_type=detect_financial_risk -> FM-OTC-006
+
+## Frontend access
+
+Production site:
+- https://tsdg.co.za
+
+Pilot frontend (isolated environment):
+- https://pilot.tsdg.co.za
+
+----- FILE: docs/20_service_design/front_end_module_architecture_v1.md -----
+# Front-End / Control Plane — Module Architecture v1
+
+## 1. Purpose
+
+Defines the modular structure of the front-end and API layer.
+
+---
+
+## 2. Core Modules
+
+### 2.1 Identity & Access Module
+Handles:
+- registration
+- login
+- authentication
+- role management
+
+---
+
+### 2.2 Client Operational Admin Module
+Handles:
+- balances
+- usage
+- activity logs
+- support queries
+
+---
+
+### 2.3 Consent Module
+Handles:
+- consent capture
+- consent validation
+- consent lifecycle
+
+---
+
+### 2.4 Document Workspace Module
+Handles:
+- document upload
+- document structuring
+- document validation
+- document lifecycle
+
+---
+
+### 2.5 Requests & Results Module
+Handles:
+- service requests
+- request tracking
+- result retrieval
+- reruns
+
+---
+
+### 2.6 Annotation & Correction Module
+Handles:
+- annotations
+- corrections
+- reprocessing triggers
+
+---
+
+### 2.7 Support & Interaction Module
+Handles:
+- guided workflows
+- user assistance
+- support threads (placeholder)
+
+---
+
+### 2.8 Design System Module
+Handles:
+- UI components
+- styling
+- layout
+
+---
+
+### 2.9 Telemetry Module
+Handles:
+- event capture
+- behavioral tracking
+- ML readiness
+
+---
+
+## 3. Interaction Model
+
+- front end calls internal APIs
+- APIs orchestrate modules
+- modules interact with downstream services
+- no business logic duplication in UI
+
+---
+
+## 4. Key Principles
+
+- modular separation
+- reusability
+- API-first design
+- no tight coupling
+- placeholder-ready
+
+----- FILE: docs/20_service_design/front_end_api_surface_v1.md -----
+# Front-End / Control Plane — API Surface v1
+
+## 1. Purpose
+
+Defines all API domains exposed by the Front-End / Control Plane.
+
+All APIs must be:
+- authenticated
+- authorized
+- auditable
+- versioned
+
+---
+
+## 2. API Domains
+
+---
+
+### 2.1 Identity & Admin APIs
+
+- POST /api/v1/auth/register/personal
+- POST /api/v1/auth/register/business
+- POST /api/v1/auth/login
+- POST /api/v1/auth/logout
+
+- GET /api/v1/admin/users
+- POST /api/v1/admin/users
+- PUT /api/v1/admin/users/{id}
+- DELETE /api/v1/admin/users/{id}
+
+---
+
+### 2.2 Consent APIs
+
+- POST /api/v1/consent/capture
+- GET /api/v1/consent/{id}
+- POST /api/v1/consent/revoke
+- GET /api/v1/consent/validate
+
+---
+
+### 2.3 Document APIs
+
+- POST /api/v1/documents/upload
+- GET /api/v1/documents/{id}
+- PUT /api/v1/documents/{id}/replace
+- POST /api/v1/documents/{id}/append
+- POST /api/v1/documents/{id}/reorder
+- GET /api/v1/documents/{id}/validate
+
+---
+
+### 2.4 Request & Results APIs
+
+- GET /api/v1/services
+- POST /api/v1/requests
+- GET /api/v1/requests/{id}
+- GET /api/v1/results/{id}
+- POST /api/v1/requests/{id}/rerun
+
+---
+
+### 2.5 Annotation APIs
+
+- POST /api/v1/annotations
+- GET /api/v1/annotations/{id}
+- PUT /api/v1/annotations/{id}
+- POST /api/v1/annotations/{id}/submit
+
+---
+
+### 2.6 Operational Admin APIs
+
+- GET /api/v1/admin/balance
+- POST /api/v1/admin/payment (simulated)
+- GET /api/v1/admin/usage
+- GET /api/v1/admin/activity
+
+---
+
+### 2.7 Support APIs
+
+- POST /api/v1/support/request
+- GET /api/v1/support/{id}
+- POST /api/v1/support/respond (placeholder)
+
+---
+
+### 2.8 Telemetry APIs
+
+- POST /api/v1/telemetry/event
+- POST /api/v1/telemetry/workflow
+- GET /api/v1/telemetry/export (internal)
+
+---
+
+## 3. Principles
+
+- APIs must not contain business logic of downstream services
+- APIs orchestrate and route
+- APIs must enforce consent before execution
+- APIs must log all critical actions
+
+----- FILE: docs/20_service_design/frontend_fe6a_workflow_facade_architecture.md -----
+# FE-6A — Workflow-Facade Architecture (Approved)
+
+## 1. Governing architecture
+
+Frontend → Workflow Facade → Application API Layer → Deterministic Decision Services + Capability Modules → Exception Intelligence Service
+
+Frontend interacts ONLY with workflow facade.
+
+---
+
+## 2. Layer definitions
+
+Workflow Facade:
+- owns journeys
+- stable frontend contract
+- hides internal complexity
+- supports stub/live modes
+
+API Layer:
+- routing
+- normalization
+- retries
+- logging
+- security hooks
+
+Decision Services:
+- consent
+- credits
+- fraud triggers
+- routing eligibility
+- entitlement
+
+Modules:
+- OCR
+- payments
+- consent service
+- reporting
+- support
+- evidence retrieval
+
+Exception Intelligence:
+- handles non-standard flows
+- chat, support, investigation
+- controlled agent usage
+
+---
+
+## 3. Activation model
+
+Modules can be:
+- LIVE
+- STUBBED
+- DISABLED
+- FORCED SCENARIO
+
+Frontend must not depend on activation state.
+
+---
+
+## 4. Scope model
+
+Executable now:
+- landing
+- registration/login
+- submission
+- consent
+- processing
+- result
+- blocked/remediation
+- status
+- retry
+- support
+
+Architecturally in-scope:
+- business users + mandates
+- credits/payments
+- document expansion
+- full consent framework
+- reporting
+- chat/evidence layer
+- fraud/security controls
+
+Out of scope:
+- bureau
+- PEP/PIP
+- Home Affairs
+
+---
+
+## 5. Actor model
+
+- Visitor
+- Individual
+- Business user
+- Subject customer
+- Support/reviewer
+
+---
+
+## 6. Journey gates
+
+1. identity
+2. mandate
+3. credits
+4. consent
+5. readiness
+6. submission
+7. processing
+8. result
+9. remediation
+10. support
+11. chat/evidence
+
+---
+
+## 7. Routes
+
+/  
+/register  
+/login  
+
+/submit  
+/processing/:request_id  
+/result/:request_id  
+/blocked/:request_id  
+/status/:request_id  
+
+/account  
+/billing  
+/support  
+/reports  
+
+---
+
+## 8. Identifier rule
+
+Frontend uses request_id only.
+
+---
+
+## 9. State model
+
+Backend:
+- blocked
+- completed
+- failed
+- result available
+
+UI:
+- loading
+- submitting
+- processing
+- refreshing
+- retrying
+
+---
+
+## 10. Security & fraud
+
+Handled in:
+- workflow facade
+- API layer
+- decision services
+
+Includes:
+- rate limiting
+- anomaly detection
+- entitlement checks
+
+---
+
+## 11. Result architecture
+
+Layered:
+- summary
+- evidence
+- entitlement
+- chat seam
+
+---
+
+## 12. Retry
+
+- refresh
+- resubmit
+- backend rerun only if supported
+
+---
+
+## Status
+
+APPROVED ARCHITECTURE (FE-6A FINAL)
+----- FILE: docs/20_service_design/decision_engine_contracts_v1.md -----
+===== TRACKED DIFF FOR TARGET DOCS =====
+===== LAST COMMIT TOUCHING TARGET DOCS =====
+commit 281a104ecb8c621180da5b48575ce1288e390251
+Author: Eugene Ehlers <eugeneehl@icloud.com>
+Date:   Sun Mar 29 07:52:14 2026 +0000
+
+    Add frontend access endpoint to API handover doc
+===== OUTPUT FILE =====
+docs/00_program_control/evidence/WF_MODULARIZATION_HARDENING/20260401_103631_H11_doc_commit_sync_readiness_check.txt

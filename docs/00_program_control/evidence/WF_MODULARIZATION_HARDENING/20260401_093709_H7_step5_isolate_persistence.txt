@@ -1,0 +1,16 @@
+===== TIMESTAMP =====
+Wed Apr  1 09:37:09 AM UTC 2026
+===== PYTHON (STACK) =====
+Python 3.9.25
+===== PRE PATCH ANCHORS =====
+1139:def _run_workflow(
+1152:def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
+1189:    save_request(orchestration_record)
+PATCH_APPLIED=YES
+===== POST PATCH ANCHORS =====
+1152:def _persist_workflow_record(orchestration_record: Dict[str, Any]) -> None:
+1153:    _persist_workflow_record(orchestration_record)
+===== COMPILE CHECK =====
+PY_COMPILE=PASS
+===== OUTPUT FILE =====
+docs/00_program_control/evidence/WF_MODULARIZATION_HARDENING/20260401_093709_H7_step5_isolate_persistence.txt

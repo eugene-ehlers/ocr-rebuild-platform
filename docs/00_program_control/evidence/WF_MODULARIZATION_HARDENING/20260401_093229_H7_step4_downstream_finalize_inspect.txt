@@ -1,0 +1,68 @@
+===== TIMESTAMP =====
+Wed Apr  1 09:32:29 AM UTC 2026
+===== PYTHON (STACK) =====
+Python 3.9.25
+===== ANCHORS =====
+1036:    _set_stage_status(plan, "downstream_execution", "running")
+1053:        _set_stage_status(plan, "downstream_execution", "completed")
+1055:        _set_stage_status(plan, "downstream_execution", "failed")
+1057:    _set_stage_status(plan, "result_finalize", "running")
+1060:    _set_stage_status(plan, "result_finalize", "completed")
+1058:    finalization = _finalize_result_record(plan, enforcement, downstream_execution)
+1038:    stage_results["downstream_execution"] = downstream_execution
+1022:        stage_results["result_finalize"] = finalization
+1059:    stage_results["result_finalize"] = finalization
+===== DOWNSTREAM / FINALIZATION BLOCK =====
+            "document_check": document_check,
+            "enforcement": enforcement,
+            "downstream_execution": None,
+            "finalization": finalization,
+        }
+
+    _set_stage_status(plan, "enforcement_decision", "passed")
+
+    _set_stage_status(plan, "downstream_execution", "running")
+    downstream_execution = _execute(context, plan, payload)
+    stage_results["downstream_execution"] = downstream_execution
+
+    execution = downstream_execution.get("execution", {}) or {}
+    invocation_result = execution.get("invocation", {}).get("result")
+
+    if not isinstance(invocation_result, dict):
+        invocation_result = (
+            execution.get("fallback", {})
+            .get("invocation", {})
+            .get("result")
+        )
+
+    worker_status = invocation_result.get("status") if isinstance(invocation_result, dict) else None
+
+    if worker_status == "executed":
+        _set_stage_status(plan, "downstream_execution", "completed")
+    else:
+        _set_stage_status(plan, "downstream_execution", "failed")
+
+    _set_stage_status(plan, "result_finalize", "running")
+    finalization = _finalize_result_record(plan, enforcement, downstream_execution)
+    stage_results["result_finalize"] = finalization
+    _set_stage_status(plan, "result_finalize", "completed")
+    plan["plan_status"] = finalization["plan_status"]
+
+    return {
+        "plan": plan,
+        "stage_results": stage_results,
+        "consent_check": consent_check,
+        "document_check": document_check,
+        "enforcement": enforcement,
+        "finalization": finalization,
+        "downstream_execution": downstream_execution,
+        "finalization": finalization,
+    }
+
+
+def get_catalog() -> Dict[str, Any]:
+    items = [
+        {"serviceCode": "financial_management", "serviceName": "Financial Management", "serviceFamily": "financial_management", "requiresProcessingConsent": True, "requiresDisclosureConsent": False},
+        {"serviceCode": "fica", "serviceName": "FICA Compliance", "serviceFamily": "fica", "requiresProcessingConsent": True, "requiresDisclosureConsent": False},
+===== OUTPUT FILE =====
+docs/00_program_control/evidence/WF_MODULARIZATION_HARDENING/20260401_093229_H7_step4_downstream_finalize_inspect.txt

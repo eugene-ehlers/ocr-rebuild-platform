@@ -1,0 +1,64 @@
+===== TIMESTAMP =====
+Wed Apr  1 07:06:03 AM UTC 2026
+===== ACTUAL ENTRYPOINT =====
+1093:def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
+===== ACTUAL MODULE IMPORTS =====
+9:from services.decision_engine.engine import execute_service_family
+10:from services.decision_engine.request_store import (
+1121:            "orchestration_layer": "services.decision_engine.frontend_request_orchestrator",
+===== DOC CLAIM — API SURFACE =====
+56:- POST /api/v1/requests
+57:- GET /api/v1/requests/{id}
+59:- POST /api/v1/requests/{id}/rerun
+===== DOC CLAIM — MODULE MODEL =====
+1:# Front-End / Control Plane — Module Architecture v1
+9:## 2. Core Modules
+11:### 2.1 Identity & Access Module
+20:### 2.2 Client Operational Admin Module
+29:### 2.3 Consent Module
+37:### 2.4 Document Workspace Module
+46:### 2.5 Requests & Results Module
+55:### 2.6 Annotation & Correction Module
+63:### 2.7 Support & Interaction Module
+71:### 2.8 Design System Module
+79:### 2.9 Telemetry Module
+===== DOC CLAIM — EXECUTION PLAN ENFORCEMENT =====
+21:Execution Plan enforcement is NOT yet active in:
+===== CHECK FOR LEGACY HELPERS IN DOCS =====
+docs/working_notes/credit_test_requirements_20260326.md:17:For `service_family == credit_decision`, `_build_context(...)` calls `_resolve_credit_runtime_lock(...)`.
+===== CHECK FOR CURRENT MODULES IN DOCS =====
+===== CONTRACT DOC VS CODE =====
+689:            "stage_type": "finalization",
+703:                "result_key": "finalization",
+782:        "finalization": {
+864:            "finalization_reason": "pre_execution_enforcement_failed",
+896:                    "finalization_reason": "runtime_lock_service_code_mismatch",
+904:                    "finalization_reason": "runtime_lock_service_family_mismatch",
+912:                    "finalization_reason": "runtime_lock_result_missing",
+929:                    "finalization_reason": "runtime_lock_service_family_unsupported",
+938:                    "finalization_reason": "runtime_lock_governed_outcome_mismatch",
+959:                    "finalization_reason": "runtime_lock_governed_outcome_code_invalid",
+967:                    "finalization_reason": "runtime_lock_outcome_block_missing",
+979:                    "finalization_reason": "runtime_lock_outcome_intent_mismatch",
+986:            "finalization_reason": "downstream_execution_succeeded",
+994:            "finalization_reason": "downstream_worker_rejected_payload",
+1001:        "finalization_reason": "downstream_execution_failed",
+1030:        finalization = _finalize_result_record(plan, enforcement, None)
+1031:        stage_results["result_finalize"] = finalization
+1032:        plan["plan_status"] = finalization["plan_status"]
+1040:            "finalization": finalization,
+1067:    finalization = _finalize_result_record(plan, enforcement, downstream_execution)
+1068:    stage_results["result_finalize"] = finalization
+1070:    plan["plan_status"] = finalization["plan_status"]
+1078:        "finalization": finalization,
+1080:        "finalization": finalization,
+1104:    finalization = plan_execution["finalization"]
+1116:        "finalization": finalization,
+1123:        "request_status": finalization["request_status"],
+1124:        "result_status": finalization["result_status"],
+1125:        "finalization_reason": finalization["finalization_reason"],
+1132:    if finalization["request_status"] == "blocked":
+1161:            "finalizationReason": record.get("finalization_reason"),
+1197:            "finalizationReason": record.get("finalization_reason"),
+===== OUTPUT FILE =====
+docs/00_program_control/evidence/WF_MODULARIZATION_HARDENING/20260401_070603_H4_doc_gap_extraction.txt

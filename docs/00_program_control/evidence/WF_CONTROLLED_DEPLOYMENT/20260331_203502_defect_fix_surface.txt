@@ -1,0 +1,46 @@
+===== TIMESTAMP =====
+Tue Mar 31 08:35:02 PM UTC 2026
+===== UPSTREAM SURFACE =====
+services/decision_engine/frontend_request_orchestrator.py:832:        "service_status": payload.get("service_status"),
+        "service_code": context.service_code,
+        "service_family": context.service_family,
+        "document_ids": context.document_ids,
+        "disclose_to_third_party": context.disclose_to_third_party,
+        "timestamp": _utc_now(),
+        "transactions": payload.get("transactions"),
+        "document_metadata": payload.get("document_metadata"),
+        "multi_period_requirement_signal": payload.get("multi_period_requirement_signal"),
+        "prior_statement_history": payload.get("prior_statement_history"),
+        "account_context": payload.get("account_context"),
+        "debt_positions": payload.get("debt_positions"),
+        "audience_mode": payload.get("audience_mode"),
+        "service_status": payload.get("service_status"),
+        "request": payload.get("request"),
+        "document": payload.get("document"),
+        "subject": payload.get("subject"),
+        "substrates": payload.get("substrates"),
+        "rules": payload.get("rules"),
+        "documents_submitted": payload.get("documents_submitted"),
+        "governed_runtime_lock": execution_plan.get("governed_runtime_lock"),
+        "execution_plan": execution_plan,
+        "orchestration_context": {
+            "plan_id": execution_plan.get("plan_id"),
+            "plan_version": execution_plan.get("plan_version"),
+            "current_stage": "downstream_execution",
+            "plan_status": execution_plan.get("plan_status"),
+===== DOWNSTREAM SURFACE =====
+1043:    service_status = dict(payload.get("service_status", {}))
+1336:        "service_status": dict(payload.get("service_status", {})),
+        "inflows": inflows,
+        "outflows": outflows,
+        "net_cash_flow": cash_flow_summary["net_cash_flow"],
+    }
+
+    service_status = dict(payload.get("service_status", {}))
+    service_status["financial_management"] = "completed"
+
+    return {
+        "outcome_family": "analytical",
+        "outcome_intent": "explain_document",
+===== OUTPUT FILE =====
+docs/00_program_control/evidence/WF_CONTROLLED_DEPLOYMENT/20260331_203502_defect_fix_surface.txt

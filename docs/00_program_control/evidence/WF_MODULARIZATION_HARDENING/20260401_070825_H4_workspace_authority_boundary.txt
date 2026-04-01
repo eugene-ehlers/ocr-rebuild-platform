@@ -1,0 +1,343 @@
+===== TIMESTAMP =====
+Wed Apr  1 07:08:25 AM UTC 2026
+===== PWD =====
+/home/cloudshell-user/ocr-rebuild-platform
+===== DECISION_ENGINE FILE INVENTORY =====
+services/decision_engine/engine.py
+services/decision_engine/frontend_request_orchestrator.py
+services/decision_engine/frontend_request_orchestrator.py.bak_credit_doc_expectation_fix
+services/decision_engine/frontend_request_orchestrator.py.bak_e2e_integration
+services/decision_engine/frontend_request_orchestrator.py.bak_fica_doc_expectation_fix
+services/decision_engine/frontend_request_orchestrator.py.bak_fica_otc_001
+services/decision_engine/frontend_request_orchestrator.py.bak_fm_otc_005
+services/decision_engine/frontend_request_orchestrator.py.bak_runtime_reconcile
+services/decision_engine/__init__.py
+services/decision_engine/__pycache__/consent_manager.cpython-39.pyc
+services/decision_engine/__pycache__/context_builder_manager.cpython-39.pyc
+services/decision_engine/__pycache__/document_manager.cpython-39.pyc
+services/decision_engine/__pycache__/downstream_execution_manager.cpython-39.pyc
+services/decision_engine/__pycache__/enforcement_manager.cpython-39.pyc
+services/decision_engine/__pycache__/engine.cpython-311.pyc
+services/decision_engine/__pycache__/engine.cpython-39.pyc
+services/decision_engine/__pycache__/execution_plan_manager.cpython-39.pyc
+services/decision_engine/__pycache__/finalization_manager.cpython-39.pyc
+services/decision_engine/__pycache__/frontend_request_orchestrator.cpython-311.pyc
+services/decision_engine/__pycache__/frontend_request_orchestrator.cpython-39.pyc
+services/decision_engine/__pycache__/__init__.cpython-311.pyc
+services/decision_engine/__pycache__/__init__.cpython-39.pyc
+services/decision_engine/__pycache__/request_persistence_manager.cpython-39.pyc
+services/decision_engine/__pycache__/request_store.cpython-311.pyc
+services/decision_engine/__pycache__/request_store.cpython-39.pyc
+services/decision_engine/__pycache__/stage_state_manager.cpython-39.pyc
+services/decision_engine/__pycache__/workflow_manager.cpython-39.pyc
+services/decision_engine/request_store.py
+===== REQUESTS API FILE INVENTORY =====
+api/requests_results/.gitkeep
+api/requests_results/handlers.py
+api/requests_results/__init__.py
+api/requests_results/__pycache__/.gitkeep
+api/requests_results/__pycache__/handlers.cpython-311.pyc
+api/requests_results/__pycache__/handlers.cpython-39.pyc
+api/requests_results/__pycache__/__init__.cpython-311.pyc
+api/requests_results/__pycache__/__init__.cpython-39.pyc
+api/requests_results/__pycache__/routes.cpython-311.pyc
+api/requests_results/__pycache__/routes.cpython-39.pyc
+api/requests_results/README.md
+api/requests_results/routes.py
+===== FUNCTION LOCATION MAP =====
+services/decision_engine/frontend_request_orchestrator.py.bak_fm_otc_005:930:def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py.bak_e2e_integration:1129:def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py:1093:def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py.bak_fica_otc_001:950:def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py.bak_fica_doc_expectation_fix:952:def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py.bak_credit_doc_expectation_fix:952:def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py.bak_runtime_reconcile:955:def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
+services/decision_engine/request_store.py:57:def save_request(record: Dict[str, Any]) -> None:
+===== LEGACY/INLINE FUNCTION LOCATION MAP =====
+services/decision_engine/frontend_request_orchestrator.py.bak_fm_otc_005:163:def _build_context(payload: Dict[str, Any]) -> OrchestrationContext:
+services/decision_engine/frontend_request_orchestrator.py.bak_e2e_integration:323:def _build_context(payload: Dict[str, Any]) -> OrchestrationContext:
+services/decision_engine/frontend_request_orchestrator.py:188:def _build_context(payload: Dict[str, Any]) -> OrchestrationContext:
+services/decision_engine/frontend_request_orchestrator.py.bak_fica_otc_001:179:def _build_context(payload: Dict[str, Any]) -> OrchestrationContext:
+services/decision_engine/frontend_request_orchestrator.py.bak_fica_doc_expectation_fix:179:def _build_context(payload: Dict[str, Any]) -> OrchestrationContext:
+services/decision_engine/frontend_request_orchestrator.py.bak_credit_doc_expectation_fix:179:def _build_context(payload: Dict[str, Any]) -> OrchestrationContext:
+services/decision_engine/frontend_request_orchestrator.py.bak_runtime_reconcile:179:def _build_context(payload: Dict[str, Any]) -> OrchestrationContext:
+services/decision_engine/frontend_request_orchestrator.py.bak_fm_otc_005:519:def _build_execution_plan(context: OrchestrationContext, execution_mode: str) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py.bak_e2e_integration:709:def _build_execution_plan(context: OrchestrationContext, execution_mode: str) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py:585:def _build_execution_plan(context: OrchestrationContext, execution_mode: str) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py.bak_fica_otc_001:535:def _build_execution_plan(context: OrchestrationContext, execution_mode: str) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py.bak_fica_doc_expectation_fix:535:def _build_execution_plan(context: OrchestrationContext, execution_mode: str) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py.bak_credit_doc_expectation_fix:535:def _build_execution_plan(context: OrchestrationContext, execution_mode: str) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py.bak_runtime_reconcile:535:def _build_execution_plan(context: OrchestrationContext, execution_mode: str) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py.bak_fm_otc_005:306:def _evaluate_consent(context: OrchestrationContext, payload: Dict[str, Any]) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py.bak_e2e_integration:496:def _evaluate_consent(context: OrchestrationContext, payload: Dict[str, Any]) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py:365:def _evaluate_consent(context: OrchestrationContext, payload: Dict[str, Any]) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py.bak_fica_otc_001:322:def _evaluate_consent(context: OrchestrationContext, payload: Dict[str, Any]) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py.bak_fica_doc_expectation_fix:322:def _evaluate_consent(context: OrchestrationContext, payload: Dict[str, Any]) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py.bak_credit_doc_expectation_fix:322:def _evaluate_consent(context: OrchestrationContext, payload: Dict[str, Any]) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py.bak_runtime_reconcile:322:def _evaluate_consent(context: OrchestrationContext, payload: Dict[str, Any]) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py.bak_fm_otc_005:393:def _evaluate_documents(context: OrchestrationContext) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py.bak_e2e_integration:583:def _evaluate_documents(context: OrchestrationContext) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py:452:def _evaluate_documents(context: OrchestrationContext) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py.bak_fica_otc_001:409:def _evaluate_documents(context: OrchestrationContext) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py.bak_fica_doc_expectation_fix:409:def _evaluate_documents(context: OrchestrationContext) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py.bak_credit_doc_expectation_fix:409:def _evaluate_documents(context: OrchestrationContext) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py.bak_runtime_reconcile:409:def _evaluate_documents(context: OrchestrationContext) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py.bak_fm_otc_005:423:def _build_enforcement(consent_check: Dict[str, Any], document_check: Dict[str, Any]) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py.bak_e2e_integration:613:def _build_enforcement(consent_check: Dict[str, Any], document_check: Dict[str, Any]) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py:489:def _build_enforcement(consent_check: Dict[str, Any], document_check: Dict[str, Any]) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py.bak_fica_otc_001:439:def _build_enforcement(consent_check: Dict[str, Any], document_check: Dict[str, Any]) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py.bak_fica_doc_expectation_fix:439:def _build_enforcement(consent_check: Dict[str, Any], document_check: Dict[str, Any]) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py.bak_credit_doc_expectation_fix:439:def _build_enforcement(consent_check: Dict[str, Any], document_check: Dict[str, Any]) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py.bak_runtime_reconcile:439:def _build_enforcement(consent_check: Dict[str, Any], document_check: Dict[str, Any]) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py.bak_fm_otc_005:694:def _execute(
+services/decision_engine/frontend_request_orchestrator.py.bak_fm_otc_005:843:def _execute_plan(
+services/decision_engine/frontend_request_orchestrator.py.bak_e2e_integration:884:def _execute(
+services/decision_engine/frontend_request_orchestrator.py.bak_e2e_integration:1042:def _execute_plan(
+services/decision_engine/frontend_request_orchestrator.py:812:def _execute(
+services/decision_engine/frontend_request_orchestrator.py:1005:def _execute_plan(
+services/decision_engine/frontend_request_orchestrator.py.bak_fica_otc_001:710:def _execute(
+services/decision_engine/frontend_request_orchestrator.py.bak_fica_otc_001:863:def _execute_plan(
+services/decision_engine/frontend_request_orchestrator.py.bak_fica_doc_expectation_fix:710:def _execute(
+services/decision_engine/frontend_request_orchestrator.py.bak_fica_doc_expectation_fix:865:def _execute_plan(
+services/decision_engine/frontend_request_orchestrator.py.bak_credit_doc_expectation_fix:710:def _execute(
+services/decision_engine/frontend_request_orchestrator.py.bak_credit_doc_expectation_fix:865:def _execute_plan(
+services/decision_engine/frontend_request_orchestrator.py.bak_runtime_reconcile:710:def _execute(
+services/decision_engine/frontend_request_orchestrator.py.bak_runtime_reconcile:868:def _execute_plan(
+services/decision_engine/frontend_request_orchestrator.py.bak_fm_otc_005:723:def _finalize_result_record(
+services/decision_engine/frontend_request_orchestrator.py.bak_e2e_integration:922:def _finalize_result_record(
+services/decision_engine/frontend_request_orchestrator.py:854:def _finalize_result_record(
+services/decision_engine/frontend_request_orchestrator.py.bak_fica_otc_001:743:def _finalize_result_record(
+services/decision_engine/frontend_request_orchestrator.py.bak_fica_doc_expectation_fix:745:def _finalize_result_record(
+services/decision_engine/frontend_request_orchestrator.py.bak_credit_doc_expectation_fix:745:def _finalize_result_record(
+services/decision_engine/frontend_request_orchestrator.py.bak_runtime_reconcile:748:def _finalize_result_record(
+===== ORCHESTRATOR EXCERPT =====
+from __future__ import annotations
+
+from dataclasses import dataclass, asdict
+from datetime import datetime, timezone, timedelta
+from typing import Any, Dict, List, Optional
+import os
+import uuid
+
+from services.decision_engine.engine import execute_service_family
+from services.decision_engine.request_store import (
+    get_customer_consent_records,
+    get_request,
+    revoke_customer_consent,
+    save_consent_record,
+    save_request,
+    update_request,
+)
+
+
+SUPPORTED_SERVICE_FAMILIES = {
+    "financial_management": {
+        "service_code_aliases": {
+            "financial_management",
+            "transaction_parsing",
+            "category_classification",
+            "cash_flow_classification",
+            "debt_detection",
+            "behavioural_analysis",
+            "benchmarking",
+            "reporting_explanation",
+            "translation",
+        }
+    },
+    "fica": {
+        "service_code_aliases": {
+            "fica",
+            "fica_compliance",
+            "transaction_compliance_classification",
+            "document_validation",
+            "identity_owner_verification",
+        }
+    },
+    "credit_decision": {
+        "service_code_aliases": {
+            "credit_decision",
+            "affordability",
+            "prevet",
+            "bureau_assessment",
+            "offer_generation",
+        }
+    },
+}
+
+
+EXPECTED_DOCUMENT_TYPES = {
+    "financial_management": {"bank_statement"},
+    "fica": {"identity_document", "proof_of_address"},
+    "credit_decision": {"bank_statement", "identity_document"},
+}
+
+CREDIT_ANALYSIS_TYPE_EXPECTED_DOCUMENT_TYPES = {
+    "bank_statement_ocr_extraction": {"bank_statement"},
+    "bank_statement_income_signal_assessment": {"bank_statement"},
+    "bank_statement_expense_signal_assessment": {"bank_statement"},
+    "ocr_based_affordability_snapshot": {"bank_statement"},
+    "credit_document_pack_completeness": {"bank_statement"},
+    "ocr_based_credit_recommendation": {"bank_statement"},
+}
+
+DEFAULT_VALIDITY_SECONDS = {
+    "processing": 60 * 60 * 24 * 30,
+    "disclosure": 60 * 60 * 24 * 7,
+}
+
+ENFORCEMENT_MODE = "hard"
+
+
+FM_GOVERNED_RUNTIME_LOCKS = {
+    "explain_document": {
+        "service_code": "financial_management",
+        "service_family": "financial_management",
+        "governed_outcome_code": "FM-OTC-001",
+        "outcome_result_key": "fm_otc_001",
+        "outcome_intent": "explain_document",
+        "analysis_type": "explain_document",
+    },
+    "cash_flow_multi_period": {
+        "service_code": "financial_management",
+        "service_family": "financial_management",
+        "governed_outcome_code": "FM-OTC-002",
+        "outcome_result_key": "fm_otc_002",
+        "outcome_intent": "analyse_cash_flow",
+        "analysis_type": "cash_flow_multi_period",
+    },
+    "spend_analysis_multi_period": {
+        "service_code": "financial_management",
+        "service_family": "financial_management",
+        "governed_outcome_code": "FM-OTC-003",
+        "outcome_result_key": "fm_otc_003",
+        "outcome_intent": "analyse_spending_patterns",
+        "analysis_type": "spend_analysis_multi_period",
+    },
+    "advanced_obligation_context": {
+        "service_code": "financial_management",
+        "service_family": "financial_management",
+        "governed_outcome_code": "FM-OTC-004",
+        "outcome_result_key": "fm_otc_004",
+        "outcome_intent": "assess_financial_obligation_pressure",
+        "analysis_type": "advanced_obligation_context",
+    },
+    "benchmark_reference_comparison": {
+        "service_code": "financial_management",
+        "service_family": "financial_management",
+        "governed_outcome_code": "FM-OTC-005",
+        "outcome_result_key": "fm_otc_005",
+        "outcome_intent": "compare_against_reference",
+        "analysis_type": "benchmark_reference_comparison",
+    },
+    "detect_financial_risk": {
+        "service_code": "financial_management",
+        "service_family": "financial_management",
+        "governed_outcome_code": "FM-OTC-006",
+        "outcome_result_key": "fm_otc_006",
+        "outcome_intent": "detect_financial_risk",
+        "analysis_type": "detect_financial_risk",
+    },
+}
+
+
+@dataclass
+class OrchestrationContext:
+    request_id: str
+    customer_id: str
+    service_code: str
+    service_family: str
+    document_ids: List[str]
+    disclose_to_third_party: bool
+    analysis_type: Optional[str]
+    governed_outcome_code: Optional[str]
+    governed_outcome_intent: Optional[str]
+    created_at: str
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _parse_iso(ts: Optional[str]) -> Optional[datetime]:
+    if not ts:
+        return None
+    return datetime.fromisoformat(ts)
+
+
+def _new_request_id() -> str:
+    return f"req_{uuid.uuid4().hex[:12]}"
+
+
+def _new_consent_id() -> str:
+    return f"consent_{uuid.uuid4().hex[:10]}"
+
+
+def _new_plan_id(request_id: str) -> str:
+    return f"plan_{request_id}"
+
+
+def _resolve_service_family(service_code: str) -> str:
+    normalized = (service_code or "").strip().lower()
+    for family, cfg in SUPPORTED_SERVICE_FAMILIES.items():
+        if normalized in cfg["service_code_aliases"]:
+            return family
+    raise ValueError(f"Unsupported service_code: {service_code}")
+
+
+def _normalize_analysis_type(raw_value: Any) -> str:
+    normalized = str(raw_value or "").strip().lower()
+    return normalized or "explain_document"
+
+
+def _resolve_financial_management_runtime_lock(analysis_type: str) -> Dict[str, Any]:
+    runtime_lock = FM_GOVERNED_RUNTIME_LOCKS.get(analysis_type)
+        {"serviceCode": "credit_decision", "serviceName": "Credit Decision", "serviceFamily": "credit_decision", "requiresProcessingConsent": True, "requiresDisclosureConsent": True},
+    ]
+    return _base_response(success=True, status="ready", message="Service catalog retrieved.", data={"items": items})
+
+
+def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
+    context = _build_context(payload)
+    execution_plan = _build_execution_plan(context, _execution_mode())
+
+    plan_execution = _execute_plan(execution_plan, context, payload)
+    execution_plan = plan_execution["plan"]
+    stage_results = plan_execution["stage_results"]
+    consent_check = plan_execution["consent_check"]
+    document_check = plan_execution["document_check"]
+    enforcement = plan_execution["enforcement"]
+    downstream_execution = plan_execution["downstream_execution"]
+    finalization = plan_execution["finalization"]
+
+    remediation_prompts = _build_remediation_prompts(enforcement)
+
+    orchestration_record = {
+        "request": asdict(context),
+        "execution_plan": execution_plan,
+        "stage_results": stage_results,
+        "consent_check": consent_check,
+        "consent_records": consent_check["consent_records"],
+        "document_check": document_check,
+        "enforcement": enforcement,
+        "finalization": finalization,
+        "remediation_prompts": remediation_prompts,
+        "routing": {
+            "selected_service_family": context.service_family,
+            "selected_service_code": context.service_code,
+            "orchestration_layer": "services.decision_engine.frontend_request_orchestrator",
+        },
+        "request_status": finalization["request_status"],
+        "result_status": finalization["result_status"],
+        "finalization_reason": finalization["finalization_reason"],
+        "downstream_execution": downstream_execution,
+        "last_updated": _utc_now(),
+    }
+
+    save_request(orchestration_record)
+
+    if finalization["request_status"] == "blocked":
+        return _base_response(
+            success=False,
+            status="blocked_by_enforcement",
+===== OUTPUT FILE =====
+docs/00_program_control/evidence/WF_MODULARIZATION_HARDENING/20260401_070825_H4_workspace_authority_boundary.txt

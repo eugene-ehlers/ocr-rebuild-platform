@@ -1,0 +1,40 @@
+===== TIMESTAMP =====
+Wed Apr  1 06:49:23 AM UTC 2026
+PATCH_APPLIED=YES
+===== VERIFY PATCH =====
+    finalization = plan_execution["finalization"]
+
+    remediation_prompts = _build_remediation_prompts(enforcement)
+
+    orchestration_record = {
+        "request": asdict(context),
+        "execution_plan": execution_plan,
+        "stage_results": stage_results,
+        "consent_check": consent_check,
+        "consent_records": consent_check["consent_records"],
+        "document_check": document_check,
+        "enforcement": enforcement,
+        "finalization": finalization,
+        "remediation_prompts": remediation_prompts,
+        "routing": {
+            "selected_service_family": context.service_family,
+            "selected_service_code": context.service_code,
+            "orchestration_layer": "services.decision_engine.frontend_request_orchestrator",
+        },
+        "request_status": finalization["request_status"],
+        "result_status": finalization["result_status"],
+        "finalization_reason": finalization["finalization_reason"],
+        "downstream_execution": downstream_execution,
+        "last_updated": _utc_now(),
+    }
+
+    save_request(orchestration_record)
+
+    if finalization["request_status"] == "blocked":
+        return _base_response(
+            success=False,
+            status="blocked_by_enforcement",
+===== PY311 COMPILE CHECK =====
+PY311_COMPILE=PASS
+===== OUTPUT FILE =====
+docs/00_program_control/evidence/WF_CONTROLLED_DEPLOYMENT/20260401_064923_finalization_precise_patch.txt

@@ -1,0 +1,14 @@
+===== TIMESTAMP =====
+Wed Apr  1 06:52:27 AM UTC 2026
+===== DEPLOY SOURCE =====
+/home/cloudshell-user/ocr-rebuild-platform-deploy
+===== COMMIT =====
+e484d2f367b795b005826cdc3fd264012477307a
+===== PYTHON =====
+Python 3.11.14
+===== DEPLOYMENT ACTION =====
+DEPLOYMENT_MODE=CONTROLLED_PROMOTION
+NO_CODE_CHANGE=CONFIRMED
+===== DEPLOYMENT COMPLETE =====
+===== OUTPUT FILE =====
+/home/cloudshell-user/ocr-rebuild-platform/docs/00_program_control/evidence/WF_CONTROLLED_DEPLOYMENT/20260401_065227_deployment_execution.txt

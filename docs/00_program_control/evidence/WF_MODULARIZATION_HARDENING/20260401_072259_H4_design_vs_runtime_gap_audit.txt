@@ -1,0 +1,787 @@
+===== TIMESTAMP =====
+Wed Apr  1 07:22:59 AM UTC 2026
+===== PWD =====
+/home/cloudshell-user/ocr-rebuild-platform
+===== GIT STATUS (SHORT) =====
+ M services/decision_engine/frontend_request_orchestrator.py
+?? docs/00_program_control/evidence/
+===== SECTION: WHAT MUST BE — DESIGN AUTHORITY DOCS =====
+----- FILE: docs/20_service_design/frontend_fe6a_workflow_facade_architecture.md -----
+-rw-r--r--. 1 cloudshell-user cloudshell-user 2375 Mar 27 06:04 docs/20_service_design/frontend_fe6a_workflow_facade_architecture.md
+# FE-6A — Workflow-Facade Architecture (Approved)
+
+## 1. Governing architecture
+
+Frontend → Workflow Facade → Application API Layer → Deterministic Decision Services + Capability Modules → Exception Intelligence Service
+
+Frontend interacts ONLY with workflow facade.
+
+---
+
+## 2. Layer definitions
+
+Workflow Facade:
+- owns journeys
+- stable frontend contract
+- hides internal complexity
+- supports stub/live modes
+
+API Layer:
+- routing
+- normalization
+- retries
+- logging
+- security hooks
+
+Decision Services:
+- consent
+- credits
+- fraud triggers
+- routing eligibility
+- entitlement
+
+Modules:
+- OCR
+- payments
+- consent service
+- reporting
+- support
+- evidence retrieval
+
+Exception Intelligence:
+- handles non-standard flows
+- chat, support, investigation
+- controlled agent usage
+
+---
+
+## 3. Activation model
+
+Modules can be:
+- LIVE
+- STUBBED
+- DISABLED
+- FORCED SCENARIO
+
+Frontend must not depend on activation state.
+
+---
+
+## 4. Scope model
+
+Executable now:
+- landing
+- registration/login
+- submission
+- consent
+- processing
+- result
+- blocked/remediation
+- status
+- retry
+- support
+
+Architecturally in-scope:
+- business users + mandates
+- credits/payments
+- document expansion
+- full consent framework
+- reporting
+- chat/evidence layer
+- fraud/security controls
+
+Out of scope:
+- bureau
+- PEP/PIP
+- Home Affairs
+
+---
+
+## 5. Actor model
+
+- Visitor
+- Individual
+- Business user
+- Subject customer
+- Support/reviewer
+
+---
+
+## 6. Journey gates
+
+1. identity
+2. mandate
+3. credits
+4. consent
+5. readiness
+6. submission
+7. processing
+8. result
+9. remediation
+10. support
+11. chat/evidence
+
+---
+
+## 7. Routes
+
+/  
+/register  
+/login  
+
+/submit  
+/processing/:request_id  
+/result/:request_id  
+/blocked/:request_id  
+/status/:request_id  
+
+/account  
+/billing  
+/support  
+/reports  
+
+---
+
+## 8. Identifier rule
+
+Frontend uses request_id only.
+
+---
+
+## 9. State model
+
+Backend:
+- blocked
+- completed
+- failed
+- result available
+
+UI:
+- loading
+- submitting
+- processing
+- refreshing
+- retrying
+
+---
+
+## 10. Security & fraud
+
+Handled in:
+- workflow facade
+- API layer
+- decision services
+
+Includes:
+- rate limiting
+- anomaly detection
+- entitlement checks
+
+---
+
+## 11. Result architecture
+
+Layered:
+- summary
+- evidence
+- entitlement
+- chat seam
+
+---
+
+## 12. Retry
+
+- refresh
+- resubmit
+- backend rerun only if supported
+
+---
+
+## Status
+
+APPROVED ARCHITECTURE (FE-6A FINAL)
+----- FILE: docs/20_service_design/front_end_api_surface_v1.md -----
+-rw-r--r--. 1 cloudshell-user cloudshell-user 1859 Mar 20 11:10 docs/20_service_design/front_end_api_surface_v1.md
+# Front-End / Control Plane — API Surface v1
+
+## 1. Purpose
+
+Defines all API domains exposed by the Front-End / Control Plane.
+
+All APIs must be:
+- authenticated
+- authorized
+- auditable
+- versioned
+
+---
+
+## 2. API Domains
+
+---
+
+### 2.1 Identity & Admin APIs
+
+- POST /api/v1/auth/register/personal
+- POST /api/v1/auth/register/business
+- POST /api/v1/auth/login
+- POST /api/v1/auth/logout
+
+- GET /api/v1/admin/users
+- POST /api/v1/admin/users
+- PUT /api/v1/admin/users/{id}
+- DELETE /api/v1/admin/users/{id}
+
+---
+
+### 2.2 Consent APIs
+
+- POST /api/v1/consent/capture
+- GET /api/v1/consent/{id}
+- POST /api/v1/consent/revoke
+- GET /api/v1/consent/validate
+
+---
+
+### 2.3 Document APIs
+
+- POST /api/v1/documents/upload
+- GET /api/v1/documents/{id}
+- PUT /api/v1/documents/{id}/replace
+- POST /api/v1/documents/{id}/append
+- POST /api/v1/documents/{id}/reorder
+- GET /api/v1/documents/{id}/validate
+
+---
+
+### 2.4 Request & Results APIs
+
+- GET /api/v1/services
+- POST /api/v1/requests
+- GET /api/v1/requests/{id}
+- GET /api/v1/results/{id}
+- POST /api/v1/requests/{id}/rerun
+
+---
+
+### 2.5 Annotation APIs
+
+- POST /api/v1/annotations
+- GET /api/v1/annotations/{id}
+- PUT /api/v1/annotations/{id}
+- POST /api/v1/annotations/{id}/submit
+
+---
+
+### 2.6 Operational Admin APIs
+
+- GET /api/v1/admin/balance
+- POST /api/v1/admin/payment (simulated)
+- GET /api/v1/admin/usage
+- GET /api/v1/admin/activity
+
+---
+
+### 2.7 Support APIs
+
+- POST /api/v1/support/request
+- GET /api/v1/support/{id}
+- POST /api/v1/support/respond (placeholder)
+
+---
+
+### 2.8 Telemetry APIs
+
+- POST /api/v1/telemetry/event
+- POST /api/v1/telemetry/workflow
+- GET /api/v1/telemetry/export (internal)
+
+---
+
+## 3. Principles
+
+- APIs must not contain business logic of downstream services
+- APIs orchestrate and route
+- APIs must enforce consent before execution
+- APIs must log all critical actions
+
+----- FILE: docs/20_service_design/front_end_module_architecture_v1.md -----
+-rw-r--r--. 1 cloudshell-user cloudshell-user 1406 Mar 20 11:10 docs/20_service_design/front_end_module_architecture_v1.md
+# Front-End / Control Plane — Module Architecture v1
+
+## 1. Purpose
+
+Defines the modular structure of the front-end and API layer.
+
+---
+
+## 2. Core Modules
+
+### 2.1 Identity & Access Module
+Handles:
+- registration
+- login
+- authentication
+- role management
+
+---
+
+### 2.2 Client Operational Admin Module
+Handles:
+- balances
+- usage
+- activity logs
+- support queries
+
+---
+
+### 2.3 Consent Module
+Handles:
+- consent capture
+- consent validation
+- consent lifecycle
+
+---
+
+### 2.4 Document Workspace Module
+Handles:
+- document upload
+- document structuring
+- document validation
+- document lifecycle
+
+---
+
+### 2.5 Requests & Results Module
+Handles:
+- service requests
+- request tracking
+- result retrieval
+- reruns
+
+---
+
+### 2.6 Annotation & Correction Module
+Handles:
+- annotations
+- corrections
+- reprocessing triggers
+
+---
+
+### 2.7 Support & Interaction Module
+Handles:
+- guided workflows
+- user assistance
+- support threads (placeholder)
+
+---
+
+### 2.8 Design System Module
+Handles:
+- UI components
+- styling
+- layout
+
+---
+
+### 2.9 Telemetry Module
+Handles:
+- event capture
+- behavioral tracking
+- ML readiness
+
+---
+
+## 3. Interaction Model
+
+- front end calls internal APIs
+- APIs orchestrate modules
+- modules interact with downstream services
+- no business logic duplication in UI
+
+---
+
+## 4. Key Principles
+
+- modular separation
+- reusability
+- API-first design
+- no tight coupling
+- placeholder-ready
+
+----- FILE: docs/20_service_design/decision_engine_contracts_v1.md -----
+===== SECTION: WHAT IS — CURRENT-STATE / RUNTIME DOCS =====
+----- FILE: docs/20_service_design/frontend_api_phase21_runtime_handover_v1.md -----
+-rw-r--r--. 1 cloudshell-user cloudshell-user 7263 Mar 28 18:54 docs/20_service_design/frontend_api_phase21_runtime_handover_v1.md
+
+### Execution Plan Enforcement Scope (Current State)
+
+Execution Plan v1 is currently enforced in:
+
+- Frontend API orchestration layer
+- Frontend service-family workers:
+  - financial_management
+  - fica_compliance
+  - credit_decision
+
+These components:
+- build and persist execution plans
+- propagate execution plans downstream
+- enforce strict validation
+- reject invalid payloads safely
+- persist stage results and finalization outcomes
+
+### Pipeline Enforcement Status
+
+Execution Plan enforcement is NOT yet active in:
+
+- preprocessing
+- OCR
+- aggregation
+
+These services continue to operate using the prior payload model.
+
+Pipeline-wide enforcement remains a controlled future enhancement and must not be assumed as active runtime behaviour.
+
+### Runtime Interpretation Control
+
+Runtime interpretation must follow the governed source-of-truth hierarchy.
+
+Authoritative interpretation must rely on:
+- approved governed documentation under `docs/`
+- live implementation source under:
+  - `services/`
+  - `api/`
+  - `infrastructure/`
+
+The following are supporting artifacts only and must not be treated as design or runtime truth:
+- `build/`
+- `__pycache__/`
+- `*.pyc`
+- backup files
+- generated packaging artifacts
+- temporary or local output files
+
+If any conflict exists, governed documentation and live implementation source take precedence.
+
+### Governed Document References
+
+The current governed document stack for interpretation and change control is:
+
+- Design Authority:
+  - `docs/00_program_control/document_intelligence_operating_baseline.md`
+  - `docs/00_program_control/known_gaps_and_improvement_register.md`
+- Decision Register:
+  - `docs/00_program_control/decision_register.md`
+- Runtime State:
+  - `docs/20_service_design/frontend_api_phase21_runtime_handover_v1.md`
+- Document stack map:
+  - `docs/00_program_control/governed_document_map.md`
+
+
+### Financial Management Runtime Exposure Boundary (Current State)
+
+Financial Management currently exposes a controlled outward FM selector path under governed Option A.
+
+Current request-governed selector:
+- `analysis_type`
+
+Current governed outward mapping:
+- `analysis_type=explain_document` -> FM-OTC-001
+- `analysis_type=cash_flow_multi_period` -> FM-OTC-002
+- `analysis_type=spend_analysis_multi_period` -> FM-OTC-003
+- `analysis_type=advanced_obligation_context` -> FM-OTC-004
+
+Current runtime constraints:
+- omitted `analysis_type` defaults to FM-OTC-001
+- runtime lock is mutually exclusive
+- exactly one outward governed Financial Management outcome is emitted
+- mixed outward FM outcomes are not permitted
+
+Current fail-closed boundary:
+- FM-OTC-002 requires sufficient multi-period basis
+- where sufficient prior-period basis is not available, FM-OTC-002 must fail closed
+- FM-OTC-003 requires sufficient comparative prior-period basis
+- where sufficient comparative basis is not available, FM-OTC-003 must fail closed
+- FM-OTC-004 requires sufficient governed obligation context substrate
+- where sufficient obligation context substrate is not available, FM-OTC-004 must fail closed
+- this must not be interpreted as permission to silently downgrade the selected request into a mixed or inferred FM outcome
+
+Current scope boundary:
+- this is controlled request-governed exposure for FM-OTC-001 through FM-OTC-004
+- it does not constitute a generalized Financial Management selector redesign
+- broader multi-outcome routing remains future scope unless separately governed
+
+### Validated Runtime Baseline — Full OCR Pipeline Execution
+
+A controlled live Step Functions execution has been validated for the current OCR pipeline baseline.
+
+Validated execution:
+- state machine: `ocr-pipeline-sf-prod`
+- execution name: `test-1774044490`
+- manifest id: `manifest-5a87dc9c738a4317bb74429a834fe5ed`
+- source object: `s3://ocr-rebuild-original/test-docs/test.png`
+- validation timestamp: `2026-03-20T22:09:51Z`
+
+Validated live stages completed in AWS:
+- manifest_generation
+- preprocessing
+- ocr
+- gate2_quality_evaluation
+- gate3_service_sufficiency
+- aggregation
+- gate4_final_validation
+
+Validated live outcome:
+- Step Functions execution succeeded
+- `manifest_update.pipeline_status = completed`
+- `execution_plan.plan_status = completed`
+- `execution_plan.final_status = FINAL_ACCEPT`
+- `routing_decision.gate4_final_decision = FINAL_ACCEPT`
+- `routing_decision.delivery_ready = true`
+
+Validated boundary:
+- this confirms successful baseline pipeline execution for a controlled image input
+- this does NOT change the governed interpretation that preprocessing, OCR, and aggregation are still not execution-plan-enforced in the same strict way as the frontend/API orchestration path and governed service-family workers
+
+### OCR Runtime Control Boundary
+
+Current live OCR pipeline validation includes a Tesseract-backed OCR execution path.
+
+This must be interpreted as:
+- a controlled bootstrap provider
+- a runtime validation baseline
+- not the final architectural ownership model for OCR
+
+Current governed boundary:
+- OCR runtime is operational in AWS for the validated baseline pipeline
+- OCR provider abstraction is not yet fully implemented as design-governed runtime control
+- execution-plan-driven provider selection for OCR remains incomplete
+- current Tesseract-backed OCR must not be treated as permanent design truth
+
+### OCR Provider Interface Contract Boundary
+
+The governed OCR provider interface and execution-plan contract now exists in design authority.
+
+Current runtime interpretation remains strict:
+
+- OCR worker now enforces explicit TEXT_OCR instruction presence and required-field validation
+- manifest generation now emits a governed TEXT_OCR instruction block aligned to the provider-interface contract
+- OCR worker now rejects missing or unsupported OCR provider instructions safely
+- OCR worker now normalizes provider execution metadata into the governed OCR payload shape
+- OCR worker now records attempted provider-chain and fallback traceability in OCR payload structures
+- provider registry now includes a governed AWS Textract adapter baseline in addition to the Tesseract adapter
+- OCR fallback-chain iteration now continues safely across governed provider candidates when an earlier candidate is invalid, not runtime-enabled, or execution-fails
+- AWS Textract remains runtime-disabled unless explicitly enabled by environment control
+- governed executable multi-provider fallback-chain runtime proof is not yet governed runtime truth across the OCR stage
+
+Current Tesseract-backed OCR runtime remains:
+- operational as bootstrap runtime
+- valid behind the governed provider-interface boundary
+- still not sufficient to claim complete multi-provider contract enforcement
+
+
+### OCR Fallback Runtime Status
+- governed fallback execution proven in live AWS
+- primary failure → fallback → successful completion path validated
+- execution truth fields (fallback_used, fallback_provider, attempted_provider_chain) now preserved end to end
+- no contract redesign required; alignment to existing governed semantics
+
+- analysis_type=benchmark_reference_comparison -> FM-OTC-005
+
+
+- analysis_type=detect_financial_risk -> FM-OTC-006
+
+## Frontend access
+
+Production site:
+- https://tsdg.co.za
+
+Pilot frontend (isolated environment):
+- https://pilot.tsdg.co.za
+
+----- FILE: docs/00_program_control/known_gaps_and_improvement_register.md -----
+-rw-r--r--. 1 cloudshell-user cloudshell-user 18517 Mar 24 18:01 docs/00_program_control/known_gaps_and_improvement_register.md
+# Known Gaps and Improvement Register
+
+## Purpose
+
+Maintain an explicit governed register of:
+- known gaps
+- limitations
+- deferred controls
+- improvement opportunities
+- interpretation risks
+
+This register exists to prevent:
+- silent assumptions
+- undocumented omissions
+- ambiguous handovers
+- incorrect future interpretation of missing behaviour
+
+---
+
+## Status Values
+
+- `OPEN` — known gap not yet addressed
+- `PARTIAL` — partially addressed but still incomplete
+- `CLOSED` — addressed and no longer a live gap
+- `SUPERSEDED` — replaced by a later design decision
+
+---
+
+## Register
+
+| Gap ID | Area | Description | Current State | Impact | Interpretation Risk | Current Workaround | Target / Next Step | Status |
+|---|---|---|---|---|---|---|---|---|
+| GAP-001 | Runtime validation | CloudShell local `python3` is 3.9, while governed runtime baseline is Python 3.11. | Python 3.11 container validation adopted and used to validate AWS-mode `create_request(...)` persistence successfully. | Local validation can still be misleading if run with system python. | High | Validate runtime-sensitive behaviour in Python 3.11 container. | Keep all runtime validation aligned to Python 3.11 or governed AWS runtime until host environment is upgraded. | PARTIAL |
+| GAP-002 | Telemetry module scaffold | Phase 1 originally omitted `components` and `pages` under telemetry module. | Fixed during Phase 10. | Replay from bad scaffold can fail. | Medium | Corrected scaffold script exists. | Ensure scaffold baseline script remains the source of truth. | CLOSED |
+| GAP-003 | Downstream execution | Real AWS ECS/Lambda invocation was previously unavailable and execution used only local service stubs. | Dual-mode execution active from Phase 20. Worker packaging/import issues are now resolved. ECR images exist, ECS task definitions are aligned, live Fargate execution is validated for financial management, fica compliance, and credit decision, decision-engine AWS routing plus SQLite persistence are validated under Python 3.11 runtime, and a full controlled OCR pipeline Step Functions execution has now succeeded in AWS for a governed image input through preprocessing, OCR, gate evaluation, aggregation, and final validation. | AWS ECS/Lambda execution path is operational for the currently wired service families and the current OCR pipeline baseline, though broader production hardening remains pending. | Low | Use Python 3.11 container or governed AWS runtime for validation. | Continue with next governed implementation phase; retain Python 3.11 validation discipline and expand governed runtime validation coverage carefully. | PARTIAL |
+| GAP-004 | Persistence | Request and consent persistence previously used local JSON-file storage and lacked structured persistence semantics. | SQLite persistence active from Phase 19. | Stronger structured persistence now exists, but still not a cloud-managed production datastore. | Low | Use SQLite as governed local persistence layer. | Replace with governed production datastore when AWS persistence phase begins. | PARTIAL |
+| GAP-005 | Consent enforcement mode | Consent checks previously allowed failed requests to proceed under soft enforcement. | Hard enforcement active from Phase 18. | Consent failures now block execution. | Low | Block and persist remediation state. | Monitor and refine enforcement edge cases. | CLOSED |
+| GAP-006 | Document enforcement mode | Document readiness checks previously allowed failed requests to proceed under soft enforcement. | Hard enforcement active from Phase 18. | Failed document readiness now blocks execution. | Low | Block and persist remediation state. | Monitor and refine readiness thresholds and edge cases. | CLOSED |
+| GAP-007 | Document classification | Document type inference is heuristic from document ID strings, not OCR/content-backed. | Heuristic inference active. | Misclassification possible. | High | Use naming convention heuristics and surface readiness failures. | OCR/content-backed classification phase. | OPEN |
+| GAP-008 | Document completeness | Completeness is not truly validated; currently inferred / assumed from simple rules. | Placeholder completeness. | Missing pages or incomplete documents may be undetected. | High | Use expected-type checks and remediation prompts. | Real completeness validation phase. | OPEN |
+| GAP-009 | Document freshness | Freshness is not truly validated; currently marked `unknown`. | No real freshness logic. | Expired/stale documents may not be detected. | High | Persist freshness as unknown. | Add real freshness rules and evidence-based validation. | OPEN |
+| GAP-010 | Document quality | Quality scoring is not OCR/image based; still placeholder-level. | No true quality scoring. | Poor quality inputs may pass into execution. | Medium | Surface only basic readiness outcomes. | Introduce real quality scoring / preprocessing checks. | OPEN |
+| GAP-011 | Consent evidence validation | Consent evidence is checked only for presence of evidence reference, not authenticity/signature/legal proof. | Evidence metadata persisted. | False positives for “valid” evidence possible. | High | Treat evidence reference as dev placeholder only. | Signed/legal evidence validation phase. | OPEN |
+| GAP-012 | Standing consent expiry testing | Lifecycle model supports expiry fields, but expiry has not been verified via time-shifted scenario tests. | Expiry fields implemented. | Expiry logic may be unproven in practice. | Medium | Persist expiry fields and evaluate current timestamps. | Add explicit expiry test scenarios. | OPEN |
+| GAP-013 | Revoked consent surfaced state | After revocation, later request correctly fails but newly evaluated consent may surface as unavailable/missing rather than explicitly revoked. | Operationally correct, semantically improvable. | Revocation semantics may be under-expressed. | Medium | Note behaviour in program-state docs. | Refine surfaced-state handling for revoked consent. | OPEN |
+| GAP-014 | Consent registry scope | Consent registry is local and request-store based, not cross-system or enterprise-governed. | Local JSON-based registry active. | Cannot support multi-channel or external system consent reuse. | High | Use local registry only for dev/testing. | Introduce centralised consent service / datastore. | OPEN |
+| GAP-015 | Orchestration persistence model | Request lifecycle persistence is not event-driven and lacks audit-grade immutability. | Mutable JSON store. | Loss of audit trail fidelity and replay capability. | High | Store latest state only. | Introduce append-only/event-sourced persistence. | OPEN |
+| GAP-016 | Idempotency | Request creation and execution are not idempotent; duplicate submissions may create duplicate executions. | No idempotency keys. | Duplicate processing and inconsistent state possible. | High | None. | Introduce idempotency keys and request deduplication. | OPEN |
+| GAP-017 | Error handling model | No structured error taxonomy or failure classification across orchestration and services. | Generic success/failure only. | Poor diagnosability and inconsistent handling. | Medium | Basic status fields. | Introduce error model (codes, categories, retry flags). | OPEN |
+| GAP-018 | Retry / resilience | No retry strategy, backoff, or failure recovery logic implemented. | Single-pass execution. | Transient failures will cause hard failures. | High | Manual rerun endpoint only. | Introduce controlled retry and resilience policies. | OPEN |
+| GAP-019 | Observability | No metrics, tracing, or structured logging aligned to runtime stages. | Basic print/log outputs. | Limited visibility into system behaviour. | High | Manual inspection. | Add CloudWatch metrics, structured logs, tracing. | OPEN |
+| GAP-020 | Security / access control | No authentication, authorization, or request-level security enforcement. | Open internal execution model. | Unauthorized access risk. | High | None (dev mode). | Introduce authN/authZ layer and request validation. | OPEN |
+| GAP-021 | Data validation | Input payload validation is minimal and not schema-enforced. | Basic field checks only. | Invalid payloads may propagate downstream. | Medium | Manual validation in code. | Introduce schema validation (e.g. JSON schema). | OPEN |
+| GAP-022 | API contract governance | API responses are not versioned or contract-governed. | Implicit contract via code. | Breaking changes risk for consumers. | Medium | None. | Introduce versioned API contract and schema governance. | OPEN |
+| GAP-023 | Service routing governance | Service routing is code-based and static, not externally governed/configurable. | Hardcoded mapping. | Reduced flexibility and control. | Medium | Code updates. | Externalise routing configuration. | OPEN |
+| GAP-024 | Execution plan integration | Execution plan is not yet fully enforced as authoritative runtime instruction object. | Execution Plan v1 is now enforced for the frontend/API orchestration path and the three frontend service-family workers. Frontend orchestration builds and persists the execution plan, propagates it downstream, workers acknowledge and validate it strictly, invalid payloads are rejected safely, and stage results plus finalization reasons are persisted. Broader pipeline-wide execution-plan enforcement remains incomplete. | Drift risk is materially reduced for the frontend/API orchestration path and its governed workers, but still exists outside that scope. | Medium | Use persisted execution plans, stage results, worker validation outputs, and finalization reasons as the runtime truth for frontend/API orchestration. | Extend governed execution-plan enforcement to the wider OCR pipeline and related runtime stages. | PARTIAL |
+| GAP-025 | Decision engine AWS response shape | AWS bridge responses originally included boto3-native `datetime` objects that were not JSON-safe for persistence. | JSON-safe normalization added in `services/decision_engine/engine.py`. | Persistence blocking defect resolved for current path, but future AWS response expansions must preserve JSON-safe serialization. | Medium | Normalize AWS response excerpts before persistence. | Maintain JSON-safe response discipline for all persisted orchestration payloads. | PARTIAL |
+| GAP-026 | Finalization outcome classification | Downstream worker rejection and fallback-success cases were previously not classified distinctly in finalization. | Frontend finalization now distinguishes blocked, available, rejected, and execution_failed outcomes, and persists/surfaces `finalization_reason`. | Frontend/API orchestration classification risk is materially reduced, but equivalent classification discipline is not yet enforced across the wider pipeline. | Medium | Use `finalization_reason` together with `result_status` as the governed interpretation of runtime outcome. | Extend equivalent outcome-classification governance to broader runtime flows where applicable. | PARTIAL |
+
+| GAP-027 | Source-of-truth governance | Generated artifacts, caches, backup files, and other non-governed outputs may be mistaken for live design or runtime truth. | System governance now defines strict source-of-truth separation and artifact control in the operating baseline, the decision register now records the governing rationale, the runtime handover now reinforces interpretation control, and the governed document map now defines the controlled document stack. Cleanup discipline is still to be operationalized. | Incorrect design interpretation, implementation drift, and wasted effort. | High | Prefer governed docs and live source manually; ignore generated artifacts during analysis. | Maintain explicit source-of-truth governance across the baseline, decision register, runtime handover, governed document map, and future cleanup rules. | PARTIAL |
+
+| GAP-028 | OCR provider control | Current OCR runtime uses an embedded Tesseract implementation as bootstrap execution, but governed provider abstraction and full execution-plan-driven provider control are not yet enforced. | Live OCR pipeline runtime is validated, but current OCR stage remains implementation-bound rather than fully provider-abstraction-controlled. | Architectural drift, provider lock-in, and hidden OCR routing behavior. | High | Treat current Tesseract runtime as bootstrap provider only and prohibit interpreting it as design truth. | Design and implement governed OCR provider abstraction, normalized provider interface, and execution-plan-driven provider selection/fallback control. | OPEN |
+| GAP-029 | OCR provider interface contract enforcement | OCR provider abstraction control is now documented, but explicit plan-carried OCR instruction validation, normalized provider adapter enforcement, and governed fallback-chain execution required end-to-end runtime proof. | OCR worker now enforces explicit TEXT_OCR instruction presence, validates required OCR instruction fields, rejects missing or unsupported provider instructions safely, normalizes provider output structure, records governed execution metadata, the manifest generator now emits a governed TEXT_OCR instruction block aligned to the provider-interface contract, OCR payloads now record attempted provider-chain and fallback traceability, a governed AWS Textract adapter baseline now exists behind the provider registry, fallback-chain iteration now safely continues to later governed providers when an earlier provider is invalid, not runtime-enabled, or execution-fails, Gate 2 truth propagation now preserves execution truth correctly, and live AWS governed fallback execution is proven end to end with controlled primary failure followed by successful Textract fallback. attempted_provider_chain, fallback_used, and fallback_provider are now correct through final payload completion for the baseline OCR governed fallback path. | Hidden provider defaults, unsupported-provider drift, and downstream continuation after failed OCR quality gate are materially reduced for the baseline OCR governed fallback path. Future providers still require independent proof. | Medium | Use governed TEXT_OCR instruction blocks emitted by manifest generation and treat current runtime support as Tesseract-primary with Textract adapter available when explicitly runtime-enabled under governed execution control. | Extend provider adapters under the normalized contract and require independent live proof for each future governed provider path. | CLOSED (baseline OCR governed fallback path proven) |
+---
+| GAP-030 | Service rule table governance | Service rule table completion introduced identifier collisions and misplaced end-of-document markers in capability-to-provider mappings during controlled table expansion. | Financial Management, FICA, and Credit service rule tables are now structurally completed for the current design scope; duplicate/incorrect capability-provider identifiers and misplaced end markers were corrected and sequential numbering was restored. Controlled vocabulary persistence outside these table artifacts remains incomplete. | Medium | Medium | Use the corrected governed markdown tables in docs/20_service_design as the only current design truth and validate identifiers before future table expansion. | Maintain identifier validation and controlled-vocabulary registry alignment during future table changes; add automated duplicate-ID and end-marker checks to governed document validation. | PARTIAL |
+
+| GAP-031 | Runtime-to-contract alignment | Governed affordability runtime executes successfully through execution, transformation, and validation, but the resulting transformed payload still does not satisfy authoritative CREDIT-OTC-002 contract requirements. Missing required outputs include affordability_status, manual_review, affordability_score, affordability_risk_flags, affordability_metrics, affordability_summary, next_step_guidance, and overall_confidence; missing required data dependencies include parsed_transactions, classified_transactions, cash_flow_summary, and debt_positions. | Transformation Layer v1 and Validation Runtime v1 now expose this mismatch explicitly and produce a governed fail correctly, without inference or fabricated values. Current investigation indicates this gap is not isolated and reflects broader shared dependency incompleteness in a reusable financial-analysis substrate affecting multiple service families. Candidate execution-plan work (v2) demonstrates structural substrate insertion direction only and does not yet constitute full semantic remediation. | Service outcome cannot yet pass governed validation even though runtime execution is functioning correctly. | High | Use the governed fail artifacts, transformation notes, validation runtime notes, system audit summary, and candidate execution-plan v2 review note as the authoritative interpretation of current behaviour. | Introduce a controlled remediation path: either extend governed execution outputs, add an approved governed decision component that produces the missing contract fields, formalize and integrate a shared execution-layer financial-analysis substrate, or formally revise the service contract if business requirements change. | OPEN |
+
+## Governance Rule
+
+This register is **mandatory maintenance**:
+
+- Every phase MUST:
+  - update existing gaps (status change if applicable)
+  - add newly discovered gaps
+- No gap may remain undocumented if identified
+- No feature may be treated as "complete" if related gaps remain OPEN without explicit acceptance
+
+---
+
+## Usage in Handover
+
+All future developer handovers MUST:
+- reference this register
+- not assume missing behaviour is intentional
+- treat OPEN gaps as **known incomplete system areas**
+
+---
+
+
+---
+
+## Phase Closure Alignment — Multi-Period Substrate
+
+- The multi-period financial-analysis substrate contract is now **defined and implemented as part of the governed baseline**.
+- Authoritative definition: `docs/20_service_design/financial_management_payloads_v1.md` (Section 9).
+
+Interpretation constraints:
+
+- No new gap is introduced for the multi-period substrate.
+- GAP-031 MUST be interpreted as:
+  - a **contract-to-capability alignment gap (CREDIT-OTC-002)**,
+  - NOT a missing substrate capability gap.
+- The following governed constructs are **present and baseline-complete** and must not be treated as missing:
+  - `prior_statement_history`
+  - `period_groupings`
+  - `trend_metrics`
+  - `missing_period_flags`
+  - `exclusion_flags`
+  - `multi_period_requirement_signal`
+
+----- FILE: docs/00_program_control/decision_register.md -----
+-rw-r--r--. 1 cloudshell-user cloudshell-user 1469 Mar 26 06:52 docs/00_program_control/decision_register.md
+# Decision Register
+
+## OCR-First Controlled Exposure Decisions
+
+### Decision: FICA OCR-First Controlled Exposure Authority
+- decision_id: DR-FICA-OCR-FIRST-001
+- status: approved
+- scope: fica
+- approved_scope_boundary: ocr_first_only
+- excluded_scope: bureau|pep|pip|home_affairs|external_compliance_enrichment
+- controlled_selector_expectation: selector_must_lock_exactly_one_governed_fica_outcome
+- outward_outcome_rule: exactly_one_fica_outcome_may_be_emitted
+- fail_closed_rule: insufficient_basis_for_selected_fica_outcome_must_fail_closed
+- approved_outcome_codes: FICA-OTC-001|FICA-OTC-002|FICA-OTC-003|FICA-OTC-004|FICA-OTC-005|FICA-OTC-006
+- notes: extraction_and_analytical_fica_otcs_must_remain_distinct
+
+### Decision: Credit OCR-First Controlled Exposure Authority
+- decision_id: DR-CREDIT-OCR-FIRST-001
+- status: approved
+- scope: credit_decision
+- approved_scope_boundary: ocr_first_only
+- excluded_scope: bureau|pep|pip|home_affairs|pricing|offer_generation
+- controlled_selector_expectation: selector_must_lock_exactly_one_governed_credit_outcome
+- outward_outcome_rule: exactly_one_credit_outcome_may_be_emitted
+- fail_closed_rule: insufficient_basis_for_selected_credit_outcome_must_fail_closed
+- approved_outcome_codes: Credit-OTC-001|Credit-OTC-002|Credit-OTC-003|Credit-OTC-004|Credit-OTC-005|Credit-OTC-006|Credit-OTC-007|Credit-OTC-008|Credit-OTC-009
+- notes: extraction_and_analytical_credit_otcs_must_remain_distinct
+
+---
+
+## End of Document
+===== SECTION: WHAT IS — CODE TRUTH =====
+-rw-r--r--. 1 cloudshell-user cloudshell-user 977 Mar 31 17:26 api/requests_results/routes.py
+-rw-r--r--. 1 cloudshell-user cloudshell-user 48552 Apr  1 06:49 services/decision_engine/frontend_request_orchestrator.py
+services/decision_engine/engine.py
+services/decision_engine/frontend_request_orchestrator.py
+services/decision_engine/frontend_request_orchestrator.py.bak_credit_doc_expectation_fix
+services/decision_engine/frontend_request_orchestrator.py.bak_e2e_integration
+services/decision_engine/frontend_request_orchestrator.py.bak_fica_doc_expectation_fix
+services/decision_engine/frontend_request_orchestrator.py.bak_fica_otc_001
+services/decision_engine/frontend_request_orchestrator.py.bak_fm_otc_005
+services/decision_engine/frontend_request_orchestrator.py.bak_runtime_reconcile
+services/decision_engine/__init__.py
+services/decision_engine/request_store.py
+===== SECTION: CODE ANCHORS — INLINE VS MODULAR =====
+188:def _build_context(payload: Dict[str, Any]) -> OrchestrationContext:
+585:def _build_execution_plan(context: OrchestrationContext, execution_mode: str) -> Dict[str, Any]:
+365:def _evaluate_consent(context: OrchestrationContext, payload: Dict[str, Any]) -> Dict[str, Any]:
+452:def _evaluate_documents(context: OrchestrationContext) -> Dict[str, Any]:
+489:def _build_enforcement(consent_check: Dict[str, Any], document_check: Dict[str, Any]) -> Dict[str, Any]:
+1005:def _execute_plan(
+854:def _finalize_result_record(
+===== SECTION: GAP EVIDENCE — DOC REFERENCES TO MODULAR VS INLINE =====
+docs/working_notes/credit_test_requirements_20260326.md:17:For `service_family == credit_decision`, `_build_context(...)` calls `_resolve_credit_runtime_lock(...)`.
+===== SECTION: API / ORCHESTRATION PATH =====
+api/requests_results/routes.py:5:    create_request,
+api/requests_results/routes.py:21:    return create_request(payload)
+services/decision_engine/request_store.py:57:def save_request(record: Dict[str, Any]) -> None:
+services/decision_engine/request_store.py:94:    save_request(existing)
+services/decision_engine/frontend_request_orchestrator.py:15:    save_request,
+services/decision_engine/frontend_request_orchestrator.py:1005:def _execute_plan(
+services/decision_engine/frontend_request_orchestrator.py:1093:def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
+services/decision_engine/frontend_request_orchestrator.py:1097:    plan_execution = _execute_plan(execution_plan, context, payload)
+services/decision_engine/frontend_request_orchestrator.py:1130:    save_request(orchestration_record)
+services/decision_engine/frontend_request_orchestrator.py:1222:    rerun_response = create_request(context_payload)
+===== COMPILE CHECK =====
+PY_COMPILE_CORE=PASS
+===== OUTPUT FILE =====
+docs/00_program_control/evidence/WF_MODULARIZATION_HARDENING/20260401_072259_H4_design_vs_runtime_gap_audit.txt

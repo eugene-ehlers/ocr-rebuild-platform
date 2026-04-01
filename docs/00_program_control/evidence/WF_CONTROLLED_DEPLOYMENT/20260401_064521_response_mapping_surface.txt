@@ -1,0 +1,225 @@
+===== TIMESTAMP =====
+Wed Apr  1 06:45:21 AM UTC 2026
+===== RESPONSE / RECORD ANCHORS =====
+269:def _base_response(
+611:                "result_status": "blocked",
+636:                "result_status": "blocked",
+661:                "result_status": "blocked",
+683:                "result_status": "execution_failed",
+689:            "stage_type": "finalization",
+703:                "result_key": "finalization",
+708:                "result_status": "execution_failed",
+782:        "finalization": {
+861:            "request_status": "blocked",
+862:            "result_status": "blocked",
+864:            "finalization_reason": "pre_execution_enforcement_failed",
+893:                    "request_status": "completed",
+894:                    "result_status": "execution_failed",
+896:                    "finalization_reason": "runtime_lock_service_code_mismatch",
+901:                    "request_status": "completed",
+902:                    "result_status": "execution_failed",
+904:                    "finalization_reason": "runtime_lock_service_family_mismatch",
+909:                    "request_status": "completed",
+910:                    "result_status": "execution_failed",
+912:                    "finalization_reason": "runtime_lock_result_missing",
+926:                    "request_status": "completed",
+927:                    "result_status": "execution_failed",
+929:                    "finalization_reason": "runtime_lock_service_family_unsupported",
+935:                    "request_status": "completed",
+936:                    "result_status": "execution_failed",
+938:                    "finalization_reason": "runtime_lock_governed_outcome_mismatch",
+956:                    "request_status": "completed",
+957:                    "result_status": "execution_failed",
+959:                    "finalization_reason": "runtime_lock_governed_outcome_code_invalid",
+964:                    "request_status": "completed",
+965:                    "result_status": "execution_failed",
+967:                    "finalization_reason": "runtime_lock_outcome_block_missing",
+976:                    "request_status": "completed",
+977:                    "result_status": "execution_failed",
+979:                    "finalization_reason": "runtime_lock_outcome_intent_mismatch",
+983:            "request_status": "completed",
+984:            "result_status": "available",
+986:            "finalization_reason": "downstream_execution_succeeded",
+991:            "request_status": "completed",
+992:            "result_status": "rejected",
+994:            "finalization_reason": "downstream_worker_rejected_payload",
+998:        "request_status": "completed",
+999:        "result_status": "execution_failed",
+1001:        "finalization_reason": "downstream_execution_failed",
+1030:        finalization = _finalize_result_record(plan, enforcement, None)
+1031:        stage_results["result_finalize"] = finalization
+1032:        plan["plan_status"] = finalization["plan_status"]
+1040:            "finalization": finalization,
+1067:    finalization = _finalize_result_record(plan, enforcement, downstream_execution)
+1068:    stage_results["result_finalize"] = finalization
+1070:    plan["plan_status"] = finalization["plan_status"]
+1078:        "finalization": finalization,
+1080:        "finalization": finalization,
+1090:    return _base_response(success=True, status="ready", message="Service catalog retrieved.", data={"items": items})
+1093:def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
+1104:    finalization = plan_execution["finalization"]
+1108:    orchestration_record = {
+1122:        "request_status": finalization["request_status"],
+1123:        "result_status": finalization["result_status"],
+1124:        "finalization_reason": finalization["finalization_reason"],
+1129:    save_request(orchestration_record)
+1131:    if finalization["request_status"] == "blocked":
+1132:        return _base_response(
+1139:    return _base_response(
+1150:        return _base_response(success=False, status="not_found", message="Request status not found.", data={"requestId": request_id})
+1152:    return _base_response(
+1158:            "requestStatus": record.get("request_status", "unknown"),
+1159:            "resultStatus": record.get("result_status", "unknown"),
+1160:            "finalizationReason": record.get("finalization_reason"),
+1173:        return _base_response(success=False, status="not_found", message="Remediation prompts not found.", data={"requestId": request_id})
+1175:    return _base_response(
+1186:        return _base_response(success=False, status="not_found", message="Result not found.", data={"requestId": request_id})
+1188:    return _base_response(
+1194:            "requestStatus": record.get("request_status", "unknown"),
+1195:            "resultStatus": record.get("result_status", "unknown"),
+1196:            "finalizationReason": record.get("finalization_reason"),
+1206:        return _base_response(success=False, status="not_found", message="Request not found for rerun.", data={"requestId": request_id})
+1221:    rerun_response = create_request(context_payload)
+1222:    return _base_response(
+===== CREATE_REQUEST BLOCK =====
+
+    plan_execution = _execute_plan(execution_plan, context, payload)
+    execution_plan = plan_execution["plan"]
+    stage_results = plan_execution["stage_results"]
+    consent_check = plan_execution["consent_check"]
+    document_check = plan_execution["document_check"]
+    enforcement = plan_execution["enforcement"]
+    downstream_execution = plan_execution["downstream_execution"]
+    finalization = plan_execution["finalization"]
+
+    remediation_prompts = _build_remediation_prompts(enforcement)
+
+    orchestration_record = {
+        "request": asdict(context),
+        "execution_plan": execution_plan,
+        "stage_results": stage_results,
+        "consent_check": consent_check,
+        "consent_records": consent_check["consent_records"],
+        "document_check": document_check,
+        "enforcement": enforcement,
+        "remediation_prompts": remediation_prompts,
+        "routing": {
+            "selected_service_family": context.service_family,
+            "selected_service_code": context.service_code,
+            "orchestration_layer": "services.decision_engine.frontend_request_orchestrator",
+        },
+        "request_status": finalization["request_status"],
+        "result_status": finalization["result_status"],
+        "finalization_reason": finalization["finalization_reason"],
+        "downstream_execution": downstream_execution,
+        "last_updated": _utc_now(),
+    }
+
+    save_request(orchestration_record)
+
+    if finalization["request_status"] == "blocked":
+        return _base_response(
+            success=False,
+            status="blocked_by_enforcement",
+            message="Request blocked due to failed pre-execution checks.",
+            data=orchestration_record,
+        )
+
+    return _base_response(
+        success=True,
+        status="executed",
+        message="Request evaluated, executed, and persisted under hard enforcement.",
+        data=orchestration_record,
+    )
+
+
+def get_status(request_id: str) -> Dict[str, Any]:
+    record = get_request(request_id)
+    if not record:
+        return _base_response(success=False, status="not_found", message="Request status not found.", data={"requestId": request_id})
+
+    return _base_response(
+        success=True,
+        status="ready",
+        message="Request status retrieved.",
+        data={
+            "requestId": request_id,
+            "requestStatus": record.get("request_status", "unknown"),
+            "resultStatus": record.get("result_status", "unknown"),
+            "finalizationReason": record.get("finalization_reason"),
+            "serviceFamily": record["request"]["service_family"],
+            "enforcementOverallStatus": record.get("enforcement", {}).get("overall_status"),
+            "documentReadinessScore": record.get("document_check", {}).get("average_readiness_score"),
+            "consentRecords": record.get("consent_records", []),
+            "lastUpdated": record.get("last_updated"),
+===== STATUS / RESULT HELPERS =====
+    record = get_request(request_id)
+    if not record:
+        return _base_response(success=False, status="not_found", message="Request status not found.", data={"requestId": request_id})
+
+    return _base_response(
+        success=True,
+        status="ready",
+        message="Request status retrieved.",
+        data={
+            "requestId": request_id,
+            "requestStatus": record.get("request_status", "unknown"),
+            "resultStatus": record.get("result_status", "unknown"),
+            "finalizationReason": record.get("finalization_reason"),
+            "serviceFamily": record["request"]["service_family"],
+            "enforcementOverallStatus": record.get("enforcement", {}).get("overall_status"),
+            "documentReadinessScore": record.get("document_check", {}).get("average_readiness_score"),
+            "consentRecords": record.get("consent_records", []),
+            "lastUpdated": record.get("last_updated"),
+        },
+    )
+
+
+def get_remediation(request_id: str) -> Dict[str, Any]:
+    record = get_request(request_id)
+    if not record:
+        return _base_response(success=False, status="not_found", message="Remediation prompts not found.", data={"requestId": request_id})
+
+    return _base_response(
+        success=True,
+        status="ready",
+        message="Remediation prompts retrieved.",
+        data={"requestId": request_id, "prompts": record.get("remediation_prompts", [])},
+    )
+
+
+def get_result(request_id: str) -> Dict[str, Any]:
+    record = get_request(request_id)
+    if not record:
+        return _base_response(success=False, status="not_found", message="Result not found.", data={"requestId": request_id})
+
+    return _base_response(
+        success=True,
+        status="ready",
+        message="Request result retrieved.",
+        data={
+            "requestId": request_id,
+            "requestStatus": record.get("request_status", "unknown"),
+            "resultStatus": record.get("result_status", "unknown"),
+            "finalizationReason": record.get("finalization_reason"),
+            "result": record.get("downstream_execution"),
+            "enforcement": record.get("enforcement"),
+        },
+    )
+
+
+def rerun_request(request_id: str) -> Dict[str, Any]:
+    record = get_request(request_id)
+    if not record:
+        return _base_response(success=False, status="not_found", message="Request not found for rerun.", data={"requestId": request_id})
+
+    context_payload = {
+        "customerId": record["request"]["customer_id"],
+        "serviceCode": record["request"]["service_code"],
+        "documentIds": record["request"]["document_ids"],
+        "discloseToThirdParty": record["request"]["disclose_to_third_party"],
+        "processingConsent": True,
+        "processingConsentSource": "rerun",
+        "processingConsentEvidenceRef": "rerun_processing_consent",
+===== OUTPUT FILE =====
+docs/00_program_control/evidence/WF_CONTROLLED_DEPLOYMENT/20260401_064521_response_mapping_surface.txt

@@ -1,0 +1,5 @@
+===== TIMESTAMP =====
+Wed Apr  1 08:58:44 AM UTC 2026
+===== PRE PATCH ANCHORS =====
+1093:def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
+1005:def _execute_plan(

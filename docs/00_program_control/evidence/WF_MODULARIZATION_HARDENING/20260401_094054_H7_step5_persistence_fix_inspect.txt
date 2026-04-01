@@ -1,0 +1,36 @@
+===== TIMESTAMP =====
+Wed Apr  1 09:40:54 AM UTC 2026
+===== PYTHON (STACK) =====
+Python 3.9.25
+===== HELPER / CALL ANCHORS =====
+1152:def _persist_workflow_record(orchestration_record: Dict[str, Any]) -> None:
+1153:    _persist_workflow_record(orchestration_record)
+1193:    save_request(orchestration_record)
+===== LIVE BLOCK =====
+
+    return workflow_result
+
+
+def _persist_workflow_record(orchestration_record: Dict[str, Any]) -> None:
+    _persist_workflow_record(orchestration_record)
+
+
+def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
+    context = _build_context(payload)
+    execution_plan = _build_execution_plan(context, _execution_mode())
+
+    plan_execution = _run_workflow(execution_plan, context, payload)
+===== CREATE_REQUEST PERSISTENCE AREA =====
+            "orchestration_layer": "services.decision_engine.frontend_request_orchestrator",
+        },
+        "request_status": finalization["request_status"],
+        "result_status": finalization["result_status"],
+        "finalization_reason": finalization["finalization_reason"],
+        "downstream_execution": downstream_execution,
+        "last_updated": _utc_now(),
+    }
+
+    save_request(orchestration_record)
+
+===== OUTPUT FILE =====
+docs/00_program_control/evidence/WF_MODULARIZATION_HARDENING/20260401_094054_H7_step5_persistence_fix_inspect.txt

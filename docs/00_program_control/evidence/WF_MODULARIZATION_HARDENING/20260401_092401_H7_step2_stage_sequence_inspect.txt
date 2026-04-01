@@ -1,0 +1,166 @@
+===== TIMESTAMP =====
+Wed Apr  1 09:24:01 AM UTC 2026
+===== PYTHON (STACK) =====
+Python 3.9.25
+===== WORKFLOW WRAPPER ANCHORS =====
+1093:def _run_workflow(
+1005:def _execute_plan(
+1101:def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
+===== _RUN_WORKFLOW BLOCK =====
+    return _base_response(success=True, status="ready", message="Service catalog retrieved.", data={"items": items})
+
+
+def _run_workflow(
+    execution_plan: Dict[str, Any],
+    context: OrchestrationContext,
+    payload: Dict[str, Any],
+) -> Dict[str, Any]:
+    return _execute_plan(execution_plan, context, payload)
+
+
+def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
+    context = _build_context(payload)
+    execution_plan = _build_execution_plan(context, _execution_mode())
+
+    plan_execution = _run_workflow(execution_plan, context, payload)
+    execution_plan = plan_execution["plan"]
+    stage_results = plan_execution["stage_results"]
+    consent_check = plan_execution["consent_check"]
+    document_check = plan_execution["document_check"]
+    enforcement = plan_execution["enforcement"]
+    downstream_execution = plan_execution["downstream_execution"]
+    finalization = plan_execution["finalization"]
+
+    remediation_prompts = _build_remediation_prompts(enforcement)
+
+===== _EXECUTE_PLAN BLOCK =====
+def _execute_plan(
+    plan: Dict[str, Any],
+    context: OrchestrationContext,
+    payload: Dict[str, Any],
+) -> Dict[str, Any]:
+    stage_results: Dict[str, Any] = {}
+    plan["plan_status"] = "running"
+
+    _set_stage_status(plan, "consent_check", "running")
+    consent_check = _evaluate_consent(context, payload)
+    stage_results["consent_check"] = consent_check
+    _set_stage_status(plan, "consent_check", "passed" if consent_check["status"] == "pass" else "failed")
+
+    _set_stage_status(plan, "document_check", "running")
+    document_check = _evaluate_documents(context)
+    stage_results["document_check"] = document_check
+    _set_stage_status(plan, "document_check", "passed" if document_check["status"] == "pass" else "failed")
+
+    _set_stage_status(plan, "enforcement_decision", "running")
+    enforcement = _build_enforcement(consent_check, document_check)
+    stage_results["enforcement_decision"] = enforcement
+
+    if enforcement["overall_status"] != "pass":
+        _set_stage_status(plan, "enforcement_decision", "failed")
+        _mark_remaining_stages(plan, "enforcement_decision", "blocked")
+        finalization = _finalize_result_record(plan, enforcement, None)
+        stage_results["result_finalize"] = finalization
+        plan["plan_status"] = finalization["plan_status"]
+        return {
+            "plan": plan,
+            "stage_results": stage_results,
+            "consent_check": consent_check,
+            "document_check": document_check,
+            "enforcement": enforcement,
+            "downstream_execution": None,
+            "finalization": finalization,
+        }
+
+    _set_stage_status(plan, "enforcement_decision", "passed")
+
+    _set_stage_status(plan, "downstream_execution", "running")
+    downstream_execution = _execute(context, plan, payload)
+    stage_results["downstream_execution"] = downstream_execution
+
+    execution = downstream_execution.get("execution", {}) or {}
+    invocation_result = execution.get("invocation", {}).get("result")
+
+    if not isinstance(invocation_result, dict):
+        invocation_result = (
+            execution.get("fallback", {})
+            .get("invocation", {})
+            .get("result")
+        )
+
+    worker_status = invocation_result.get("status") if isinstance(invocation_result, dict) else None
+
+    if worker_status == "executed":
+        _set_stage_status(plan, "downstream_execution", "completed")
+    else:
+        _set_stage_status(plan, "downstream_execution", "failed")
+
+    _set_stage_status(plan, "result_finalize", "running")
+    finalization = _finalize_result_record(plan, enforcement, downstream_execution)
+    stage_results["result_finalize"] = finalization
+    _set_stage_status(plan, "result_finalize", "completed")
+    plan["plan_status"] = finalization["plan_status"]
+
+    return {
+        "plan": plan,
+        "stage_results": stage_results,
+        "consent_check": consent_check,
+        "document_check": document_check,
+        "enforcement": enforcement,
+        "finalization": finalization,
+        "downstream_execution": downstream_execution,
+        "finalization": finalization,
+    }
+
+
+def get_catalog() -> Dict[str, Any]:
+    items = [
+===== CREATE_REQUEST BLOCK =====
+
+def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
+    context = _build_context(payload)
+    execution_plan = _build_execution_plan(context, _execution_mode())
+
+    plan_execution = _run_workflow(execution_plan, context, payload)
+    execution_plan = plan_execution["plan"]
+    stage_results = plan_execution["stage_results"]
+    consent_check = plan_execution["consent_check"]
+    document_check = plan_execution["document_check"]
+    enforcement = plan_execution["enforcement"]
+    downstream_execution = plan_execution["downstream_execution"]
+    finalization = plan_execution["finalization"]
+
+    remediation_prompts = _build_remediation_prompts(enforcement)
+
+    orchestration_record = {
+        "request": asdict(context),
+        "execution_plan": execution_plan,
+        "stage_results": stage_results,
+        "consent_check": consent_check,
+        "consent_records": consent_check["consent_records"],
+        "document_check": document_check,
+        "enforcement": enforcement,
+        "finalization": finalization,
+        "remediation_prompts": remediation_prompts,
+        "routing": {
+            "selected_service_family": context.service_family,
+            "selected_service_code": context.service_code,
+            "orchestration_layer": "services.decision_engine.frontend_request_orchestrator",
+        },
+        "request_status": finalization["request_status"],
+        "result_status": finalization["result_status"],
+        "finalization_reason": finalization["finalization_reason"],
+        "downstream_execution": downstream_execution,
+        "last_updated": _utc_now(),
+    }
+
+    save_request(orchestration_record)
+
+    if finalization["request_status"] == "blocked":
+        return _base_response(
+            success=False,
+            status="blocked_by_enforcement",
+            message="Request blocked due to failed pre-execution checks.",
+            data=orchestration_record,
+===== OUTPUT FILE =====
+docs/00_program_control/evidence/WF_MODULARIZATION_HARDENING/20260401_092401_H7_step2_stage_sequence_inspect.txt

@@ -1,0 +1,142 @@
+===== TIMESTAMP =====
+Tue Mar 31 08:38:42 PM UTC 2026
+===== FINALIZATION ANCHORS =====
+services/decision_engine/frontend_request_orchestrator.py:687:            "stage_id": "result_finalize",
+services/decision_engine/frontend_request_orchestrator.py:689:            "stage_type": "finalization",
+services/decision_engine/frontend_request_orchestrator.py:695:                "callable": "_finalize_result_record",
+services/decision_engine/frontend_request_orchestrator.py:703:                "result_key": "finalization",
+services/decision_engine/frontend_request_orchestrator.py:782:        "finalization": {
+services/decision_engine/frontend_request_orchestrator.py:854:def _finalize_result_record(
+services/decision_engine/frontend_request_orchestrator.py:864:            "finalization_reason": "pre_execution_enforcement_failed",
+services/decision_engine/frontend_request_orchestrator.py:896:                    "finalization_reason": "runtime_lock_service_code_mismatch",
+services/decision_engine/frontend_request_orchestrator.py:904:                    "finalization_reason": "runtime_lock_service_family_mismatch",
+services/decision_engine/frontend_request_orchestrator.py:912:                    "finalization_reason": "runtime_lock_result_missing",
+services/decision_engine/frontend_request_orchestrator.py:929:                    "finalization_reason": "runtime_lock_service_family_unsupported",
+services/decision_engine/frontend_request_orchestrator.py:938:                    "finalization_reason": "runtime_lock_governed_outcome_mismatch",
+services/decision_engine/frontend_request_orchestrator.py:959:                    "finalization_reason": "runtime_lock_governed_outcome_code_invalid",
+services/decision_engine/frontend_request_orchestrator.py:967:                    "finalization_reason": "runtime_lock_outcome_block_missing",
+services/decision_engine/frontend_request_orchestrator.py:979:                    "finalization_reason": "runtime_lock_outcome_intent_mismatch",
+services/decision_engine/frontend_request_orchestrator.py:986:            "finalization_reason": "downstream_execution_succeeded",
+services/decision_engine/frontend_request_orchestrator.py:994:            "finalization_reason": "downstream_worker_rejected_payload",
+services/decision_engine/frontend_request_orchestrator.py:1001:        "finalization_reason": "downstream_execution_failed",
+services/decision_engine/frontend_request_orchestrator.py:1030:        finalization = _finalize_result_record(plan, enforcement, None)
+services/decision_engine/frontend_request_orchestrator.py:1031:        stage_results["result_finalize"] = finalization
+services/decision_engine/frontend_request_orchestrator.py:1032:        plan["plan_status"] = finalization["plan_status"]
+services/decision_engine/frontend_request_orchestrator.py:1040:            "finalization": finalization,
+services/decision_engine/frontend_request_orchestrator.py:1066:    _set_stage_status(plan, "result_finalize", "running")
+services/decision_engine/frontend_request_orchestrator.py:1067:    finalization = _finalize_result_record(plan, enforcement, downstream_execution)
+services/decision_engine/frontend_request_orchestrator.py:1068:    stage_results["result_finalize"] = finalization
+services/decision_engine/frontend_request_orchestrator.py:1069:    _set_stage_status(plan, "result_finalize", "completed")
+services/decision_engine/frontend_request_orchestrator.py:1070:    plan["plan_status"] = finalization["plan_status"]
+services/decision_engine/frontend_request_orchestrator.py:1079:        "finalization": finalization,
+services/decision_engine/frontend_request_orchestrator.py:1103:    finalization = plan_execution["finalization"]
+services/decision_engine/frontend_request_orchestrator.py:1107:    orchestration_record = {
+services/decision_engine/frontend_request_orchestrator.py:1121:        "request_status": finalization["request_status"],
+services/decision_engine/frontend_request_orchestrator.py:1122:        "result_status": finalization["result_status"],
+services/decision_engine/frontend_request_orchestrator.py:1123:        "finalization_reason": finalization["finalization_reason"],
+services/decision_engine/frontend_request_orchestrator.py:1128:    save_request(orchestration_record)
+services/decision_engine/frontend_request_orchestrator.py:1130:    if finalization["request_status"] == "blocked":
+services/decision_engine/frontend_request_orchestrator.py:1159:            "finalizationReason": record.get("finalization_reason"),
+services/decision_engine/frontend_request_orchestrator.py:1195:            "finalizationReason": record.get("finalization_reason"),
+===== ORCHESTRATOR FINALIZATION SURFACE =====
+        "document_id": document_id,
+        "inferred_type": inferred_type,
+        "expected_for_service": inferred_type in expected_types,
+        "quality_status": quality_status,
+        "freshness_status": freshness_status,
+        "completeness_status": completeness_status,
+        "readiness_score": readiness_score,
+        "status": status,
+        "reasons": reasons,
+    }
+
+
+def _evaluate_documents(context: OrchestrationContext) -> Dict[str, Any]:
+    expected_types = EXPECTED_DOCUMENT_TYPES.get(context.service_family, set())
+
+    if context.service_family == "credit_decision" and context.analysis_type:
+        expected_types = CREDIT_ANALYSIS_TYPE_EXPECTED_DOCUMENT_TYPES.get(
+            context.analysis_type,
+            expected_types,
+        )
+
+    assessments = [_assess_document(doc_id, expected_types) for doc_id in context.document_ids]
+
+    reasons: List[str] = []
+    if not context.document_ids:
+        reasons.append("documents_missing")
+
+    supplied_types = {a["inferred_type"] for a in assessments if a["inferred_type"] != "unknown"}
+    missing_expected_types = sorted(list(expected_types - supplied_types))
+    if missing_expected_types:
+        reasons.append("required_document_types_missing")
+
+    failing_docs = [a for a in assessments if a["status"] == "fail"]
+    avg_score = int(sum(a["readiness_score"] for a in assessments) / len(assessments)) if assessments else 0
+    overall_status = "pass" if not reasons and not failing_docs and avg_score >= 70 else "fail"
+
+    return {
+        "document_ids_received": context.document_ids,
+        "document_count": len(context.document_ids),
+        "assessments": assessments,
+        "expected_document_types": sorted(list(expected_types)),
+        "missing_expected_document_types": missing_expected_types,
+        "average_readiness_score": avg_score,
+        "status": overall_status,
+        "reasons": reasons,
+        "mode": ENFORCEMENT_MODE,
+    }
+
+
+def _build_enforcement(consent_check: Dict[str, Any], document_check: Dict[str, Any]) -> Dict[str, Any]:
+    overall = "pass" if consent_check["status"] == "pass" and document_check["status"] == "pass" else "fail"
+    }
+
+
+def get_catalog() -> Dict[str, Any]:
+    items = [
+        {"serviceCode": "financial_management", "serviceName": "Financial Management", "serviceFamily": "financial_management", "requiresProcessingConsent": True, "requiresDisclosureConsent": False},
+        {"serviceCode": "fica", "serviceName": "FICA Compliance", "serviceFamily": "fica", "requiresProcessingConsent": True, "requiresDisclosureConsent": False},
+        {"serviceCode": "credit_decision", "serviceName": "Credit Decision", "serviceFamily": "credit_decision", "requiresProcessingConsent": True, "requiresDisclosureConsent": True},
+    ]
+    return _base_response(success=True, status="ready", message="Service catalog retrieved.", data={"items": items})
+
+
+def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
+    context = _build_context(payload)
+    execution_plan = _build_execution_plan(context, _execution_mode())
+
+    plan_execution = _execute_plan(execution_plan, context, payload)
+    execution_plan = plan_execution["plan"]
+    stage_results = plan_execution["stage_results"]
+    consent_check = plan_execution["consent_check"]
+    document_check = plan_execution["document_check"]
+    enforcement = plan_execution["enforcement"]
+    downstream_execution = plan_execution["downstream_execution"]
+    finalization = plan_execution["finalization"]
+
+    remediation_prompts = _build_remediation_prompts(enforcement)
+
+    orchestration_record = {
+        "request": asdict(context),
+        "execution_plan": execution_plan,
+        "stage_results": stage_results,
+        "consent_check": consent_check,
+        "consent_records": consent_check["consent_records"],
+        "document_check": document_check,
+        "enforcement": enforcement,
+        "remediation_prompts": remediation_prompts,
+        "routing": {
+            "selected_service_family": context.service_family,
+            "selected_service_code": context.service_code,
+            "orchestration_layer": "services.decision_engine.frontend_request_orchestrator",
+        },
+        "request_status": finalization["request_status"],
+        "result_status": finalization["result_status"],
+        "finalization_reason": finalization["finalization_reason"],
+        "downstream_execution": downstream_execution,
+        "last_updated": _utc_now(),
+===== WORKFLOW FINALIZATION SURFACE =====
+===== FINALIZATION MANAGER =====
+===== OUTPUT FILE =====
+docs/00_program_control/evidence/WF_CONTROLLED_DEPLOYMENT/20260331_203842_finalization_fix_surface.txt

@@ -1,0 +1,18 @@
+===== TIMESTAMP =====
+Wed Apr  1 07:07:14 AM UTC 2026
+===== REMEDIATION TARGETS =====
+1|docs/20_service_design/front_end_api_surface_v1.md|narrow or mark broader API surface as non-runtime / architectural only
+2|docs/20_service_design/front_end_module_architecture_v1.md|align module description to validated backend orchestration boundary
+3|docs/20_service_design/frontend_api_phase21_runtime_handover_v1.md|remove contradictory runtime claims and align to validated modular runtime path
+4|docs/working_notes/credit_test_requirements_20260326.md|remove stale legacy helper reference or mark historical
+5|docs/20_service_design/decision_engine_contracts_v1.md|restore or regenerate if missing, then align to current code
+===== CURRENT FILE PRESENCE =====
+-rw-r--r--. 1 cloudshell-user cloudshell-user 7263 Mar 28 18:54 docs/20_service_design/frontend_api_phase21_runtime_handover_v1.md
+-rw-r--r--. 1 cloudshell-user cloudshell-user 1859 Mar 20 11:10 docs/20_service_design/front_end_api_surface_v1.md
+-rw-r--r--. 1 cloudshell-user cloudshell-user 1406 Mar 20 11:10 docs/20_service_design/front_end_module_architecture_v1.md
+-rw-r--r--. 1 cloudshell-user cloudshell-user 2614 Mar 26 08:04 docs/working_notes/credit_test_requirements_20260326.md
+===== CODE ANCHORS FOR REMEDIATION =====
+1093:def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
+1108:    orchestration_record = {
+===== OUTPUT FILE =====
+docs/00_program_control/evidence/WF_MODULARIZATION_HARDENING/20260401_070714_H4_doc_remediation_plan.txt

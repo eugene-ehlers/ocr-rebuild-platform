@@ -1,0 +1,15 @@
+===== TIMESTAMP =====
+Wed Apr  1 09:19:51 AM UTC 2026
+===== PYTHON (STACK) =====
+Python 3.9.25
+===== PRE PATCH ANCHORS =====
+1093:def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
+1005:def _execute_plan(
+PATCH_APPLIED=YES
+===== POST PATCH ANCHORS =====
+1093:def _run_workflow(
+1105:    plan_execution = _run_workflow(execution_plan, context, payload)
+===== COMPILE CHECK =====
+PY_COMPILE=PASS
+===== OUTPUT FILE =====
+docs/00_program_control/evidence/WF_MODULARIZATION_HARDENING/20260401_091951_H7_step1_workflow_wrapper.txt

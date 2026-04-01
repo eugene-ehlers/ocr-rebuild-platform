@@ -1,0 +1,117 @@
+===== TIMESTAMP =====
+Wed Apr  1 10:09:53 AM UTC 2026
+===== PYTHON (STACK) =====
+Python 3.9.25
+===== GIT STATUS (SHORT) =====
+ M services/decision_engine/frontend_request_orchestrator.py
+?? docs/00_program_control/evidence/
+===== WORKFLOW BOUNDARY ANCHORS =====
+1139:def _run_workflow(
+1063:def _run_gating_sequence(
+1090:def _run_downstream_sequence(
+1122:def _run_finalization_sequence(
+1152:def _persist_workflow_record(orchestration_record: Dict[str, Any]) -> None:
+1156:def _build_workflow_response(
+===== CREATE_REQUEST BOUNDARY CALLS =====
+1180:    plan_execution = _run_workflow(execution_plan, context, payload)
+1213:    _persist_workflow_record(orchestration_record)
+1215:    return _build_workflow_response(finalization, orchestration_record)
+===== EXECUTE PLAN INTERNAL CALLS =====
+1013:    gating = _run_gating_sequence(plan, context, payload, stage_results)
+1036:    downstream = _run_downstream_sequence(plan, context, payload, stage_results)
+1039:    finalized = _run_finalization_sequence(plan, enforcement, downstream_execution, stage_results)
+===== ORCHESTRATION RECORD SHAPE ANCHORS =====
+1192:        "request": asdict(context),
+840:        "execution_plan": execution_plan,
+1193:        "execution_plan": execution_plan,
+1026:            "stage_results": stage_results,
+1044:        "stage_results": stage_results,
+1194:        "stage_results": stage_results,
+1027:            "consent_check": consent_check,
+1045:        "consent_check": consent_check,
+1084:        "consent_check": consent_check,
+1195:        "consent_check": consent_check,
+1028:            "document_check": document_check,
+1046:        "document_check": document_check,
+1085:        "document_check": document_check,
+1197:        "document_check": document_check,
+1029:            "enforcement": enforcement,
+1047:        "enforcement": enforcement,
+1086:        "enforcement": enforcement,
+1198:        "enforcement": enforcement,
+1031:            "finalization": finalization,
+1048:        "finalization": finalization,
+1050:        "finalization": finalization,
+1135:        "finalization": finalization,
+1199:        "finalization": finalization,
+1049:        "downstream_execution": downstream_execution,
+1118:        "downstream_execution": downstream_execution,
+1209:        "downstream_execution": downstream_execution,
+1201:        "routing": {
+1210:        "last_updated": _utc_now(),
+===== RESPONSE BLOCK EXCERPT =====
+def _build_workflow_response(
+    finalization: Dict[str, Any],
+    orchestration_record: Dict[str, Any],
+) -> Dict[str, Any]:
+    if finalization["request_status"] == "blocked":
+        return _base_response(
+            success=False,
+            status="blocked_by_enforcement",
+            message="Request blocked due to failed pre-execution checks.",
+            data=orchestration_record,
+        )
+
+    return _base_response(
+        success=True,
+        status="executed",
+        message="Request evaluated, executed, and persisted under hard enforcement.",
+        data=orchestration_record,
+    )
+
+
+def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
+    context = _build_context(payload)
+    execution_plan = _build_execution_plan(context, _execution_mode())
+
+    plan_execution = _run_workflow(execution_plan, context, payload)
+    execution_plan = plan_execution["plan"]
+    stage_results = plan_execution["stage_results"]
+    consent_check = plan_execution["consent_check"]
+    document_check = plan_execution["document_check"]
+    enforcement = plan_execution["enforcement"]
+    downstream_execution = plan_execution["downstream_execution"]
+    finalization = plan_execution["finalization"]
+
+    remediation_prompts = _build_remediation_prompts(enforcement)
+
+    orchestration_record = {
+        "request": asdict(context),
+        "execution_plan": execution_plan,
+        "stage_results": stage_results,
+        "consent_check": consent_check,
+        "consent_records": consent_check["consent_records"],
+        "document_check": document_check,
+        "enforcement": enforcement,
+        "finalization": finalization,
+        "remediation_prompts": remediation_prompts,
+        "routing": {
+            "selected_service_family": context.service_family,
+            "selected_service_code": context.service_code,
+            "orchestration_layer": "services.decision_engine.frontend_request_orchestrator",
+        },
+        "request_status": finalization["request_status"],
+        "result_status": finalization["result_status"],
+        "finalization_reason": finalization["finalization_reason"],
+        "downstream_execution": downstream_execution,
+        "last_updated": _utc_now(),
+    }
+
+    _persist_workflow_record(orchestration_record)
+
+    return _build_workflow_response(finalization, orchestration_record)
+
+===== COMPILE CHECK =====
+PY_COMPILE=PASS
+===== OUTPUT FILE =====
+docs/00_program_control/evidence/WF_MODULARIZATION_HARDENING/20260401_100953_H8_structural_validation_and_integrity_lock.txt

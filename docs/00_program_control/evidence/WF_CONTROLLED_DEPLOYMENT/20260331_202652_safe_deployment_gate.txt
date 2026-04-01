@@ -1,0 +1,18 @@
+===== TIMESTAMP =====
+Tue Mar 31 08:26:52 PM UTC 2026
+===== BRANCH / COMMIT =====
+main
+e484d2f367b795b005826cdc3fd264012477307a
+===== GIT STATUS (SHORT) =====
+?? docs/00_program_control/evidence/
+===== PYTHON 3.11 VERIFY =====
+Python 3.11.14
+/usr/bin/python3.11
+===== COMPILE UNDER PYTHON 3.11 =====
+PY311_COMPILE=PASS
+===== DEPLOYMENT GATE RESULT =====
+GATE_FAIL=WORKTREE_NOT_CLEAN
+GATE_PASS=PYTHON_3_11_ALIGNED
+GATE_PASS=PY311_COMPILE
+===== OUTPUT FILE =====
+docs/00_program_control/evidence/WF_CONTROLLED_DEPLOYMENT/20260331_202652_safe_deployment_gate.txt

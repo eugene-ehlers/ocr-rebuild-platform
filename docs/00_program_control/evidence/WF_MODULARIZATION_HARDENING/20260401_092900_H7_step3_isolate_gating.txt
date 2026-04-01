@@ -1,0 +1,16 @@
+===== TIMESTAMP =====
+Wed Apr  1 09:29:00 AM UTC 2026
+===== PYTHON (STACK) =====
+Python 3.9.25
+===== PRE PATCH ANCHORS =====
+1093:def _run_workflow(
+1005:def _execute_plan(
+1029:        _mark_remaining_stages(plan, "enforcement_decision", "blocked")
+PATCH_APPLIED=YES
+===== POST PATCH ANCHORS =====
+1084:def _run_gating_sequence(
+1013:    gating = _run_gating_sequence(plan, context, payload, stage_results)
+===== COMPILE CHECK =====
+PY_COMPILE=PASS
+===== OUTPUT FILE =====
+docs/00_program_control/evidence/WF_MODULARIZATION_HARDENING/20260401_092900_H7_step3_isolate_gating.txt
