@@ -1,0 +1,73 @@
+=== TIMESTAMP ===
+2026-04-01T17:29:01Z
+
+=== TARGET FILES ===
+-rw-r--r--. 1 cloudshell-user cloudshell-user  1469 Mar 26 06:52 docs/00_program_control/decision_register.md
+-rw-r--r--. 1 cloudshell-user cloudshell-user 18517 Mar 24 18:01 docs/00_program_control/known_gaps_and_improvement_register.md
+
+[OK] appended known gap entry
+[OK] appended decision entry
+
+=== TAIL: docs/00_program_control/known_gaps_and_improvement_register.md ===
+- No new gap is introduced for the multi-period substrate.
+- GAP-031 MUST be interpreted as:
+  - a **contract-to-capability alignment gap (CREDIT-OTC-002)**,
+  - NOT a missing substrate capability gap.
+- The following governed constructs are **present and baseline-complete** and must not be treated as missing:
+  - `prior_statement_history`
+  - `period_groupings`
+  - `trend_metrics`
+  - `missing_period_flags`
+  - `exclusion_flags`
+  - `multi_period_requirement_signal`
+
+
+### Frontend UX Misalignment (DOI)
+
+**Description**  
+The current frontend operates as a Developer / Operational Interface (DOI) and is not aligned with the approved frontend customer experience design baseline.
+
+**Impact**  
+High — leads to:
+- user confusion  
+- incorrect input handling  
+- inability to execute realistic user journeys  
+- inability to perform valid end-to-end testing  
+
+**Reference**  
+docs/00_program_control/evidence/FE_GAP_ANALYSIS_20260401_step02_dimension_evidence.txt
+
+**Priority**  
+Critical
+
+=== TAIL: docs/00_program_control/decision_register.md ===
+- notes: extraction_and_analytical_fica_otcs_must_remain_distinct
+
+### Decision: Credit OCR-First Controlled Exposure Authority
+- decision_id: DR-CREDIT-OCR-FIRST-001
+- status: approved
+- scope: credit_decision
+- approved_scope_boundary: ocr_first_only
+- excluded_scope: bureau|pep|pip|home_affairs|pricing|offer_generation
+- controlled_selector_expectation: selector_must_lock_exactly_one_governed_credit_outcome
+- outward_outcome_rule: exactly_one_credit_outcome_may_be_emitted
+- fail_closed_rule: insufficient_basis_for_selected_credit_outcome_must_fail_closed
+- approved_outcome_codes: Credit-OTC-001|Credit-OTC-002|Credit-OTC-003|Credit-OTC-004|Credit-OTC-005|Credit-OTC-006|Credit-OTC-007|Credit-OTC-008|Credit-OTC-009
+- notes: extraction_and_analytical_credit_otcs_must_remain_distinct
+
+---
+
+## End of Document
+
+### Frontend Redesign Alignment to Design Baseline
+
+**Decision**  
+The frontend will be incrementally redesigned to align with the approved frontend customer experience design baseline (Steps 1–7).
+
+**Rationale**  
+The current frontend is a Developer / Operational Interface (DOI) and not suitable for customer-facing usage.
+
+**Approach**  
+- Layered implementation  
+- Non-breaking transition  
+- Replace DOI behaviour with governed UX model

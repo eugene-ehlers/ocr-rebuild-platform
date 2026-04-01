@@ -109,3 +109,21 @@ Interpretation constraints:
   - `exclusion_flags`
   - `multi_period_requirement_signal`
 
+
+### Frontend UX Misalignment (DOI)
+
+**Description**  
+The current frontend operates as a Developer / Operational Interface (DOI) and is not aligned with the approved frontend customer experience design baseline.
+
+**Impact**  
+High — leads to:
+- user confusion  
+- incorrect input handling  
+- inability to execute realistic user journeys  
+- inability to perform valid end-to-end testing  
+
+**Reference**  
+docs/00_program_control/evidence/FE_GAP_ANALYSIS_20260401_step02_dimension_evidence.txt
+
+**Priority**  
+Critical

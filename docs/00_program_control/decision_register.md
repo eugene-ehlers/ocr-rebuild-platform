@@ -29,3 +29,16 @@
 ---
 
 ## End of Document
+
+### Frontend Redesign Alignment to Design Baseline
+
+**Decision**  
+The frontend will be incrementally redesigned to align with the approved frontend customer experience design baseline (Steps 1–7).
+
+**Rationale**  
+The current frontend is a Developer / Operational Interface (DOI) and not suitable for customer-facing usage.
+
+**Approach**  
+- Layered implementation  
+- Non-breaking transition  
+- Replace DOI behaviour with governed UX model
