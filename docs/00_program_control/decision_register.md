@@ -42,3 +42,22 @@ The current frontend is a Developer / Operational Interface (DOI) and not suitab
 - Layered implementation  
 - Non-breaking transition  
 - Replace DOI behaviour with governed UX model
+
+## DR-frontend-deployment-safety-immutable-releases
+
+### Decision
+Frontend deployments for S3 + CloudFront hosted sites must move from mutable live-root overwrite to an immutable release-folder model with controlled promotion.
+
+### Reason
+A destructive root deployment pattern caused a production incident affecting company and pilot sites. Root-level overwrite with destructive sync and no versioning or retained releases made rollback difficult and increased blast radius.
+
+### Rule
+- live root is logically read-only for deployment
+- deployment writes go only to `releases/<release-id>/`
+- promotion updates `current/`
+- promotion must not use `sync --delete`
+- runtime release metadata is required
+- CloudFront serving `current/` is the governed target state
+
+### Status
+Approved

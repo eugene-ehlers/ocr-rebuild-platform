@@ -127,3 +127,5 @@ docs/00_program_control/evidence/FE_GAP_ANALYSIS_20260401_step02_dimension_evide
 
 **Priority**  
 Critical
+
+| GAP-frontend-release-promotion-origin | Frontend release promotion origin alignment | Governed frontend safety model now requires immutable releases and `current/` promotion, but CloudFront still serves bucket root rather than `current/`. | Current live sites remain stable, S3 versioning is enabled, and governed docs now prohibit destructive live-root deployment. | Until origin/path is aligned to `current/`, the full immutable promotion model is documented but not yet active at runtime. | High | Partial | Implement controlled CloudFront origin/path alignment to `current/` without breaking restored live sites; add release metadata exposure and controlled promotion procedure. | OPEN |
