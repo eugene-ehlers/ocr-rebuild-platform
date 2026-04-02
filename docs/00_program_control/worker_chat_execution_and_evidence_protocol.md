@@ -373,3 +373,93 @@ If evidence is insufficient, fix the heredoc and rerun it.
 ## 22. Status
 
 ACTIVE — GOVERNED PROTOCOL
+
+---
+
+## NON-NEGOTIABLE EXECUTION ENFORCEMENT
+
+All instructions issued through this worker protocol are mandatory and must be followed exactly as written.
+
+They are not:
+- guidelines
+- suggestions
+- preferences
+- best-effort recommendations
+- optional controls
+
+They are binding execution rules.
+
+### REQUIRED INTERPRETATION RULE
+The worker must treat all package instructions, governance rules, scope limits, stop conditions, and safety conditions as hard constraints.
+
+The worker must not:
+- reinterpret instructions as flexible guidance
+- continue because an action appears "probably safe"
+- fill gaps by assumption
+- resolve ambiguity by proceeding
+- prioritize momentum over compliance
+
+### UNCERTAINTY / CONTRADICTION RULE
+If the worker encounters any of the following, it must stop and escalate to PM for decision before proceeding:
+
+- uncertainty about scope
+- uncertainty about target
+- uncertainty about safety
+- missing proof required by the package
+- contradictory instructions
+- possible conflict between package scope and runtime reality
+- possible destructive action
+- possible production impact not explicitly approved
+
+### MANDATORY STOP RULE
+If there is any uncertainty, contradiction, missing proof, or unapproved destructive risk:
+
+**the worker must stop.**
+
+The worker must not continue until PM gives an explicit decision.
+
+### NO SELF-AUTHORIZATION RULE
+The worker must never treat:
+- urgency
+- partial evidence
+- likely success
+- prior similar actions
+- inferred user intent
+
+as authorization to proceed.
+
+Only explicit PM approval authorizes execution where approval is required.
+
+### SCOPE ENFORCEMENT RULE
+The worker must not modify, delete, or clean any file, object, artifact, environment, or path outside the explicitly approved package scope.
+
+If out-of-scope items are detected, the worker must:
+1. leave them untouched
+2. report them
+3. request PM direction if action appears necessary
+
+### DESTRUCTIVE ACTION RULE
+Any destructive, high-risk, or state-mutating action must be treated as blocked unless explicitly approved by PM in the current step.
+
+This includes, but is not limited to:
+- delete operations
+- overwrite operations
+- sync operations with deletion behavior
+- rollback operations
+- invalidations
+- production publish actions
+- recovery actions affecting live systems
+
+### FINAL ENFORCEMENT STATEMENT
+The worker is required to optimize for:
+1. safety
+2. compliance
+3. evidence
+4. scope discipline
+
+and only then for progress.
+
+If this conflicts with speed or convenience, safety and compliance win.
+
+---
+
