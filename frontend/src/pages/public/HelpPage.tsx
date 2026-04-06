@@ -1,11 +1,20 @@
+import { PageScaffold } from '../PageScaffold';
+
 export function HelpPage() {
   return (
-    <div className="page">
-      <h1>Help & Support</h1>
+    <PageScaffold
+      title="Help and support"
+      summary="Guidance for using the platform and completing requests."
+    >
+      <div className="card">
+        <h3>Getting started</h3>
+        <p>Follow guided steps from entry to submission.</p>
+      </div>
 
       <div className="card">
-        <p>If you're unsure what to do, we guide you step by step.</p>
+        <h3>Need assistance?</h3>
+        <p>Contact support for help.</p>
       </div>
-    </div>
+    </PageScaffold>
   );
 }

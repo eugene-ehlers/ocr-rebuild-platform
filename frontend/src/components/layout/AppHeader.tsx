@@ -5,7 +5,7 @@ export function AppHeader() {
     <header className="app-header">
       <div className="page-container app-header__inner">
         <Link to="/" className="app-brand">
-          OCR Platform
+          OCR Intelligence Platform
         </Link>
         <nav className="app-nav" aria-label="Primary">
   <div className="app-nav__primary">

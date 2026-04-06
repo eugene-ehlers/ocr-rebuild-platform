@@ -6,8 +6,17 @@ export function BlockedPage() {
 
   return (
     <PageScaffold
-      title="Blocked"
-      summary={`Placeholder blocked route for request: ${request_id ?? 'unknown'}. No exception or review handling is implemented.`}
-    />
+      title="Request blocked"
+      summary={`Request ${request_id ?? ''} requires attention.`}
+    >
+      <div className="card">
+        <p>Your document could not be processed.</p>
+      </div>
+
+      <div className="card">
+        <h3>What to do next</h3>
+        <p>Review requirements and resubmit.</p>
+      </div>
+    </PageScaffold>
   );
 }

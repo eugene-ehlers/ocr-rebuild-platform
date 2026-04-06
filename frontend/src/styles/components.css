@@ -1,0 +1,172 @@
+/* ============================= */
+/* BUTTON SYSTEM */
+/* ============================= */
+
+.btn,
+.btn-primary,
+.btn-success,
+.btn-secondary,
+.btn-ghost,
+.btn-admin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 14px 20px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 15px;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background: var(--color-orange);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(249,115,22,0.25);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.04);
+}
+
+.btn-success {
+  background: var(--color-green);
+  color: #fff;
+}
+
+.btn-secondary {
+  background: white;
+  border: 1px solid var(--border);
+  color: var(--text-heading);
+  opacity: 0.9;
+}
+
+.btn-admin {
+  background: var(--color-navy);
+  color: var(--color-yellow);
+  box-shadow: 0 8px 20px rgba(11,31,51,0.18);
+}
+
+.btn-admin:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.06);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--navy);
+}
+
+/* ============================= */
+/* CARD SYSTEM */
+/* ============================= */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow-soft);
+  transition: all 0.25s ease;
+  color: var(--text-heading);
+}
+
+.card p,
+.card li {
+  color: var(--text-body);
+}
+
+.card p {
+  flex-grow: 1;
+}
+
+.card h1,
+.card h2,
+.card h3,
+.card h4 {
+  color: var(--text-heading);
+}
+
+.card .btn-primary,
+.card .btn-secondary,
+.card .btn-admin {
+  margin-top: auto;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+}
+
+.card--primary {
+  position: relative;
+  transform: scale(1.05);
+  border: 1.5px solid var(--color-teal);
+  background: white;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.10);
+}
+
+.card--primary:hover {
+  transform: scale(1.05) translateY(-4px);
+}
+
+.card--selected,
+.card--active {
+  border-left: 4px solid var(--color-green);
+  background: linear-gradient(180deg, var(--color-green-soft) 0%, #f8fffb 100%);
+  box-shadow: 0 10px 24px rgba(22,163,74,0.10);
+}
+
+/* ============================= */
+/* ICON SYSTEM */
+/* ============================= */
+
+.icon {
+  width: 28px;
+  height: 28px;
+  display: inline-block;
+  color: var(--navy);
+}
+
+.icon--green,
+.step-icon--complete {
+  color: var(--color-green);
+}
+
+/* ============================= */
+/* STATE */
+/* ============================= */
+
+.text-success {
+  font-weight: 600;
+  color: var(--color-green);
+}
+
+.step--complete {
+  border-left: 4px solid var(--color-green);
+  background: white;
+}
+
+
+.card-badge {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  background: var(--color-orange);
+  color: white;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-weight: 700;
+  line-height: 1;
+  z-index: 1;
+}

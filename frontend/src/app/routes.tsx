@@ -16,6 +16,17 @@ import { PrivacyPage } from '../pages/legal/PrivacyPage';
 import { CookiesPage } from '../pages/legal/CookiesPage';
 import { AcceptableUsePage } from '../pages/legal/AcceptableUsePage';
 import { ConsentFrameworkPage } from '../pages/legal/ConsentFrameworkPage';
+import { EntrySelectionPage } from '../pages/entry/EntrySelectionPage';
+import { ServiceSelectionPage } from '../pages/entry/ServiceSelectionPage';
+import { JourneyIntroPage } from '../pages/guided/JourneyIntroPage';
+import { ServiceContextPage } from '../pages/journey/ServiceContextPage';
+import { DocumentSelectionPage } from '../pages/journey/DocumentSelectionPage';
+import { RequirementsDetailPage } from '../pages/journey/RequirementsDetailPage';
+import { ReadinessCheckPage } from '../pages/journey/ReadinessCheckPage';
+import { PreUploadPage } from '../pages/journey/PreUploadPage';
+import { TrustPage } from '../pages/public/TrustPage';
+import { HowItWorksPage } from '../pages/public/HowItWorksPage';
+import { HelpPage } from '../pages/public/HelpPage';
 
 export function AppRoutes() {
   return (
@@ -34,6 +45,18 @@ export function AppRoutes() {
       <Route path="/billing" element={<BillingPage />} />
       <Route path="/support" element={<SupportPage />} />
       <Route path="/reports" element={<ReportsPage />} />
+      <Route path="/entry" element={<EntrySelectionPage />} />
+      <Route path="/entry/service" element={<ServiceSelectionPage />} />
+      <Route path="/guided/start" element={<JourneyIntroPage />} />
+      <Route path="/journey/service-context" element={<ServiceContextPage />} />
+      <Route path="/journey/document-selection" element={<DocumentSelectionPage />} />
+      <Route path="/journey/requirements" element={<RequirementsDetailPage />} />
+      <Route path="/journey/readiness" element={<ReadinessCheckPage />} />
+      <Route path="/journey/pre-upload" element={<PreUploadPage />} />
+      <Route path="/trust" element={<TrustPage />} />
+      <Route path="/how-it-works" element={<HowItWorksPage />} />
+      <Route path="/help" element={<HelpPage />} />
+
 
       <Route path="/legal/terms" element={<TermsPage />} />
       <Route path="/legal/privacy" element={<PrivacyPage />} />

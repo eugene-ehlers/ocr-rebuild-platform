@@ -1,16 +1,23 @@
 import { Link } from 'react-router-dom';
+import { PageScaffold } from '../PageScaffold';
 
 export function JourneyIntroPage() {
   return (
-    <div className="page">
-      <h1>Before we begin</h1>
-
+    <PageScaffold
+      title="Before you begin"
+      summary="We guide you step-by-step to ensure your submission is complete and valid."
+    >
       <div className="card">
-        <p>We will guide you step by step.</p>
-        <p>You will need your documents ready.</p>
+        <ul className="home-list">
+          <li>Ensure documents are clear and readable</li>
+          <li>Have all required information ready</li>
+          <li>Follow each step carefully before submission</li>
+        </ul>
       </div>
 
-      <Link to="/journey/service-context" className="btn">Start journey</Link>
-    </div>
+      <Link to="/journey/service-context" className="btn">
+        Start journey
+      </Link>
+    </PageScaffold>
   );
 }

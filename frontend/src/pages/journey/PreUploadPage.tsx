@@ -1,14 +1,22 @@
+import { Link } from 'react-router-dom';
+import { PageScaffold } from '../PageScaffold';
+
 export function PreUploadPage() {
   return (
-    <div className="page">
-      <h1>Ready to proceed</h1>
-
-      <div className="card">
-        <p>You are ready to upload your document.</p>
-        <p>In the next step, we will securely process your file.</p>
+    <PageScaffold
+      title="Upload your document"
+      summary="Drag and drop or select a file to proceed."
+    >
+      <div className="upload-zone">
+        <p><strong>Drag & drop your file here</strong></p>
+        <p>or</p>
+        <button className="btn">Choose file</button>
+        <p>PDF, JPG, PNG — Max 10MB</p>
       </div>
 
-      <div className="btn secondary">Proceed to upload (coming soon)</div>
-    </div>
+      <Link to="/submit" className="btn">
+        Continue to review
+      </Link>
+    </PageScaffold>
   );
 }

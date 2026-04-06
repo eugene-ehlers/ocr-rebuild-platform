@@ -6,8 +6,12 @@ export function ProcessingPage() {
 
   return (
     <PageScaffold
-      title="Processing"
-      summary={`Placeholder processing route for request: ${request_id ?? 'unknown'}. No polling or workflow calls are implemented.`}
-    />
+      title="Processing request"
+      summary={`Your request ${request_id ?? ''} is currently being processed.`}
+    >
+      <div className="card">
+        <p>We are analysing your document. This may take a few moments.</p>
+      </div>
+    </PageScaffold>
   );
 }

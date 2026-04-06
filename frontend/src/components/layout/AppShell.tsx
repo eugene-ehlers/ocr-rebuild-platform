@@ -10,9 +10,12 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <div className="app-shell">
       <AppHeader />
+
       <main className="app-main">
         <div className="page-container">{children}</div>
       </main>
+
+
       <AppFooter />
     </div>
   );

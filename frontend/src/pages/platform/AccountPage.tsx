@@ -4,7 +4,11 @@ export function AccountPage() {
   return (
     <PageScaffold
       title="Account"
-      summary="Placeholder account route. Account management logic is out of scope for FE-W1."
-    />
+      summary="Manage your account settings."
+    >
+      <div className="card">
+        <p>User details and preferences.</p>
+      </div>
+    </PageScaffold>
   );
 }

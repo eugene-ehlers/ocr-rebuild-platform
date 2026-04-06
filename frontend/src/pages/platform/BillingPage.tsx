@@ -4,7 +4,11 @@ export function BillingPage() {
   return (
     <PageScaffold
       title="Billing"
-      summary="Placeholder billing route. Billing logic is out of scope for FE-W1."
-    />
+      summary="Manage billing and usage."
+    >
+      <div className="card">
+        <p>Invoices and payment methods.</p>
+      </div>
+    </PageScaffold>
   );
 }

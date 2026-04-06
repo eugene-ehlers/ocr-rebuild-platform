@@ -1,18 +1,33 @@
 import { Link } from 'react-router-dom';
+import { PageScaffold } from '../PageScaffold';
 
 export function EntrySelectionPage() {
   return (
-    <div className="page">
-      <h1>What would you like to do?</h1>
+    <PageScaffold
+      title="Start your request"
+      summary="Choose how you want to begin and what type of request you want to prepare."
+    >
+      <div className="home-grid home-grid--3">
 
-      <div className="section">
-        <p>Select how you want to start.</p>
+        <div className="card">
+          <h3>Understand a document</h3>
+          <p>Explore document structure and expected outcomes before submitting files.</p>
+          <Link to="/entry/service" className="btn">Select</Link>
+        </div>
+
+        <div className="card">
+          <h3>Submit documents</h3>
+          <p>Proceed directly to structured submission with guided preparation steps.</p>
+          <Link to="/entry/service" className="btn">Select</Link>
+        </div>
+
+        <div className="card">
+          <h3>Business / organisation</h3>
+          <p>Prepare organisation-level details and authorised submission context.</p>
+          <Link to="/entry/service" className="btn secondary">Select</Link>
+        </div>
+
       </div>
-
-      <Link to="/entry/service" className="btn">Understand a document</Link>
-      <Link to="/entry/service" className="btn">Submit documents</Link>
-      <Link to="/entry/service" className="btn">Business / organisation</Link>
-      <Link to="/entry/service" className="btn secondary">Test / explore</Link>
-    </div>
+    </PageScaffold>
   );
 }
