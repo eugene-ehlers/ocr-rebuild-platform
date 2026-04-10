@@ -548,3 +548,54 @@ body {
   width: 100%;
   margin: 0;
 }
+
+.submit-stack {
+  display: grid;
+  gap: 24px;
+}
+
+.submit-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.submit-summary-item {
+  display: grid;
+  gap: 6px;
+}
+
+.submit-summary-item p {
+  margin: 0;
+}
+
+.submit-list {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.journey-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 24px;
+}
+
+.checklist-stack,
+.upload-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.upload-label {
+  font-weight: 600;
+}
+
+.upload-help {
+  color: var(--color-text-soft);
+}

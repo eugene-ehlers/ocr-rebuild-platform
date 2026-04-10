@@ -1,11 +1,12 @@
 import { createContext, useContext, useState } from "react";
 
-const JourneyContext = createContext<any>(null);
+const JourneyContext = createContext<any>(undefined);
 
 export function JourneyProvider({ children }: any) {
   const [draft, setDraft] = useState({
     journeyType: "individual",
     serviceType: "document_submission",
+    applicant: {},
     serviceContext: { documentType: "", purpose: "submission" },
     readiness: {
       requirementsAcknowledged: false,
@@ -24,5 +25,7 @@ export function JourneyProvider({ children }: any) {
 }
 
 export function useJourney() {
-  return useContext(JourneyContext);
+  const ctx = useContext(JourneyContext);
+  if (!ctx) throw new Error("useJourney must be used within JourneyProvider");
+  return ctx;
 }
