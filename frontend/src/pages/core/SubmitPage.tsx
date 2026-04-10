@@ -69,7 +69,7 @@ export function SubmitPage() {
         message: "Please fix validation errors before submitting.",
         field_errors: validation,
       });
-      return;
+      // TEMPORARY PHASE BYPASS: show validation but do not block submission
     }
 
     try {
