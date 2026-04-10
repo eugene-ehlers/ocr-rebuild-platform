@@ -28,29 +28,6 @@ export function SubmitPage() {
   const validation = useMemo(() => {
     const errs: Record<string, string> = {};
 
-    if (draft.journeyType === "individual") {
-      const a = draft.applicant?.individual;
-      if (!a?.firstNames) errs["firstNames"] = "First names are required";
-      if (!a?.surname) errs["surname"] = "Surname is required";
-      if (!a?.idNumber) errs["idNumber"] = "ID number is required";
-      if (!a?.email) errs["email"] = "Email is required";
-      if (!a?.mobile) errs["mobile"] = "Mobile is required";
-      if (!a?.bankName) errs["bankName"] = "Bank name is required";
-      if (!a?.bankAccountNumber) errs["bankAccountNumber"] = "Bank account number is required";
-    } else {
-      const b = draft.applicant?.business;
-      if (!b?.businessName) errs["businessName"] = "Business name is required";
-      if (!b?.registrationNumber) errs["registrationNumber"] = "Registration number is required";
-      if (!b?.responsiblePerson?.firstNames) errs["responsiblePerson.firstNames"] = "Responsible person first names are required";
-      if (!b?.responsiblePerson?.surname) errs["responsiblePerson.surname"] = "Responsible person surname is required";
-      if (!b?.responsiblePerson?.idNumber) errs["responsiblePerson.idNumber"] = "Responsible person ID number is required";
-      if (!b?.responsiblePerson?.email) errs["responsiblePerson.email"] = "Responsible person email is required";
-      if (!b?.responsiblePerson?.mobile) errs["responsiblePerson.mobile"] = "Responsible person mobile is required";
-      if (!b?.bankName) errs["bankName"] = "Bank name is required";
-      if (!b?.bankAccountNumber) errs["bankAccountNumber"] = "Bank account number is required";
-      if (!b?.authorityIndicator) errs["authorityIndicator"] = "Authority must be confirmed";
-    }
-
     if (!draft.serviceContext?.documentType) errs["documentType"] = "Document type is required";
     if (!draft.readiness?.requirementsAcknowledged) errs["requirementsAcknowledged"] = "Requirements must be acknowledged";
     if (!draft.readiness?.fileQualityConfirmed) errs["fileQualityConfirmed"] = "File quality must be confirmed";
