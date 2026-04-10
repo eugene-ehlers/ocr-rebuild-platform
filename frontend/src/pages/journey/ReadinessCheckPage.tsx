@@ -26,6 +26,11 @@ export function ReadinessCheckPage() {
       title="Confirm readiness"
       summary="Please confirm all conditions are met before upload."
       actionLabel="Complete all confirmations to continue to upload."
+      actionNode={
+        <button className="btn-primary" onClick={() => navigate("/journey/pre-upload")} disabled={!ready}>
+          Continue
+        </button>
+      }
     >
       <section className="card">
         <div className="checklist-stack">
@@ -58,11 +63,6 @@ export function ReadinessCheckPage() {
         </div>
       </section>
 
-      <div className="action-bar">
-        <button className="btn-primary" onClick={() => navigate("/journey/pre-upload")} disabled={!ready}>
-          Continue
-        </button>
-      </div>
     </PageScaffold>
   );
 }

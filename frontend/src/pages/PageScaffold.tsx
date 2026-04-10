@@ -6,6 +6,7 @@ interface PageScaffoldProps {
   children?: ReactNode;
   trustText?: string;
   actionLabel?: string;
+  actionNode?: ReactNode;
 }
 
 export function PageScaffold({
@@ -14,6 +15,7 @@ export function PageScaffold({
   children,
   trustText = 'We guide you through each step clearly before any processing begins.',
   actionLabel = 'Continue to the next step.',
+  actionNode,
 }: PageScaffoldProps) {
   return (
     <section className="page-surface">
@@ -35,6 +37,7 @@ export function PageScaffold({
           <div className="page-action__panel">
             <strong>Next step</strong>
             <p>{actionLabel}</p>
+            {actionNode ? <div className="action-bar">{actionNode}</div> : null}
           </div>
         </section>
 
