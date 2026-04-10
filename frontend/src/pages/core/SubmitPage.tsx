@@ -123,6 +123,11 @@ export function SubmitPage() {
       summary="Confirm your details, selected document, and readiness checks before creating a trackable request."
       trustText="Submitting will create a request ID, upload your selected document, and move you into a live status-tracking journey."
       actionLabel="When you submit, the platform will create your request and redirect you to the status page."
+      actionNode={
+        <button className="btn-primary" onClick={handleSubmit} disabled={submitting}>
+          {submitting ? "Submitting..." : "Submit request"}
+        </button>
+      }
     >
       <div className="submit-stack">
         <section className="card card--selected">
@@ -179,11 +184,6 @@ export function SubmitPage() {
           </section>
         )}
 
-        <div className="action-bar">
-          <button className="btn-primary" onClick={handleSubmit} disabled={submitting}>
-            {submitting ? "Submitting..." : "Submit request"}
-          </button>
-        </div>
       </div>
     </PageScaffold>
   );

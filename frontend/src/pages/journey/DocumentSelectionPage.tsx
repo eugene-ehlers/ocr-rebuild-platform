@@ -27,6 +27,15 @@ export function DocumentSelectionPage() {
       title="Select document type"
       summary="Choose the type of document you want to prepare and submit."
       actionLabel="Select a document type before continuing."
+      actionNode={
+        <button
+          className="btn-primary"
+          onClick={() => navigate("/journey/readiness")}
+          disabled={!draft.serviceContext?.documentType}
+        >
+          Continue
+        </button>
+      }
     >
       <div className="journey-card-grid">
         {OPTIONS.map((option) => {
@@ -44,15 +53,6 @@ export function DocumentSelectionPage() {
         })}
       </div>
 
-      <div className="action-bar">
-        <button
-          className="btn-primary"
-          onClick={() => navigate("/journey/readiness")}
-          disabled={!draft.serviceContext?.documentType}
-        >
-          Continue
-        </button>
-      </div>
     </PageScaffold>
   );
 }
