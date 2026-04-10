@@ -34,6 +34,15 @@ export function PreUploadPage() {
       title="Prepare upload"
       summary="Choose your file and confirm the declaration before continuing to review and submit."
       actionLabel="Select a file and confirm the declaration to continue."
+      actionNode={
+        <button
+          className="btn-primary"
+          onClick={() => navigate("/submit")}
+          disabled={!draft.upload?.file || !draft.submission?.declarationConfirmed}
+        >
+          Continue to review
+        </button>
+      }
     >
       <section className="card">
         <div className="upload-stack">
@@ -58,15 +67,6 @@ export function PreUploadPage() {
         </div>
       </section>
 
-      <div className="action-bar">
-        <button
-          className="btn-primary"
-          onClick={() => navigate("/submit")}
-          disabled={!draft.upload?.file || !draft.submission?.declarationConfirmed}
-        >
-          Continue to review
-        </button>
-      </div>
     </PageScaffold>
   );
 }
