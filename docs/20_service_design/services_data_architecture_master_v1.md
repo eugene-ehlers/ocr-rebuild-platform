@@ -151,3 +151,17 @@ Supporting:
 Next:
 - DDL + migration definition
 
+## 14. Migration Runtime Baseline
+
+System B migration execution and local migration validation must use the governed runtime baseline defined in:
+
+- `docs/20_service_design/systemb_migration_runtime_baseline_v1.md`
+
+The dependency authority for that runtime is:
+
+- `src/modules/persistence/requirements.txt`
+
+The repeatable provisioning/bootstrap entrypoint is:
+
+- `scripts/systemb/setup_migration_runtime.sh`
+
