@@ -119,9 +119,9 @@ Support/admin users must be able to query the system efficiently for:
 ### Evidence Basis
 
 The design basis includes explicit governance signals that:
-- traceability and auditability are mandatory :contentReference[oaicite:0]{index=0}
-- lifecycle and history must be captured :contentReference[oaicite:1]{index=1}
-- current request persistence is not yet event-driven and lacks audit-grade immutability (GAP-015) :contentReference[oaicite:2]{index=2}
+- traceability and auditability are mandatory
+- lifecycle and history must be captured
+- current request persistence is not yet event-driven and lacks audit-grade immutability (GAP-015)
 
 These constraints require an OLTP architecture that preserves append-only history while still supporting operational queryability.
 
