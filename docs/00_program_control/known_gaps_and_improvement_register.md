@@ -129,3 +129,85 @@ docs/00_program_control/evidence/FE_GAP_ANALYSIS_20260401_step02_dimension_evide
 Critical
 
 | GAP-frontend-release-promotion-origin | Frontend release promotion origin alignment | Governed frontend safety model now requires immutable releases and `current/` promotion, but CloudFront still serves bucket root rather than `current/`. | Current live sites remain stable, S3 versioning is enabled, and governed docs now prohibit destructive live-root deployment. | Until origin/path is aligned to `current/`, the full immutable promotion model is documented but not yet active at runtime. | High | Partial | Implement controlled CloudFront origin/path alignment to `current/` without breaking restored live sites; add release metadata exposure and controlled promotion procedure. | OPEN |
+
+
+| GAP-035 | Builder payload handoff | Builder output was not being handed to downstream execution correctly | Builder output is now created before _execute(...) and used consistently for downstream handoff with manifest_id and document continuity | Frontend/API path aligned to runtime truth | Low | Builder output is authoritative downstream handoff payload | Extend consistency checks across broader pipeline | CLOSED |
+
+
+---
+
+### GAP — STRUCTURED BANK STATEMENT RECONSTRUCTION SERVICE
+
+**Gap ID:** GAP-NEW-FIN-STRUCT-RECON  
+**Category:** Functional Capability Gap  
+**Service Domain:** Financial Services  
+
+**Description:**
+There is currently no evidenced service that converts OCR-extracted bank statement data into a structured electronic financial representation (e.g. transactions, balances, statement periods).
+
+**Required Capability:**
+A governed sub-service under financial services that:
+- consumes OCR output (`pages`, `extracted_text`)
+- reconstructs:
+  - transactions
+  - statement period (start/end)
+  - balances
+  - structured financial signals
+- outputs standardized structured bank statement substrate
+
+**Explicit Boundary:**
+- NOT part of `serviceCode: "ocr"`
+- MUST exist as separate service (e.g. financial_management or new sub-service)
+
+**Current Runtime Evidence:**
+- OCR produces only:
+  - pages
+  - extracted_text
+- No structured financial parsing present in OCR worker
+- Credit decision expects structured financial inputs but relies on downstream logic
+
+**Impact:**
+- Frontend must not assume structured financial outputs from OCR
+- Credit decision may reject due to missing structured data
+- Limits end-to-end financial decision capability
+
+**Required Outcome:**
+Introduce governed structured extraction service aligned to architecture and workflow model.
+
+Resolution:
+This gap has been resolved with the implementation of FM-OTC-007 under financial_management (analysis_type = reconstruct_bank_statement).
+
+**Status:** CLOSED
+
+---
+
+## Model lineage persistence — Delivered
+
+Status:
+Delivered in current runtime development state
+
+Details:
+- Decision Engine stamps selected lineage for reconstruction, classification, and scoring
+- Runtime execution derives executed lineage from downstream outputs
+- OCR is recorded as executed metadata only
+- Single JSON structure used for lineage persistence
+
+Remaining gaps:
+- broader multi-model continuity fallback scenarios still need runtime hardening and wider validation
+
+## Structured bank statement reconstruction subservice — Delivered
+
+Status:
+Delivered in current runtime development state
+
+Details:
+- financial_management now supports analysis_type = reconstruct_bank_statement
+- governed outcome = FM-OTC-007
+- returns structured_bank_statement with:
+  - transactions
+  - transaction_count
+  - statement_period_start
+  - statement_period_end
+
+Disposition:
+Available through governed Decision Engine orchestration as a financial-management subservice.

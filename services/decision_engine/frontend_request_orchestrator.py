@@ -116,7 +116,17 @@ FM_GOVERNED_RUNTIME_LOCKS = {
         "outcome_intent": "compare_against_reference",
         "analysis_type": "benchmark_reference_comparison",
     },
-    "detect_financial_risk": {
+    
+    "reconstruct_bank_statement": {
+        "service_code": "financial_management",
+        "service_family": "financial_management",
+        "governed_outcome_code": "FM-OTC-007",
+        "outcome_result_key": "fm_otc_007",
+        "outcome_intent": "reconstruct_bank_statement",
+        "analysis_type": "reconstruct_bank_statement",
+    },
+
+"detect_financial_risk": {
         "service_code": "financial_management",
         "service_family": "financial_management",
         "governed_outcome_code": "FM-OTC-006",
@@ -264,6 +274,99 @@ def _build_context(payload: Dict[str, Any]) -> OrchestrationContext:
         governed_outcome_intent=selected_governed_outcome_intent,
         created_at=_utc_now(),
     )
+
+
+
+
+def _build_selected_model_lineage(
+    context: OrchestrationContext,
+    payload: Dict[str, Any],
+) -> Dict[str, Any]:
+    lineage: Dict[str, Any] = {}
+
+    if context.service_family in {"financial_management", "credit_decision"}:
+        lineage["reconstruction"] = {
+            "selection_mode": "decision_engine_default",
+            "selected_service": "bank_statement_reconstruction",
+            "selected_model_id": "bank_reconstruction_champion_v1_13Apr2026",
+            "selected_version": "v1",
+        }
+        lineage["classification"] = {
+            "selection_mode": "decision_engine_default",
+            "selected_service": "transaction_classifier",
+            "selected_model_id": "txn_classifier_baseline_v1_13Apr2026",
+            "selected_version": "v1",
+        }
+
+    if context.service_family == "credit_decision":
+        lineage["scoring"] = {
+            "selection_mode": "decision_engine_default",
+            "selected_service": "credit_score",
+            "selected_model_id": "credit_score_baseline_v1_13Apr2026",
+            "selected_version": "v1",
+        }
+
+    return lineage
+
+
+def _derive_executed_model_lineage(
+    built_payload: Dict[str, Any],
+    downstream_execution: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    lineage = dict(built_payload.get("model_lineage") or {})
+
+    substrates = built_payload.get("substrates") or {}
+    if isinstance(substrates, dict):
+        ocr = substrates.get("ocr") or {}
+        if isinstance(ocr, dict):
+            engine_metadata = ocr.get("engine_metadata") or {}
+            if isinstance(engine_metadata, dict) and engine_metadata:
+                lineage.setdefault("ocr", {})
+                lineage["ocr"].update({
+                    "executed_service": "ocr_worker",
+                    "executed_model_id": engine_metadata.get("provider") or engine_metadata.get("engine_name"),
+                    "executed_version": engine_metadata.get("engine_version"),
+                    "execution_mode": engine_metadata.get("execution_mode"),
+                    "provider_type": engine_metadata.get("provider_type"),
+                    "decision_reason": engine_metadata.get("decision_reason"),
+                })
+
+            structured_fields = ocr.get("structured_fields") or {}
+            if isinstance(structured_fields, dict):
+                bank_statement = structured_fields.get("bank_statement") or {}
+                if isinstance(bank_statement, dict) and bank_statement.get("reconstruction_model_id"):
+                    lineage.setdefault("reconstruction", {})
+                    lineage["reconstruction"].update({
+                        "executed_service": "bank_statement_reconstruction",
+                        "executed_model_id": bank_statement.get("reconstruction_model_id"),
+                        "executed_version": bank_statement.get("reconstruction_method"),
+                    })
+
+    result = {}
+    if isinstance(downstream_execution, dict):
+        result = downstream_execution.get("result") or {}
+        if not isinstance(result, dict):
+            result = {}
+
+    classified_meta = result.get("classified_transactions_metadata") or {}
+    if isinstance(classified_meta, dict) and classified_meta.get("classification_model_id"):
+        lineage.setdefault("classification", {})
+        lineage["classification"].update({
+            "executed_service": "transaction_classifier",
+            "executed_model_id": classified_meta.get("classification_model_id"),
+            "executed_version": classified_meta.get("classification_method"),
+            "average_confidence": classified_meta.get("average_confidence"),
+        })
+
+    if isinstance(result, dict) and result.get("scoring_model_id"):
+        lineage.setdefault("scoring", {})
+        lineage["scoring"].update({
+            "executed_service": "credit_score",
+            "executed_model_id": result.get("scoring_model_id"),
+            "executed_version": result.get("scoring_method"),
+        })
+
+    return lineage
 
 
 def _base_response(
@@ -816,6 +919,7 @@ def _execute(
 ) -> Dict[str, Any]:
     execution_payload = {
         "request_id": context.request_id,
+        "manifest_id": payload.get("manifest_id"),
         "customer_id": context.customer_id,
         "service_code": context.service_code,
         "service_family": context.service_family,
@@ -1043,7 +1147,14 @@ def _execute_plan(
     _set_stage_status(plan, "enforcement_decision", "passed")
 
     _set_stage_status(plan, "downstream_execution", "running")
+    payload_before_builder = dict(payload)
+    payload = request_execution_payload_v1(context, plan, payload)
     downstream_execution = _execute(context, plan, payload)
+    downstream_execution["payload_builder_boundary"] = {
+        "before_builder": payload_before_builder,
+        "after_builder": payload,
+        "payload_passed_to_execute": payload,
+    }
     stage_results["downstream_execution"] = downstream_execution
 
     execution = downstream_execution.get("execution", {}) or {}
@@ -1104,7 +1215,18 @@ def create_request(payload: Dict[str, Any]) -> Dict[str, Any]:
 
     remediation_prompts = _build_remediation_prompts(enforcement)
 
+    built_payload = {}
+    if isinstance(downstream_execution, dict):
+        payload_boundary = downstream_execution.get("payload_builder_boundary") or {}
+        if isinstance(payload_boundary, dict):
+            candidate = payload_boundary.get("after_builder") or {}
+            if isinstance(candidate, dict):
+                built_payload = candidate
+
+    model_lineage = _derive_executed_model_lineage(built_payload, downstream_execution)
+
     orchestration_record = {
+        "model_lineage": model_lineage,
         "request": asdict(context),
         "execution_plan": execution_plan,
         "stage_results": stage_results,
@@ -1227,3 +1349,58 @@ def rerun_request(request_id: str) -> Dict[str, Any]:
             "rerunResponse": rerun_response["data"],
         },
     )
+
+
+def request_execution_payload_v1(
+    context: OrchestrationContext,
+    plan: Dict[str, Any],
+    payload: Dict[str, Any],
+) -> Dict[str, Any]:
+    built = dict(payload)
+
+    runtime_lock = plan.get("governed_runtime_lock")
+    if not isinstance(runtime_lock, dict):
+        runtime_lock = {}
+
+    governed_outcome_code = runtime_lock.get("governed_outcome_code")
+    governed_outcome_intent = runtime_lock.get("outcome_intent")
+
+    built["model_lineage"] = _build_selected_model_lineage(context, payload)
+
+    built["execution_plan"] = plan
+    built["orchestration_context"] = {
+        "plan_id": plan.get("plan_id"),
+        "plan_version": plan.get("plan_version"),
+        "current_stage": "downstream_execution",
+        "plan_status": plan.get("plan_status"),
+        "analysis_type": getattr(context, "analysis_type", None),
+        "governed_outcome_code": governed_outcome_code,
+        "governed_outcome_intent": governed_outcome_intent,
+    }
+    built["governed_outcome_code"] = governed_outcome_code
+    built["governed_outcome_intent"] = governed_outcome_intent
+
+    document = built.get("document")
+    if not isinstance(document, dict):
+        document = {}
+
+    doc_ids = getattr(context, "document_ids", []) or []
+    document_id = document.get("document_id")
+    if document_id is None and doc_ids:
+        document_id = doc_ids[0]
+
+    built["document"] = {
+        "document_id": document_id,
+        "document_type": document.get("document_type"),
+        "file_format": document.get("file_format"),
+    }
+
+    built["substrates"] = payload.get("substrates")
+
+    built["request"] = {
+        "manifest_id": built.get("manifest_id"),
+        "outcome_code": governed_outcome_code,
+        "consent_reference": payload.get("consent_reference"),
+    }
+
+    return built

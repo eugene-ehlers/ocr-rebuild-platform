@@ -61,3 +61,110 @@ A destructive root deployment pattern caused a production incident affecting com
 
 ### Status
 Approved
+
+---
+
+## DR-E2E-LIGHTWEIGHT-INTEGRATION-001
+
+### Decision
+A lightweight, additive end-to-end integration approach was approved to validate system wiring without modifying protected backend components.
+
+### Key Elements
+- Async ECS launch treated as initial success
+- request_id embedded into manifest
+- manifest_id propagated through execution payload
+- OCR → decision adapter introduced
+- S3 result persistence implemented
+- poller-based ingestion used
+- frontend polling and rendering enabled
+
+### Rationale
+- Preserve governed backend design
+- Avoid large-scale redesign during validation phase
+- Enable working E2E flow for validation and UAT
+
+### Constraint
+This is NOT the target architecture and must not be treated as design authority.
+
+### Status
+Approved (interim)
+
+## Decision: External API moved to Phase 2
+
+Status: Approved
+
+Decision:
+External third-party API integration is moved to Phase 2.
+
+Reason:
+The current backend is integration-ready for the controlled frontend, but is not yet external-partner ready because the codebase does not yet provide a hardened external API layer with authentication, versioned OpenAPI contract, standardized error model, idempotency rules, or explicit async integration semantics.
+
+Implications:
+- Controlled frontend integration may proceed now.
+- Third-party onboarding is blocked until the external API hardening workstream is complete.
+- Current request orchestration contract remains internal.
+
+Phase 1 complete items relevant to this decision:
+- request_execution_payload_v1 implemented
+- builder invoked before _execute(...)
+- governed payload handoff corrected
+- runtime payload builder defect resolved under governed change control
+
+Phase 2 required:
+- HTTP API layer
+- authentication/authorization
+- versioned OpenAPI specification
+- partner-safe error contract
+- idempotency and retry semantics
+- explicit async processing model
+- partner-facing integration documentation
+
+### DR-PHASE1-BUILDER-PAYLOAD-AUTHORITY
+
+Decision:
+
+For the Phase 1 frontend/backend integration path, the output of request_execution_payload_v1 is the authoritative downstream handoff payload.
+
+This payload:
+
+- is created before downstream execution
+- is passed into _execute(...)
+- is used for downstream execution
+
+Status: ACTIVE
+
+## Decision: Decision Engine is the sole frontend orchestration entrypoint
+
+Status: Approved
+
+Decision:
+All frontend requests must go through the Decision Engine. The Decision Engine determines required processing, builds the governed execution plan, orchestrates required services and models, applies governance, and returns the final result.
+
+Clarification:
+OCR is not treated as a direct frontend-to-service bypass. OCR is executed through the governed backend flow and recorded as executed lineage when used.
+
+Implications:
+- Frontend never calls backend capability modules directly
+- Reconstruction, classification, scoring, and decisioning are orchestrated by the Decision Engine
+- Model lineage is persisted as a single JSON object rather than schema-expanding columns
+
+## Decision: Financial Management subservice for structured bank statement reconstruction
+
+Status: Approved
+
+Decision:
+A new governed financial-management subservice is implemented for structured bank statement reconstruction.
+
+Implemented shape:
+- service family remains: financial_management
+- analysis_type: reconstruct_bank_statement
+- governed outcome: FM-OTC-007
+- outcome_intent: reconstruct_bank_statement
+
+Purpose:
+Return a structured electronic bank statement from OCR-derived transaction substrate without invoking broader financial analysis or credit decision logic.
+
+Implications:
+- frontend can request structured bank statement reconstruction through the Decision Engine
+- no new top-level service family or direct frontend-to-service bypass is introduced
+- output is suitable for electronic-copy use cases and downstream reuse

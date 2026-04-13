@@ -3,6 +3,10 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
+from services.reconstruction.bank_statement_reconstruction import (
+    get_or_reconstruct_bank_statement_structured,
+)
+
 
 EXPECTED_SERVICE_FAMILY = "financial_management"
 EXPECTED_STAGE = "downstream_execution"
@@ -88,6 +92,8 @@ def _validate_selected_runtime_lock(runtime_lock: Dict[str, Any]) -> Dict[str, A
         ("FM-OTC-004", "fm_otc_004", "assess_financial_obligation_pressure"),
         ("FM-OTC-005", "fm_otc_005", "compare_against_reference"),
         ("FM-OTC-006", "fm_otc_006", "detect_financial_risk"),
+        ("FM-OTC-007", "fm_otc_007", "reconstruct_bank_statement"),
+
     }
 
     pair = (
@@ -164,6 +170,18 @@ def _normalize_type(raw_type: Any, amount: float) -> str:
     if normalized in {"debit", "credit"}:
         return normalized
     return "credit" if amount >= 0 else "debit"
+
+
+
+def _get_statement_transactions(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
+    structured = get_or_reconstruct_bank_statement_structured(payload)
+    transactions = structured.get("transactions")
+    if isinstance(transactions, list) and transactions:
+        return transactions
+    raw_transactions = payload.get("transactions")
+    if isinstance(raw_transactions, list):
+        return raw_transactions
+    return []
 
 
 def _normalize_transaction(raw: Dict[str, Any], index: int) -> Dict[str, Any]:
@@ -281,9 +299,7 @@ def _build_substrate(
     Dict[str, Any],
     Dict[str, Any],
 ]:
-    raw_transactions = payload.get("transactions")
-    if not isinstance(raw_transactions, list):
-        raw_transactions = []
+    raw_transactions = _get_statement_transactions(payload)
 
     parsed_transactions = [
         _normalize_transaction(raw, idx)
@@ -2281,6 +2297,25 @@ def run(payload: Dict[str, Any]) -> Dict[str, Any]:
             "fm_otc_005": _selected_benchmark_outcome,
         }
         outward_summary = "Financial management worker executed with FM-OTC-005 governed outcome outputs."
+
+    
+    
+    elif selected_outcome_code == "FM-OTC-007":
+
+        outward_result = {
+            "fm_otc_007": {
+                "outcome_intent": "reconstruct_bank_statement",
+                "structured_bank_statement": {
+                    "transactions": parsed_transactions,
+                    "transaction_count": len(parsed_transactions),
+                    "statement_period_start": parsed_transactions[0]["date"] if parsed_transactions else None,
+                    "statement_period_end": parsed_transactions[-1]["date"] if parsed_transactions else None,
+                },
+                "summary": "Structured bank statement reconstructed from OCR-derived transaction substrate."
+            }
+        }
+
+        outward_summary = "Financial management worker executed with FM-OTC-007 governed outcome outputs."
 
     elif selected_outcome_code == "FM-OTC-006":
         if _selected_risk_validation["status"] != "pass":
