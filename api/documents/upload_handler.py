@@ -9,8 +9,13 @@ No direct access to the internal store is ever granted to I-DIP or the client.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
+import json
+import os
 import uuid
+
+import boto3
+from botocore.exceptions import ClientError
 
 
 def _utc_now() -> str:
@@ -23,6 +28,17 @@ def _new_document_id() -> str:
 
 def _new_request_id() -> str:
     return f"req_{uuid.uuid4().hex[:12]}"
+
+
+def _s3_client():
+    return boto3.client("s3", region_name=os.environ.get("AWS_REGION", "us-east-1"))
+
+
+def _internal_bucket() -> str:
+    bucket = os.environ.get("OCR_INTERNAL_BUCKET", "").strip()
+    if not bucket:
+        raise RuntimeError("OCR_INTERNAL_BUCKET environment variable is required")
+    return bucket
 
 
 def upload_from_idip(
@@ -69,9 +85,6 @@ def upload_from_idip(
         "disclosure_consent_status": disclosure_consent_status,
     }
 
-    # In a real implementation this writes file_bytes + linkage
-    # to the OCR internal store under a client-scoped key and
-    # records an audit event. The internal store is never exposed.
     _write_to_ocr_internal_store(
         linkage=linkage,
         filename=filename,
@@ -79,8 +92,6 @@ def upload_from_idip(
         file_bytes=file_bytes,
     )
 
-    # Client-safe payload returned to I-DIP for its vault.
-    # Contains no credentials, no internal paths, no raw OCR text.
     return {
         "success": True,
         "document_id": document_id,
@@ -103,15 +114,45 @@ def _write_to_ocr_internal_store(
     content_type: str,
     file_bytes: bytes,
 ) -> None:
-    """Placeholder for the secure write to the OCR audit store.
+    """Write the original file and linkage metadata to the private OCR internal bucket.
 
-    Real implementation must:
-    - use a service role that only the OCR platform holds
-    - store under a key derived from client_id + document_id
-    - attach the full linkage metadata
-    - emit an audit log entry
-    - never return a presigned URL or credential to the caller
+    Key layout (client-scoped, not listable by I-DIP):
+      clients/{client_id}/documents/{document_id}/original/{filename}
+      clients/{client_id}/documents/{document_id}/linkage.json
+
+    The service role that runs this code is the only principal allowed to write.
+    No presigned URL is generated or returned.
     """
-    # Intentionally empty in this stub. The contract is defined;
-    # storage wiring is a later deployment step.
-    _ = (linkage, filename, content_type, file_bytes)
+    bucket = _internal_bucket()
+    s3 = _s3_client()
+
+    client_id = linkage["client_id"]
+    document_id = linkage["document_id"]
+    safe_name = filename.replace("/", "_").replace("\\", "_") or "upload.bin"
+
+    original_key = f"clients/{client_id}/documents/{document_id}/original/{safe_name}"
+    linkage_key = f"clients/{client_id}/documents/{document_id}/linkage.json"
+
+    try:
+        s3.put_object(
+            Bucket=bucket,
+            Key=original_key,
+            Body=file_bytes,
+            ContentType=content_type,
+            ServerSideEncryption="AES256",
+            Metadata={
+                "request-id": linkage["request_id"],
+                "document-id": document_id,
+                "client-id": client_id,
+                "source-app": linkage["source_app"],
+            },
+        )
+        s3.put_object(
+            Bucket=bucket,
+            Key=linkage_key,
+            Body=json.dumps(linkage, indent=2).encode("utf-8"),
+            ContentType="application/json",
+            ServerSideEncryption="AES256",
+        )
+    except ClientError as exc:
+        raise RuntimeError(f"OCR internal store write failed: {exc}") from exc
